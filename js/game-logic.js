@@ -541,6 +541,9 @@ const GameLogic = {
     if (x < -62) return 'ShadowClan Territory';
     // Fourtrees (where all territories meet)
     if (x < -35 && x > -55 && z < -35 && z > -55) return 'Fourtrees';
+    // Highstones / Mothermouth (far northwest, beyond WindClan)
+    if (x < -65 && z < -80) return 'Highstones';
+    if (x > -65 && x < -60 && z < -80) return 'Highstones Path';
     // WindClan territory (far north-west open moorland)
     if (z < -60) return 'WindClan Territory';
     // Sunningrocks (near river)

@@ -1118,6 +1118,78 @@ window.onerror = function(msg, url, line, col, err) {
     rbLabel.position.set(70, 0, 20); scene.add(rbLabel);
     const wbLabel = makeNameLabel('WindClan Border', 2.5);
     wbLabel.position.set(20, 0, -55); scene.add(wbLabel);
+
+    /* --- HIGHSTONES & MOTHERMOUTH (far northwest, beyond WindClan) --- */
+    // Rocky barren ground around Highstones
+    const hsGroundMat = new THREE.MeshLambertMaterial({ color: 0x7a7a6a });
+    const hsGround = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), hsGroundMat);
+    hsGround.rotation.x = -Math.PI / 2; hsGround.position.set(-80, 0.02, -95);
+    scene.add(hsGround);
+
+    // Highstones — jagged rocky hills
+    const hsRockMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+    const hsDarkMat = new THREE.MeshLambertMaterial({ color: 0x666666 });
+    // Main peak
+    const peak1 = new THREE.Mesh(new THREE.ConeGeometry(6, 14, 6), hsRockMat);
+    peak1.position.set(-80, 7, -97); peak1.castShadow = true; scene.add(peak1);
+    // Secondary peaks
+    const peak2 = new THREE.Mesh(new THREE.ConeGeometry(4, 10, 5), hsDarkMat);
+    peak2.position.set(-73, 5, -93); peak2.castShadow = true; scene.add(peak2);
+    const peak3 = new THREE.Mesh(new THREE.ConeGeometry(5, 12, 5), hsRockMat);
+    peak3.position.set(-87, 6, -95); peak3.castShadow = true; scene.add(peak3);
+    const peak4 = new THREE.Mesh(new THREE.ConeGeometry(3.5, 8, 5), hsDarkMat);
+    peak4.position.set(-76, 4, -100); peak4.castShadow = true; scene.add(peak4);
+    const peak5 = new THREE.Mesh(new THREE.ConeGeometry(4, 9, 6), hsRockMat);
+    peak5.position.set(-84, 4.5, -90); peak5.castShadow = true; scene.add(peak5);
+
+    // Scattered boulders around the base
+    for (let i = 0; i < 20; i++) {
+      const bx = -80 + (Math.random() - 0.5) * 30;
+      const bz = -95 + (Math.random() - 0.5) * 20;
+      const bs = 0.5 + Math.random() * 1.5;
+      const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(bs, 0), hsRockMat);
+      boulder.position.set(bx, bs * 0.3, bz);
+      boulder.rotation.set(Math.random(), Math.random(), Math.random());
+      boulder.scale.set(1, 0.5 + Math.random() * 0.5, 1);
+      boulder.castShadow = true;
+      scene.add(boulder);
+    }
+
+    // Mothermouth cave entrance — dark opening in the main peak
+    const caveMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    // Entrance arch
+    const caveArch = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.6, 6, 8, Math.PI), hsRockMat);
+    caveArch.position.set(-80, 2.5, -93); caveArch.rotation.x = Math.PI / 2;
+    scene.add(caveArch);
+    // Dark opening
+    const caveHole = new THREE.Mesh(new THREE.CircleGeometry(2.2, 8), caveMat);
+    caveHole.position.set(-80, 2.2, -93.4);
+    scene.add(caveHole);
+    // Cave floor (leading in)
+    const caveFloor = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), hsDarkMat);
+    caveFloor.rotation.x = -Math.PI / 2; caveFloor.position.set(-80, 0.03, -95);
+    scene.add(caveFloor);
+
+    // The Moonstone — a shimmering crystal inside the cave
+    const moonstoneMat = new THREE.MeshPhongMaterial({
+      color: 0xbbccff, emissive: 0x334488, specular: 0xffffff, shininess: 100,
+      transparent: true, opacity: 0.85
+    });
+    const moonstone = new THREE.Mesh(new THREE.OctahedronGeometry(1.2, 0), moonstoneMat);
+    moonstone.position.set(-80, 1.5, -97); moonstone.rotation.y = Math.PI / 4;
+    moonstone.castShadow = true; scene.add(moonstone);
+    // Glow around the Moonstone
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0x6688ff, transparent: true, opacity: 0.15
+    });
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(2.5, 12, 8), glowMat);
+    glow.position.set(-80, 1.5, -97); scene.add(glow);
+
+    // Labels
+    const hsLabel = makeNameLabel('Highstones', 3.0);
+    hsLabel.position.set(-80, 0, -88); scene.add(hsLabel);
+    const mmLabel = makeNameLabel('Mothermouth', 2.5);
+    mmLabel.position.set(-80, 0, -93); scene.add(mmLabel);
   }
 
   function makeOak (d) {
@@ -2221,6 +2293,8 @@ window.onerror = function(msg, url, line, col, err) {
       graypawEncounterTriggered = data.graypawEncounterTriggered !== false;
       bluestarEncounterTriggered = data.bluestarEncounterTriggered !== false;
       redtailEventTriggered = data.redtailEventTriggered !== false;
+      mothermouthTriggered = data.mothermouthTriggered || false;
+      mothermouthTimer = data.mothermouthTimer || 0;
       playingTimer = data.playingTimer || 0;
       gameTime = data.gameTime || 0;
       // Restore known cats
@@ -2488,6 +2562,16 @@ window.onerror = function(msg, url, line, col, err) {
       if (playingTimer > 1800 && dist < 20) {
         redtailEventTriggered = true;
         triggerRedtailEvent();
+      }
+    }
+
+    // TRIGGER 4: Journey to Mothermouth (after Redtail event + more time)
+    // Fires after the player has explored for a while after the Redtail event
+    if (storyPhase === 'playing' && redtailEventTriggered && !mothermouthTriggered) {
+      mothermouthTimer++;
+      // Trigger after ~60 seconds of exploration post-Redtail (3600 frames at 60fps) AND near camp
+      if (mothermouthTimer > 3600 && dist < 20) {
+        triggerMothermouthJourney();
       }
     }
   }
@@ -2765,6 +2849,186 @@ window.onerror = function(msg, url, line, col, err) {
       placeCatsInCamp();
       saveGame();
       queueMessage('Narrator', 'The Clan mourns Redtail. But you can\'t shake the feeling that something is wrong. Keep your eyes on Ravenpaw... and Tigerclaw.');
+    });
+  }
+
+  /* ====================================================
+     JOURNEY TO MOTHERMOUTH (Bluestar takes Firepaw to
+     the Moonstone so she can share dreams with StarClan)
+     ==================================================== */
+  let mothermouthTriggered = false;
+  let mothermouthTimer = 0;
+
+  function triggerMothermouthJourney () {
+    gameState = 'cutscene';
+    mothermouthTriggered = true;
+
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    const tc = npcCats.find(c => c.name === 'Tigerclaw');
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+
+    // Position cats for the scene
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+    if (tc) { tc.group.visible = true; tc.group.position.set(4, 0, -2); }
+    if (gp) { gp.group.visible = true; gp.group.position.set(player.position.x + 2, 0, player.position.z); }
+
+    const pName = player.name || 'apprentice';
+
+    const scenes = [
+      // Bluestar summons the player
+      { speaker: 'Bluestar', text: '"' + pName + ', come here. I need to speak with you."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Bluestar', text: '"It is time for me to travel to Highstones and share tongues with StarClan at the Moonstone. I must seek their guidance."',
+        camPos: { x: -2, y: 3, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Bluestar', text: '"I have chosen you to come with me, ' + pName + '. It is a long journey — beyond WindClan\'s moorland to the cave called Mothermouth."',
+        camPos: { x: 0, y: 3, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Tigerclaw', text: '"Bluestar, I will join you. The moors are dangerous — WindClan has been driven out by ShadowClan. Who knows what lurks out there now."',
+        camPos: { x: 5, y: 2, z: -1 }, camLook: { x: 4, y: 1, z: -2 } },
+
+      { speaker: 'Bluestar', text: '"Very well, Tigerclaw. We leave at once. ' + pName + ', stay close and keep your eyes open."',
+        camPos: { x: -1, y: 3, z: 0 }, camLook: { x: -3, y: 3, z: -4 } },
+
+      // The journey begins — crossing the territory
+      { narration: true, text: 'You set out from camp with Bluestar and Tigerclaw. The three of you slip through the forest, heading northwest toward WindClan territory.',
+        camPos: { x: -20, y: 8, z: -20 }, camLook: { x: -40, y: 2, z: -50 } },
+
+      { narration: true, text: 'The trees thin as you reach the edge of ThunderClan\'s forest. Ahead stretches the open moorland of WindClan — but it feels eerily empty.',
+        camPos: { x: -30, y: 6, z: -55 }, camLook: { x: -50, y: 3, z: -70 } },
+
+      { speaker: 'Tigerclaw', text: '"This territory stinks of ShadowClan. Brokenstar has driven WindClan out. Stay alert."',
+        camPos: { x: -35, y: 3, z: -60 }, camLook: { x: -40, y: 2, z: -65 } },
+
+      { narration: true, text: 'The wind howls across the barren moor. Without WindClan\'s patrols, the empty hills feel dangerous and exposed. You press on.',
+        camPos: { x: -50, y: 10, z: -70 }, camLook: { x: -70, y: 3, z: -85 } },
+
+      { speaker: 'Bluestar', text: '"The Moonstone lies deep inside Mothermouth, a cave in Highstones. Medicine cats and leaders come here to share tongues with StarClan."',
+        camPos: { x: -60, y: 5, z: -80 }, camLook: { x: -80, y: 5, z: -90 } },
+
+      // Arriving at Highstones
+      { narration: true, text: 'At last, the rocky peaks of <strong>Highstones</strong> rise before you — jagged grey mountains cutting against the darkening sky.',
+        camPos: { x: -65, y: 10, z: -85 }, camLook: { x: -80, y: 7, z: -97 } },
+
+      { narration: true, text: 'A dark opening yawns in the rock face. This is <strong>Mothermouth</strong> — the entrance to the cave where the Moonstone lies.',
+        camPos: { x: -78, y: 4, z: -90 }, camLook: { x: -80, y: 2, z: -94 } },
+
+      { speaker: 'Bluestar', text: '"We must wait for moonrise. When the moon shines into the cave, the Moonstone glows with StarClan\'s light. You must not speak inside."',
+        camPos: { x: -76, y: 3, z: -91 }, camLook: { x: -80, y: 2, z: -93 } },
+
+      { speaker: 'Tigerclaw', text: '"I will stand guard here. Go. I have no need to enter."',
+        camPos: { x: -75, y: 2.5, z: -90 }, camLook: { x: -76, y: 1, z: -92 } },
+
+      // Inside the cave
+      { narration: true, text: 'You follow Bluestar into the pitch-black tunnel. The stone is cold beneath your paws. The darkness presses in from all sides.',
+        camPos: { x: -80, y: 2, z: -94 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      { narration: true, text: 'The tunnel opens into a vast underground cavern. In the center stands a great rock — the <strong>Moonstone</strong>.',
+        camPos: { x: -80, y: 3, z: -95.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      { narration: true, text: 'A shaft of moonlight pierces through a hole in the roof. It strikes the Moonstone — and the crystal erupts in blazing silver-white light!',
+        camPos: { x: -79, y: 2.5, z: -96 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      { narration: true, text: 'The light is blinding — like a frozen star fallen to earth. You can feel a strange power humming through your paws. This is the bridge between the living and the dead.',
+        camPos: { x: -80, y: 2, z: -96.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      { narration: true, text: 'Bluestar crouches and presses her nose to the glowing stone. Her eyes close. She is sharing tongues with StarClan — the warrior ancestors.',
+        camPos: { x: -81, y: 1.5, z: -96 }, camLook: { x: -80, y: 0.8, z: -97 } },
+
+      { narration: true, text: 'You watch in awe. The silence is absolute. The Moonstone pulses gently, casting blue-white light across the cavern walls.',
+        camPos: { x: -80, y: 3, z: -96 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      { narration: true, text: '<em>Fire alone will save our Clan...</em> The words drift through your mind unbidden. Is StarClan speaking to you too?',
+        camPos: { x: -80, y: 2, z: -96.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      // Bluestar wakes
+      { narration: true, text: 'After what feels like an eternity, Bluestar stirs. The moonlight fades. The Moonstone dims to ordinary grey rock.',
+        camPos: { x: -79, y: 2.5, z: -96 }, camLook: { x: -80, y: 1, z: -97 } },
+
+      { speaker: 'Bluestar', text: '"It is done. StarClan has spoken to me... but their message was unclear. They showed me fire and shadow, locked in battle."',
+        camPos: { x: -81, y: 2, z: -95 }, camLook: { x: -80, y: 1.5, z: -96 } },
+
+      { speaker: 'Bluestar', text: '"Come, ' + pName + '. We must return before dawn."',
+        camPos: { x: -80, y: 2, z: -94 }, camLook: { x: -80, y: 1.5, z: -93 } },
+
+      // The return — the rat attack
+      { narration: true, text: 'You emerge from Mothermouth into the cold night air. Tigerclaw is waiting, his amber eyes gleaming.',
+        camPos: { x: -77, y: 3, z: -91 }, camLook: { x: -76, y: 1, z: -92 } },
+
+      { narration: true, text: 'On the return journey, you pass near an old Twoleg barn. A musty, foul smell hangs in the air.',
+        camPos: { x: -60, y: 5, z: -75 }, camLook: { x: -55, y: 2, z: -70 } },
+
+      { speaker: 'Tigerclaw', text: '"Rats! Be on your guard!"',
+        camPos: { x: -55, y: 3, z: -72 }, camLook: { x: -50, y: 1, z: -70 } },
+
+      { narration: true, text: 'A swarm of rats pours from the barn! Dozens of them, their eyes gleaming red in the darkness. They attack without fear!',
+        camPos: { x: -52, y: 3, z: -70 }, camLook: { x: -50, y: 1, z: -68 } },
+
+      { narration: true, text: 'You fight desperately alongside Bluestar and Tigerclaw. The rats bite and scratch, coming in wave after wave. There are too many!',
+        camPos: { x: -50, y: 4, z: -69 }, camLook: { x: -52, y: 1, z: -71 } },
+
+      { narration: true, text: 'A huge rat sinks its teeth into Bluestar\'s shoulder. She yowls in pain and stumbles! Tigerclaw tears it away with a vicious swipe.',
+        camPos: { x: -53, y: 2, z: -70 }, camLook: { x: -55, y: 0.8, z: -71 } },
+
+      { narration: true, text: 'A tabby barn cat suddenly appears from the shadows, helping to drive the rats back. "Run! Get out of here!" he yowls.',
+        camPos: { x: -48, y: 3, z: -68 }, camLook: { x: -50, y: 1.5, z: -70 } },
+
+      { narration: true, text: 'The three of you break free and flee. Bluestar is badly wounded — she staggers, her breathing labored.',
+        camPos: { x: -40, y: 4, z: -60 }, camLook: { x: -45, y: 1, z: -65 } },
+
+      { speaker: 'Tigerclaw', text: '"Bluestar! Can you walk? We must keep moving."',
+        camPos: { x: -38, y: 2.5, z: -58 }, camLook: { x: -40, y: 1.5, z: -60 } },
+
+      { narration: true, text: 'Bluestar stumbles and falls. Her body goes still... then, after a terrible moment, she draws a shuddering breath. She\'s alive — but barely.',
+        camPos: { x: -38, y: 2, z: -57 }, camLook: { x: -40, y: 0.5, z: -59 } },
+
+      { narration: true, text: '<em>You realize with horror: Bluestar just lost a life.</em> Leaders have nine lives given by StarClan — but they are not limitless.',
+        camPos: { x: -35, y: 3, z: -55 }, camLook: { x: -38, y: 1, z: -58 } },
+
+      { speaker: 'Bluestar', text: '"I... I am alright, ' + pName + '. StarClan has returned me. But I have fewer lives now. We must be more careful."',
+        camPos: { x: -37, y: 2, z: -56 }, camLook: { x: -40, y: 1, z: -58 } },
+
+      // Return to camp
+      { narration: true, text: 'Slowly, painfully, you help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. Dawn is breaking.',
+        camPos: { x: -15, y: 8, z: -30 }, camLook: { x: 0, y: 2, z: 0 } },
+
+      { narration: true, text: 'You reach ThunderClan camp just as the sun rises. Spottedleaf rushes to tend Bluestar\'s wounds.',
+        camPos: { x: 2, y: 4, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+
+      { speaker: 'Spottedleaf', text: '"Bluestar! What happened? These wounds..."',
+        camPos: { x: -9, y: 2, z: 5 }, camLook: { x: -10, y: 1, z: 3 } },
+
+      { speaker: 'Bluestar', text: '"Rats... near the barn on the way back from Highstones. We were outnumbered."',
+        camPos: { x: -8, y: 2, z: 4 }, camLook: { x: -10, y: 1.5, z: 3 } },
+
+      { speaker: 'Graypaw', text: '"' + pName + '! You went to the Moonstone?! What was it like? Tell me everything!"',
+        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
+
+      { narration: true, text: 'You tell Graypaw about the shining Moonstone, the dark tunnels, and the terrible rat attack. His eyes grow wide.',
+        camPos: { x: 3, y: 2, z: 5 }, camLook: { x: 1, y: 1, z: 3 } },
+
+      { speaker: 'Graypaw', text: '"Wow... you\'re so brave, ' + pName + '! I can\'t believe Bluestar lost a life though... that\'s really scary."',
+        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
+
+      { narration: true, text: 'Tigerclaw says nothing. He watches Bluestar being carried into the medicine den. His amber eyes are unreadable.',
+        camPos: { x: 5, y: 2.5, z: -3 }, camLook: { x: 6, y: 1.2, z: -4 } },
+
+      { narration: true, text: '<em>Fire alone will save our Clan.</em> The prophecy burns in your mind. Bluestar grows weaker. ShadowClan grows bolder. The Clan needs you now more than ever.',
+        camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      // Bluestar rests in medicine den
+      if (bs) { bs.group.position.set(-9, 0, 5); }
+      if (tc) { tc.group.position.set(6, 0, -3); }
+      if (gp) { gp.group.position.set(3, 0, 4); }
+      player.position = { x: 2, y: 0, z: 3 };
+      catGroup.position.set(2, 0, 3);
+      placeCatsInCamp();
+      saveGame();
+      queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality.');
     });
   }
 
@@ -3707,6 +3971,8 @@ window.onerror = function(msg, url, line, col, err) {
       redtailEventTriggered: redtailEventTriggered,
       graypawEncounterTriggered: graypawEncounterTriggered,
       bluestarEncounterTriggered: bluestarEncounterTriggered,
+      mothermouthTriggered: mothermouthTriggered,
+      mothermouthTimer: mothermouthTimer,
       playingTimer: playingTimer,
       gameTime: gameTime,
       savedAt: Date.now(),
@@ -3738,7 +4004,8 @@ window.onerror = function(msg, url, line, col, err) {
       } else if (data && typeof data.health === 'number') {
         // Old format: just a player object
         return { player: data, storyPhase: 'playing', knownCats: [], redtailEventTriggered: true,
-          graypawEncounterTriggered: true, bluestarEncounterTriggered: true, playingTimer: 9999, gameTime: 0, savedAt: 0 };
+          graypawEncounterTriggered: true, bluestarEncounterTriggered: true, mothermouthTriggered: true,
+          mothermouthTimer: 9999, playingTimer: 9999, gameTime: 0, savedAt: 0 };
       }
     } catch (e) {}
     return null;
