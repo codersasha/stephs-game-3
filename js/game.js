@@ -2028,8 +2028,15 @@ window.onerror = function(msg, url, line, col, err) {
     lastTalkTime = Date.now();
 
     const displayName = knownCats.has(npc.name) ? npc.name : '???';
-    const lines = catDialogue[npc.name] || ['"..."'];
-    const line = lines[Math.floor(Math.random() * lines.length)];
+
+    // Dynamic dialogue for Smudge and Princess
+    let line;
+    if (npc.name === 'Smudge' || npc.name === 'Princess') {
+      line = getKittypetDialogue(npc.name);
+    } else {
+      const lines = catDialogue[npc.name] || ['"..."'];
+      line = lines[Math.floor(Math.random() * lines.length)];
+    }
 
     // Make the cat face the player
     npc.group.lookAt(player.position.x, 0, player.position.z);
@@ -2042,6 +2049,89 @@ window.onerror = function(msg, url, line, col, err) {
 
     queueMessage(displayName, line);
     playCatVoice(npc.name);
+  }
+
+  /**
+   * Dynamic dialogue for Smudge and Princess.
+   * Smudge gets more scared the longer you've been a wildcat.
+   * Princess is always happy to see you.
+   */
+  function getKittypetDialogue (catName) {
+    const pName = (player && player.name) ? player.name : 'Rusty';
+    // battlesWon is a rough measure of how wild the player has become
+    const battles = (player && player.battlesWon) || 0;
+    const level = (player && player.level) || 1;
+    const wildness = battles + level; // higher = more wild
+
+    if (catName === 'Smudge') {
+      // Smudge gets increasingly scared the wilder you become
+      if (wildness <= 2) {
+        // Early: Smudge is just a worried friend
+        const lines = [
+          '"' + pName + '! You came back! I was so worried about you!"',
+          '"The forest sounds so scary at night... are you okay out there?"',
+          '"I saved you some of my food! The Twolegs gave me extra today!"',
+          '"Why did you leave? It\'s so warm and safe here..."',
+          '"I had a dream about mice last night. Do you actually catch real ones now?!"',
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
+      } else if (wildness <= 5) {
+        // Mid: Smudge is nervous around you
+        const lines = [
+          '"' + pName + '...? You smell... different. Like the forest. And... blood?"',
+          '"Y-you look different. More... wild. Your eyes are sharper somehow."',
+          '"I heard fighting in the forest last night! Was that you?! Are you okay?!"',
+          '"The other kittypets are scared of you now. They say you fight wild cats..."',
+          '"Do you... do you still remember being a house cat? Being Rusty?"',
+          '"Please be careful... I don\'t want to lose my best friend."',
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
+      } else if (wildness <= 10) {
+        // Late: Smudge is properly scared
+        const lines = [
+          '"' + pName + '?! Oh no... y-you startled me! You move so quietly now..."',
+          '"You have SCARS! Real scars! What happened to you out there?!"',
+          '"I-I can barely recognize you... you used to be Rusty, my friend..."',
+          '"P-please don\'t bring any of those wild cats here... they terrify me!"',
+          '"You smell like blood and forest and... I don\'t even know. It\'s scary."',
+          '"I hide under the bed when I hear yowling from the forest now..."',
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
+      } else {
+        // Very late: Smudge is terrified
+        const lines = [
+          '"' + pName + '?! *jumps back* D-don\'t sneak up on me like that!"',
+          '"You... you\'re not really Rusty anymore, are you? You\'re a wild cat now..."',
+          '"I can see it in your eyes... you\'ve seen things. Done things. I-I\'m scared..."',
+          '"PLEASE don\'t hurt me! I-I know you wouldn\'t but... you look so fierce now!"',
+          '"*trembling* The other kittypets won\'t even come near the fence anymore because of you..."',
+          '"I miss the old Rusty... the one who shared my food bowl and slept on the windowsill..."',
+          '"Y-your claws... they\'re so long now. And sharp. Please keep them sheathed around me..."',
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
+      }
+    }
+
+    if (catName === 'Princess') {
+      // Princess is ALWAYS happy and excited to see you, no matter what
+      const lines = [
+        '"' + pName + '!! Oh my gosh, you\'re here! I\'m SO happy to see you!"',
+        '"Tell me EVERYTHING! Did you catch any mice? Did you fight any cats? Tell me, tell me!"',
+        '"You look so STRONG and brave now! I\'m so proud of you!"',
+        '"I tell all the other kittypets about my sibling the wild cat warrior! They don\'t believe me!"',
+        '"Do the other warrior cats like you? Do you have friends? I bet everyone loves you!"',
+        '"I wish I could come visit your camp! But I\'m too scared of the forest... Is it beautiful?"',
+        '"You smell like pine trees and wind! That\'s so much better than Twoleg house smell!"',
+        '"I had KITS! Can you believe it?! Maybe one day one of them could join your Clan too!"',
+        '"Every time I hear cats in the forest at night, I think of you and hope you\'re safe!"',
+        '"You\'re the bravest cat I know, ' + pName + '! I love you so much! Come visit again soon!"',
+        '"Look at your fur! It\'s all ruffled and wild! I think it looks AMAZING!"',
+        '"Are the stars really the spirits of dead warrior cats? That\'s so beautiful and scary!"',
+      ];
+      return lines[Math.floor(Math.random() * lines.length)];
+    }
+
+    return '"..."';
   }
 
   function tryTalkByRaycast (clientX, clientY) {
@@ -2296,6 +2386,13 @@ window.onerror = function(msg, url, line, col, err) {
 
     // Hide all NPC cats initially
     npcCats.forEach(c => { c.group.visible = false; });
+
+    // But show Smudge and Princess at the house - they're your kittypet friends!
+    const smudge = npcCats.find(c => c.name === 'Smudge');
+    const princess = npcCats.find(c => c.name === 'Princess');
+    if (smudge) { smudge.group.visible = true; smudge.group.position.set(3, 0, 83); }
+    if (princess) { princess.group.visible = true; princess.group.position.set(-3, 0, 84); }
+    revealCatNames(['Smudge', 'Princess']);
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = 'Rusty';
@@ -3462,6 +3559,14 @@ window.onerror = function(msg, url, line, col, err) {
       const cat = npcCats.find(c => c.name === cp.name);
       if (cat) { cat.group.position.set(cp.x, 0, cp.z); cat.group.visible = true; }
     });
+
+    // Smudge & Princess always hang out by the Twoleg house - they're kittypets!
+    const smudge = npcCats.find(c => c.name === 'Smudge');
+    const princess = npcCats.find(c => c.name === 'Princess');
+    if (smudge) { smudge.group.position.set(3, 0, 83); smudge.group.visible = true; }
+    if (princess) { princess.group.position.set(-3, 0, 84); princess.group.visible = true; }
+    // Player already knows them from being a kittypet
+    revealCatNames(['Smudge', 'Princess']);
   }
 
   /* ====================================================
