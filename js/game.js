@@ -1,6 +1,14 @@
 /* ========================================
    Warrior Cats: Into the Wild - Main Game
    ======================================== */
+// Global error handler to catch silent crashes
+window.onerror = function(msg, url, line, col, err) {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:15px;z-index:99999;font-size:14px;';
+  d.innerHTML = '<b>Error:</b> ' + msg + ' (line ' + line + ')';
+  document.body.appendChild(d);
+};
+
 (function () {
   'use strict';
 
@@ -322,27 +330,35 @@
      INIT
      ==================================================== */
   function init () {
-    isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    initThreeJS();
-    createForest();
-    createHighrock();
-    createCat();
-    createNPCCats();
-    createLighting();
-    addFireflies();
-    setupControls();
+    try {
+      isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      initThreeJS();
+      createForest();
+      createHighrock();
+      createCat();
+      createNPCCats();
+      createLighting();
+      addFireflies();
+      setupControls();
 
-    // hide loading, show title
-    loadingBarFill.style.width = '100%';
-    setTimeout(() => {
-      loadingScreen.classList.add('hidden');
-      titleScreen.classList.remove('hidden');
-      gameState = 'title';
-      addTitleFireflies();
-    }, 400);
+      // hide loading, show title
+      loadingBarFill.style.width = '100%';
+      document.querySelector('.loading-text').textContent = 'Press anywhere to start!';
+      setTimeout(() => {
+        loadingScreen.classList.add('hidden');
+        titleScreen.classList.remove('hidden');
+        gameState = 'title';
+        addTitleFireflies();
+      }, 600);
 
-    clock = new THREE.Clock();
-    animate();
+      clock = new THREE.Clock();
+      animate();
+    } catch (err) {
+      console.error('INIT ERROR:', err);
+      // Show error on screen so we can see it
+      document.body.innerHTML = '<div style="color:red;padding:40px;font-size:18px;background:#111;min-height:100vh">' +
+        '<h1>Game Error</h1><p>' + err.message + '</p><pre>' + err.stack + '</pre></div>';
+    }
   }
 
   /* ====================================================
@@ -1534,7 +1550,12 @@
     }
   }
 
+  let lastCutsceneAdvance = 0;
   function advanceCutscene () {
+    // Prevent rapid clicks from skipping entire cutscene
+    const now = Date.now();
+    if (now - lastCutsceneAdvance < 400) return;
+    lastCutsceneAdvance = now;
     cutsceneQueue.shift();
     showCutsceneSlide();
   }
