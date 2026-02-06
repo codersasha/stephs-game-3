@@ -133,18 +133,46 @@
     // ========================================
 
     describe('Player Creation', () => {
-      test('creates a player with default name', () => {
+      test('creates a player with default prefix', () => {
         const player = GameLogic.createPlayer();
-        expect(player.name).toBe('Fireheart');
+        expect(player.name).toBe('Firepaw');
+        expect(player.namePrefix).toBe('Fire');
         expect(player.health).toBe(100);
         expect(player.energy).toBe(100);
         expect(player.level).toBe(1);
         expect(player.clan).toBe('ThunderClan');
+        expect(player.rank).toBe('apprentice');
       });
 
-      test('creates a player with custom name', () => {
-        const player = GameLogic.createPlayer('Graystripe');
-        expect(player.name).toBe('Graystripe');
+      test('creates a player with custom prefix', () => {
+        const player = GameLogic.createPlayer('Flame');
+        expect(player.name).toBe('Flamepaw');
+        expect(player.namePrefix).toBe('Flame');
+      });
+    });
+
+    describe('Name Validation', () => {
+      test('validates correct name prefix', () => {
+        expect(GameLogic.validateNamePrefix('Fire')).toBeTruthy();
+        expect(GameLogic.validateNamePrefix('Blaze')).toBeTruthy();
+      });
+
+      test('rejects too short names', () => {
+        expect(GameLogic.validateNamePrefix('A')).toBeFalsy();
+      });
+
+      test('rejects names with numbers', () => {
+        expect(GameLogic.validateNamePrefix('Fire2')).toBeFalsy();
+      });
+
+      test('formats name prefix correctly', () => {
+        expect(GameLogic.formatNamePrefix('fire')).toBe('Fire');
+        expect(GameLogic.formatNamePrefix('BLAZE')).toBe('Blaze');
+      });
+
+      test('getFullName returns correct suffix by rank', () => {
+        const apprentice = GameLogic.createPlayer('Fire');
+        expect(GameLogic.getFullName(apprentice)).toBe('Firepaw');
       });
     });
 
@@ -323,7 +351,7 @@
         const player = GameLogic.createPlayer();
         const json = GameLogic.serializeState(player);
         const loaded = GameLogic.deserializeState(json);
-        expect(loaded.name).toBe('Fireheart');
+        expect(loaded.name).toBe('Firepaw');
         expect(loaded.health).toBe(100);
       });
 

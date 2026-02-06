@@ -10,9 +10,10 @@ const GameLogic = {
   /**
    * Create a new player state
    */
-  createPlayer(name = 'Fireheart') {
+  createPlayer(namePrefix = 'Fire') {
     return {
-      name: name,
+      namePrefix: namePrefix,
+      name: namePrefix + 'paw',
       health: 100,
       maxHealth: 100,
       energy: 100,
@@ -26,8 +27,36 @@ const GameLogic = {
       sprintSpeed: 9,
       isSprinting: false,
       prey: 0,
-      clan: 'ThunderClan'
+      clan: 'ThunderClan',
+      rank: 'apprentice', // apprentice -> warrior
+      battlesWon: 0
     };
+  },
+
+  /**
+   * Get the full warrior name with correct suffix based on rank
+   */
+  getFullName(player) {
+    if (player.rank === 'apprentice') {
+      return player.namePrefix + 'paw';
+    }
+    return player.namePrefix + 'heart';
+  },
+
+  /**
+   * Validate a name prefix (must be 2-12 chars, letters only)
+   */
+  validateNamePrefix(prefix) {
+    if (!prefix || prefix.length < 2 || prefix.length > 12) return false;
+    return /^[A-Za-z]+$/.test(prefix);
+  },
+
+  /**
+   * Capitalize first letter of name
+   */
+  formatNamePrefix(prefix) {
+    if (!prefix) return '';
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase();
   },
 
   /**
@@ -91,6 +120,213 @@ const GameLogic = {
    */
   isAlive(player) {
     return player.health > 0;
+  },
+
+  // ---- Battle System ----
+
+  /**
+   * Create an enemy
+   */
+  createEnemy(type) {
+    const enemies = {
+      'rat': {
+        name: 'Rat',
+        type: 'rat',
+        health: 30,
+        maxHealth: 30,
+        attack: 8,
+        defense: 2,
+        speed: 3,
+        expReward: 25,
+        color: 0x665544,
+        description: 'A dirty rat from the Twoleg dump!'
+      },
+      'shadowclan_apprentice': {
+        name: 'ShadowClan Apprentice',
+        type: 'shadowclan_apprentice',
+        health: 60,
+        maxHealth: 60,
+        attack: 12,
+        defense: 5,
+        speed: 5,
+        expReward: 50,
+        color: 0x333333,
+        description: 'A ShadowClan apprentice is trespassing!'
+      },
+      'shadowclan_warrior': {
+        name: 'ShadowClan Warrior',
+        type: 'shadowclan_warrior',
+        health: 100,
+        maxHealth: 100,
+        attack: 18,
+        defense: 8,
+        speed: 6,
+        expReward: 80,
+        color: 0x222222,
+        description: 'A fierce ShadowClan warrior!'
+      },
+      'fox': {
+        name: 'Fox',
+        type: 'fox',
+        health: 80,
+        maxHealth: 80,
+        attack: 20,
+        defense: 6,
+        speed: 7,
+        expReward: 70,
+        color: 0xaa4400,
+        description: 'A fox has entered the territory!'
+      },
+      'adder': {
+        name: 'Adder Snake',
+        type: 'adder',
+        health: 25,
+        maxHealth: 25,
+        attack: 22,
+        defense: 1,
+        speed: 8,
+        expReward: 40,
+        color: 0x445522,
+        description: 'Watch out! An adder!'
+      }
+    };
+    
+    return enemies[type] ? { ...enemies[type] } : { ...enemies['rat'] };
+  },
+
+  /**
+   * Get list of all enemy types
+   */
+  getEnemyTypes() {
+    return ['rat', 'shadowclan_apprentice', 'shadowclan_warrior', 'fox', 'adder'];
+  },
+
+  /**
+   * Calculate attack damage
+   * Returns { damage, isCritical, missed }
+   */
+  calculateAttack(attacker, defender, moveType) {
+    // Base damage depends on move type
+    let baseDamage;
+    let hitChance = 0.9;
+    let critChance = 0.1;
+    
+    switch(moveType) {
+      case 'scratch':
+        baseDamage = 10 + (attacker.attack || attacker.level * 3);
+        hitChance = 0.95;
+        break;
+      case 'bite':
+        baseDamage = 15 + (attacker.attack || attacker.level * 4);
+        hitChance = 0.8;
+        critChance = 0.2;
+        break;
+      case 'hiss':
+        // Hiss reduces enemy attack (returns negative damage = debuff)
+        return { damage: 0, isCritical: false, missed: false, effect: 'intimidate' };
+      default:
+        baseDamage = 8 + (attacker.attack || attacker.level * 2);
+    }
+    
+    // Check miss
+    if (Math.random() > hitChance) {
+      return { damage: 0, isCritical: false, missed: true };
+    }
+    
+    // Apply defense
+    const defense = defender.defense || 0;
+    let damage = Math.max(1, baseDamage - defense);
+    
+    // Critical hit
+    const isCritical = Math.random() < critChance;
+    if (isCritical) {
+      damage = Math.floor(damage * 1.5);
+    }
+    
+    // Add some randomness
+    damage = Math.floor(damage * (0.85 + Math.random() * 0.3));
+    
+    return { damage: Math.max(1, damage), isCritical, missed: false };
+  },
+
+  /**
+   * Calculate enemy attack (simpler)
+   */
+  calculateEnemyAttack(enemy, player) {
+    const baseDamage = enemy.attack;
+    const defense = player.level * 2;
+    let damage = Math.max(1, baseDamage - defense);
+    damage = Math.floor(damage * (0.8 + Math.random() * 0.4));
+    const missed = Math.random() > 0.85;
+    return { damage: missed ? 0 : Math.max(1, damage), missed };
+  },
+
+  /**
+   * Apply damage to an enemy, returns new enemy state
+   */
+  damageEnemy(enemy, amount) {
+    const newHealth = Math.max(0, enemy.health - amount);
+    return { ...enemy, health: newHealth };
+  },
+
+  /**
+   * Check if enemy is defeated
+   */
+  isEnemyDefeated(enemy) {
+    return enemy.health <= 0;
+  },
+
+  /**
+   * Generate enemy spawn positions in the forest
+   */
+  generateEnemySpawns(seed, bounds) {
+    const spawns = [];
+    let s = seed + 5000;
+    
+    function seededRandom() {
+      s = (s * 9301 + 49297) % 233280;
+      return s / 233280;
+    }
+    
+    // Rats near the edges (Twoleg area)
+    for (let i = 0; i < 6; i++) {
+      const angle = seededRandom() * Math.PI * 2;
+      const dist = 30 + seededRandom() * 30;
+      spawns.push({
+        x: Math.cos(angle) * dist,
+        z: Math.sin(angle) * dist,
+        type: 'rat',
+        respawnTime: 30
+      });
+    }
+    
+    // ShadowClan cats near the ShadowClan border (west)
+    for (let i = 0; i < 3; i++) {
+      spawns.push({
+        x: -55 - seededRandom() * 30,
+        z: -30 + seededRandom() * 60,
+        type: seededRandom() > 0.5 ? 'shadowclan_warrior' : 'shadowclan_apprentice',
+        respawnTime: 60
+      });
+    }
+    
+    // Fox in the deep forest
+    spawns.push({
+      x: 20 + seededRandom() * 40,
+      z: -30 - seededRandom() * 30,
+      type: 'fox',
+      respawnTime: 90
+    });
+    
+    // Adder near Sunningrocks
+    spawns.push({
+      x: 50 + seededRandom() * 20,
+      z: 10 + seededRandom() * 20,
+      type: 'adder',
+      respawnTime: 45
+    });
+    
+    return spawns;
   },
 
   // ---- Movement ----
@@ -215,6 +451,16 @@ const GameLogic = {
       }
     }
     return false;
+  },
+
+  /**
+   * Check if player is near an enemy spawn
+   */
+  checkEnemyEncounter(playerPos, enemySpawn, triggerRadius) {
+    const dx = playerPos.x - enemySpawn.x;
+    const dz = playerPos.z - enemySpawn.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    return distance < triggerRadius;
   },
 
   // ---- Time of Day ----

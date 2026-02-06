@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Warriors: Into the Wild</title>
+  <title>Warrior Cats: The Game - Into the Wild</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,39 +18,81 @@
 
   <!-- Title Screen -->
   <div id="title-screen" class="hidden">
-    <!-- Fireflies will be added by JS -->
-    
-    <!-- Cat SVG silhouette -->
     <svg class="cat-silhouette" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
-      <!-- Cat body -->
-      <path d="M60 140 Q40 130 35 110 Q30 90 40 75 Q45 65 50 60 L55 40 L65 55 Q75 50 90 48 Q110 46 125 50 L135 55 L140 38 Q145 55 145 65 Q155 75 160 90 Q165 110 155 130 Q150 140 140 140 Z" 
-            fill="#ff8c00" stroke="#cc6600" stroke-width="2"/>
-      <!-- Tail -->
-      <path d="M155 120 Q175 110 185 90 Q190 75 180 65" 
-            fill="none" stroke="#ff8c00" stroke-width="8" stroke-linecap="round"/>
-      <!-- Eyes -->
-      <circle cx="80" cy="70" r="6" fill="#44ff44"/>
-      <circle cx="115" cy="70" r="6" fill="#44ff44"/>
-      <circle cx="80" cy="70" r="3" fill="#111"/>
-      <circle cx="115" cy="70" r="3" fill="#111"/>
-      <!-- Nose -->
+      <path d="M60 140 Q40 130 35 110 Q30 90 40 75 Q45 65 50 60 L55 40 L65 55 Q75 50 90 48 Q110 46 125 50 L135 55 L140 38 Q145 55 145 65 Q155 75 160 90 Q165 110 155 130 Q150 140 140 140 Z" fill="#ff8c00" stroke="#cc6600" stroke-width="2"/>
+      <path d="M155 120 Q175 110 185 90 Q190 75 180 65" fill="none" stroke="#ff8c00" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="80" cy="70" r="6" fill="#44ff44"/><circle cx="115" cy="70" r="6" fill="#44ff44"/>
+      <circle cx="80" cy="70" r="3" fill="#111"/><circle cx="115" cy="70" r="3" fill="#111"/>
       <path d="M95 82 L100 78 L105 82 Z" fill="#ff6699"/>
-      <!-- Whiskers -->
       <line x1="70" y1="80" x2="40" y2="75" stroke="#ddd" stroke-width="1"/>
       <line x1="70" y1="83" x2="38" y2="85" stroke="#ddd" stroke-width="1"/>
       <line x1="130" y1="80" x2="160" y2="75" stroke="#ddd" stroke-width="1"/>
       <line x1="130" y1="83" x2="162" y2="85" stroke="#ddd" stroke-width="1"/>
-      <!-- Ear tufts -->
-      <path d="M55 42 L58 50 L52 50 Z" fill="#ffaa44"/>
-      <path d="M140 40 L143 48 L137 48 Z" fill="#ffaa44"/>
     </svg>
-
-    <div class="title-warriors">WARRIORS</div>
+    <div class="title-game-label">WARRIOR CATS: THE GAME</div>
     <div class="title-main">Into the Wild</div>
     <div class="title-subtitle">The Prophecy Begins</div>
-    
-    <div class="start-prompt" id="start-button">
-      Press any key or tap to start
+    <div class="start-prompt" id="start-button">Press any key or tap to start</div>
+  </div>
+
+  <!-- Save Slots Screen -->
+  <div id="save-screen" class="hidden">
+    <div class="save-screen-inner">
+      <div class="save-title">Choose a Save</div>
+      <div class="save-slots" id="save-slots">
+        <div class="save-slot" data-slot="1">
+          <div class="save-slot-content" id="save-slot-1">
+            <div class="save-slot-label">Save 1</div>
+            <div class="save-slot-info">- Empty -</div>
+          </div>
+          <button class="save-delete-btn hidden" data-slot="1">X</button>
+        </div>
+        <div class="save-slot" data-slot="2">
+          <div class="save-slot-content" id="save-slot-2">
+            <div class="save-slot-label">Save 2</div>
+            <div class="save-slot-info">- Empty -</div>
+          </div>
+          <button class="save-delete-btn hidden" data-slot="2">X</button>
+        </div>
+        <div class="save-slot" data-slot="3">
+          <div class="save-slot-content" id="save-slot-3">
+            <div class="save-slot-label">Save 3</div>
+            <div class="save-slot-info">- Empty -</div>
+          </div>
+          <button class="save-delete-btn hidden" data-slot="3">X</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cutscene Overlay -->
+  <div id="cutscene-overlay" class="hidden">
+    <div class="letterbox" id="cutscene-letterbox-top"></div>
+    <div id="cutscene-content">
+      <div id="cutscene-text"></div>
+      <div id="cutscene-continue">Tap or press Space</div>
+    </div>
+    <div class="letterbox" id="cutscene-letterbox-bottom"></div>
+  </div>
+
+  <!-- Name Picking Screen -->
+  <div id="name-screen" class="hidden">
+    <div class="name-screen-inner">
+      <div class="name-title">Choose Your Warrior Name</div>
+      <div class="name-story">
+        Bluestar gazes down at you from Highrock.<br>
+        <em>"You have shown courage by coming to the forest. Every clan cat receives a warrior name."</em>
+      </div>
+      <div class="name-hint">
+        Your name should feel <span class="fiery-text">fiery</span> - like your bright orange pelt!<br>
+        <small>Names like <strong>Fire</strong>, <strong>Flame</strong>, <strong>Ember</strong>, <strong>Blaze</strong> are great... but pick whatever you like!</small>
+      </div>
+      <div class="name-input-area">
+        <input type="text" id="name-input" maxlength="12" placeholder="Type your name..." autocomplete="off" autocapitalize="words">
+        <div class="name-preview">You will be known as: <span class="name-preview-text" id="name-preview-text">___paw</span></div>
+      </div>
+      <button class="name-submit-btn" id="name-submit-btn" disabled>Accept Name</button>
+      <div class="name-error" id="name-error"></div>
     </div>
   </div>
 
@@ -58,30 +100,24 @@
   <div id="game-hud">
     <div class="hud-left">
       <div class="hud-stat">
-        <span>❤️</span>
-        <div class="hud-bar">
-          <div class="hud-bar-fill health-fill" id="health-bar"></div>
-        </div>
+        <span class="hud-icon">&#10084;</span>
+        <div class="hud-bar"><div class="hud-bar-fill health-fill" id="health-bar"></div></div>
       </div>
       <div class="hud-stat">
-        <span>⚡</span>
-        <div class="hud-bar">
-          <div class="hud-bar-fill energy-fill" id="energy-bar"></div>
-        </div>
+        <span class="hud-icon">&#9889;</span>
+        <div class="hud-bar"><div class="hud-bar-fill energy-fill" id="energy-bar"></div></div>
       </div>
       <div class="hud-location" id="location-text">ThunderClan Camp</div>
     </div>
     <div class="hud-right">
-      <div class="hud-stat" id="player-name">Fireheart</div>
+      <div class="hud-stat" id="player-name">Firepaw</div>
     </div>
   </div>
 
   <!-- Mobile Controls -->
   <div id="mobile-controls">
     <div class="joystick-area" id="joystick-area">
-      <div class="joystick-base">
-        <div class="joystick-stick" id="joystick-stick"></div>
-      </div>
+      <div class="joystick-base"><div class="joystick-stick" id="joystick-stick"></div></div>
     </div>
     <div class="action-buttons">
       <button class="action-btn" id="btn-sprint">RUN</button>
@@ -98,8 +134,6 @@
 
   <!-- Three.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  
-  <!-- Game Scripts -->
   <script src="js/game-logic.js"></script>
   <script src="js/game.js"></script>
 
