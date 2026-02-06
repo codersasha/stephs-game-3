@@ -2176,19 +2176,35 @@ window.onerror = function(msg, url, line, col, err) {
 
   function refreshSaveSlots () {
     for (let i = 1; i <= 3; i++) {
-      const raw = localStorage.getItem('warriors-save-' + i);
+      const data = loadGame(i);
       const el = $('save-slot-' + i);
       const delBtn = document.querySelector(`.save-delete-btn[data-slot="${i}"]`);
-      if (raw) {
-        const data = GameLogic.deserializeState(raw);
-        if (data) {
-          el.querySelector('.save-slot-label').textContent = 'Save ' + i + ' - Continue';
-          el.querySelector('.save-slot-info').innerHTML =
-            '<span class="save-name">' + (data.name || 'Firepaw') + '</span><br>' +
-            '<span class="save-detail">Level ' + (data.level || 1) + ' &bull; ' + (data.clan || 'ThunderClan') + '</span>';
-          delBtn.classList.remove('hidden');
-          continue;
+      if (data && data.player) {
+        const p = data.player;
+        el.querySelector('.save-slot-label').textContent = 'Save ' + i + ' - Continue';
+        // Friendly story phase label
+        const phaseLabels = {
+          house: 'At the Twoleg House', forest: 'Exploring the Forest',
+          met_graypaw: 'Met a Forest Cat', fought_graypaw: 'Forest Encounter',
+          met_bluestar: 'Meeting the Clan Leader', named: 'Naming Ceremony',
+          training: 'Apprentice Training', playing: 'Warrior Life'
+        };
+        const phaseLabel = phaseLabels[data.storyPhase] || 'Adventure';
+        // Time ago
+        let timeStr = '';
+        if (data.savedAt) {
+          const ago = Date.now() - data.savedAt;
+          if (ago < 60000) timeStr = 'just now';
+          else if (ago < 3600000) timeStr = Math.floor(ago / 60000) + 'm ago';
+          else if (ago < 86400000) timeStr = Math.floor(ago / 3600000) + 'h ago';
+          else timeStr = Math.floor(ago / 86400000) + 'd ago';
         }
+        el.querySelector('.save-slot-info').innerHTML =
+          '<span class="save-name">' + (p.name || 'Firepaw') + '</span><br>' +
+          '<span class="save-detail">Lvl ' + (p.level || 1) + ' &bull; ' + phaseLabel +
+          (timeStr ? ' &bull; ' + timeStr : '') + '</span>';
+        delBtn.classList.remove('hidden');
+        continue;
       }
       el.querySelector('.save-slot-label').textContent = 'Save ' + i;
       el.querySelector('.save-slot-info').textContent = '- New Game -';
@@ -2198,24 +2214,56 @@ window.onerror = function(msg, url, line, col, err) {
 
   function pickSaveSlot (slot) {
     activeSaveSlot = slot;
-    const raw = localStorage.getItem('warriors-save-' + slot);
-    if (raw) {
-      const data = GameLogic.deserializeState(raw);
-      if (data) {
-        player = data;
-        saveScreen.classList.add('hidden');
-        storyPhase = 'playing';
-        graypawEncounterTriggered = true;
-        bluestarEncounterTriggered = true;
-        redtailEventTriggered = true;
-        startPlaying();
-        return;
+    const data = loadGame(slot);
+    if (data && data.player) {
+      player = data.player;
+      storyPhase = data.storyPhase || 'playing';
+      graypawEncounterTriggered = data.graypawEncounterTriggered !== false;
+      bluestarEncounterTriggered = data.bluestarEncounterTriggered !== false;
+      redtailEventTriggered = data.redtailEventTriggered !== false;
+      playingTimer = data.playingTimer || 0;
+      gameTime = data.gameTime || 0;
+      // Restore known cats
+      if (data.knownCats && data.knownCats.length > 0) {
+        data.knownCats.forEach(n => knownCats.add(n));
+      } else {
+        // Old save format - reveal all
+        ['Bluestar','Lionheart','Graypaw','Whitestorm','Dustpaw','Sandpaw',
+         'Mousefur','Darkstripe','Ravenpaw','Spottedleaf','Tigerclaw','Yellowfang',
+         'Smudge','Princess'].forEach(n => knownCats.add(n));
       }
+      // Update name labels for all known cats
+      npcCats.forEach(c => {
+        if (knownCats.has(c.name) && c.label) {
+          updateNameLabel(c);
+        }
+      });
+      saveScreen.classList.add('hidden');
+
+      // Resume from the correct story phase
+      if (storyPhase === 'house' || storyPhase === 'forest') {
+        startExploring(); // Restart from Twoleg house
+      } else if (storyPhase === 'training') {
+        startTraining(); // Resume training
+      } else {
+        startPlaying(); // Free roam
+      }
+      return;
     }
     // New game → opening cutscene
     player = GameLogic.createPlayer('Fire');
     saveScreen.classList.add('hidden');
     startOpeningCutscene();
+  }
+
+  /** Update a cat's name label to show their real name */
+  function updateNameLabel (npc) {
+    if (!npc || !npc.label || !npc.group) return;
+    // Remove old label and make a new one
+    npc.group.remove(npc.label);
+    const newLabel = makeNameLabel(npc.name, (npc.data.size || 1) * 1.45);
+    npc.group.add(newLabel);
+    npc.label = newLabel;
   }
 
   /* ====================================================
@@ -3088,6 +3136,7 @@ window.onerror = function(msg, url, line, col, err) {
       else {
         gameState = 'playing';
       }
+      saveGame(); // Auto-save after every battle
     }, 1800);
   }
 
@@ -3128,6 +3177,7 @@ window.onerror = function(msg, url, line, col, err) {
             gp.group.position.set(player.position.x + 1.5, 0, player.position.z - 1);
           }
           queueMessage('Narrator', 'Graypaw seems friendly now. Keep walking deeper into the forest...');
+          saveGame(); // Auto-save after story event
         });
       },
     });
@@ -3168,6 +3218,7 @@ window.onerror = function(msg, url, line, col, err) {
     revealCatNames(['Bluestar', 'Lionheart']);
     startCutscene(scenes, () => {
       storyPhase = 'met_bluestar';
+      saveGame(); // Auto-save after meeting Bluestar
       showNameScreen();
     });
   }
@@ -3249,6 +3300,7 @@ window.onerror = function(msg, url, line, col, err) {
     gameState = 'playing';
     storyPhase = 'training';
     catGroup.visible = true;
+    saveGame(); // Auto-save after naming ceremony
 
     // Place player in camp
     player.position = { x: 2, y: 0, z: 3 };
@@ -3574,12 +3626,14 @@ window.onerror = function(msg, url, line, col, err) {
      ==================================================== */
   function startPlaying () {
     gameState = 'playing';
-    storyPhase = 'playing';
+    storyPhase = storyPhase || 'playing';
     catGroup.visible = true;
 
-    // Place player in camp
-    player.position = { x: 2, y: 0, z: 3 };
-    catGroup.position.set(2, 0, 3);
+    // Restore saved position or default to camp
+    const px = (player.position && player.position.x) || 2;
+    const pz = (player.position && player.position.z) || 3;
+    player.position = { x: px, y: 0, z: pz };
+    catGroup.position.set(px, 0, pz);
 
     // Reveal all cats
     revealCatNames([
@@ -3641,17 +3695,67 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     SAVE / LOAD
+     SAVE / LOAD  (full game state, not just player)
      ==================================================== */
+  let saveIndicatorTimeout = null;
   function saveGame () {
     if (!player || !activeSaveSlot) return;
-    localStorage.setItem('warriors-save-' + activeSaveSlot, GameLogic.serializeState(player));
+    const saveData = {
+      player: player,
+      storyPhase: storyPhase,
+      knownCats: Array.from(knownCats),
+      redtailEventTriggered: redtailEventTriggered,
+      graypawEncounterTriggered: graypawEncounterTriggered,
+      bluestarEncounterTriggered: bluestarEncounterTriggered,
+      playingTimer: playingTimer,
+      gameTime: gameTime,
+      savedAt: Date.now(),
+    };
+    try {
+      localStorage.setItem('warriors-save-' + activeSaveSlot, JSON.stringify(saveData));
+      // Show save indicator briefly
+      const ind = $('save-indicator');
+      if (ind) {
+        ind.classList.remove('hidden');
+        ind.classList.add('show');
+        clearTimeout(saveIndicatorTimeout);
+        saveIndicatorTimeout = setTimeout(() => {
+          ind.classList.remove('show');
+          setTimeout(() => ind.classList.add('hidden'), 400);
+        }, 1500);
+      }
+    } catch (e) { /* storage full, silently fail */ }
   }
+
+  function loadGame (slot) {
+    const raw = localStorage.getItem('warriors-save-' + slot);
+    if (!raw) return null;
+    try {
+      const data = JSON.parse(raw);
+      // Support old format (just player object) and new format (full state)
+      if (data && data.player) {
+        return data; // new format
+      } else if (data && typeof data.health === 'number') {
+        // Old format: just a player object
+        return { player: data, storyPhase: 'playing', knownCats: [], redtailEventTriggered: true,
+          graypawEncounterTriggered: true, bluestarEncounterTriggered: true, playingTimer: 9999, gameTime: 0, savedAt: 0 };
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // Save when leaving the page / switching tabs
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && player && activeSaveSlot) saveGame();
+  });
+  window.addEventListener('beforeunload', () => {
+    if (player && activeSaveSlot) saveGame();
+  });
 
   /* ====================================================
      ANIMATION
      ==================================================== */
-  let walkCycle = 0, stepTimer = 0;
+  let walkCycle = 0, stepTimer = 0, autoSaveTimer = 0;
 
   function animateCatLegs (dt, moving, spd) {
     if (!catGroup || !catGroup.legs) return;
@@ -3993,8 +4097,12 @@ window.onerror = function(msg, url, line, col, err) {
       checkTrainingProximity();
       updateFollowers(dt);
       gameTime += dt;
-      // autosave every 15s
-      if (Math.floor(time * 10) % 150 === 0 && storyPhase === 'playing') saveGame();
+      // autosave every 15 seconds during gameplay
+      autoSaveTimer += dt;
+      if (autoSaveTimer >= 15) {
+        autoSaveTimer = 0;
+        saveGame();
+      }
       if (Math.random() < 0.004) playSound('ambient');
     }
 
