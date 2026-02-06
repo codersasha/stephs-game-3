@@ -20,8 +20,8 @@ window.onerror = function(msg, url, line, col, err) {
   const saveScreen      = $('save-screen');
   const cutsceneOverlay = $('cutscene-overlay');
   const cutsceneText    = $('cutscene-text');
-  const joinChoiceScreen  = $('join-choice-screen');
-  const joinConfirmScreen = $('join-confirm-screen');
+  const forestChoiceScreen  = $('forest-choice-screen');
+  const forestConfirmScreen = $('forest-confirm-screen');
   const nameScreen      = $('name-screen');
   const nameInput       = $('name-input');
   const namePreview     = $('name-preview-text');
@@ -1020,8 +1020,12 @@ window.onerror = function(msg, url, line, col, err) {
     const wB = new THREE.Mesh(new THREE.BoxGeometry(41, 2, 0.5), wallMat);
     wB.position.set(0, 1, 95); scene.add(wB);
 
+    // House front wall (can't walk into the house!)
+    const wHouse = new THREE.Mesh(new THREE.BoxGeometry(12, 2, 0.5), wallMat);
+    wHouse.position.set(0, 1, 84.5); scene.add(wHouse);
+
     // Store walls for collision detection
-    gardenWalls = [wFL, wFR, wL, wR, wB];
+    gardenWalls = [wFL, wFR, wL, wR, wB, wHouse];
   }
 
   /* ====================================================
@@ -2067,6 +2071,15 @@ window.onerror = function(msg, url, line, col, err) {
       });
     });
 
+    // Forest choice buttons (Smudge & Princess warning)
+    $('forest-yes-btn').addEventListener('click', () => { playerChoseForest(); });
+    $('forest-no-btn').addEventListener('click', () => {
+      forestChoiceScreen.classList.add('hidden');
+      forestConfirmScreen.classList.remove('hidden');
+    });
+    $('confirm-go-forest').addEventListener('click', () => { playerChoseForest(); });
+    $('confirm-stay-home').addEventListener('click', () => { playerStayedHome(); });
+
     // mobile
     setupMobileControls();
 
@@ -2437,6 +2450,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (data && data.player) {
       player = data.player;
       storyPhase = data.storyPhase || 'playing';
+      fenceWarningTriggered = data.fenceWarningTriggered || false;
       graypawEncounterTriggered = data.graypawEncounterTriggered !== false;
       bluestarEncounterTriggered = data.bluestarEncounterTriggered !== false;
       redtailEventTriggered = data.redtailEventTriggered !== false;
@@ -2640,6 +2654,7 @@ window.onerror = function(msg, url, line, col, err) {
      EXPLORING PHASE (Rusty leaves the house)
      ==================================================== */
   let storyPhase = 'house'; // house | forest | met_graypaw | fought_graypaw | met_bluestar | named | training | playing
+  let fenceWarningTriggered = false;
   let graypawEncounterTriggered = false;
   let bluestarEncounterTriggered = false;
   let redtailEventTriggered = false;
@@ -2685,14 +2700,19 @@ window.onerror = function(msg, url, line, col, err) {
     const px = player.position.x;
     const dist = Math.sqrt(px * px + pz * pz); // dist from camp center (0,0)
 
-    // TRIGGER 1: Player crosses the fence (z < 68) → encounter Graypaw
-    if (storyPhase === 'house' && pz < 65 && !graypawEncounterTriggered) {
+    // TRIGGER 1: Player approaches the fence opening (z < 73) → Smudge & Princess warn you
+    if (storyPhase === 'house' && pz < 73 && !fenceWarningTriggered) {
+      fenceWarningTriggered = true;
+      triggerFenceWarning();
+    }
+
+    // TRIGGER 2: Player walks deeper into the forest (z < 55) → encounter Graypaw
+    if (storyPhase === 'forest' && pz < 55 && !graypawEncounterTriggered) {
       graypawEncounterTriggered = true;
-      storyPhase = 'forest';
       triggerGraypawEncounter();
     }
 
-    // TRIGGER 2: After fighting Graypaw, walk further (z < 45) → meet Bluestar
+    // TRIGGER 3: After fighting Graypaw, walk further (z < 45) → meet Bluestar
     if (storyPhase === 'fought_graypaw' && pz < 45 && !bluestarEncounterTriggered) {
       bluestarEncounterTriggered = true;
       triggerBluestarEncounter();
@@ -3230,6 +3250,133 @@ window.onerror = function(msg, url, line, col, err) {
       placeCatsInCamp();
       saveGame();
       queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality.');
+    });
+  }
+
+  /* ====================================================
+     SMUDGE & PRINCESS FENCE WARNING
+     ==================================================== */
+  function triggerFenceWarning () {
+    gameState = 'cutscene';
+
+    const smudge = npcCats.find(c => c.name === 'Smudge');
+    const princess = npcCats.find(c => c.name === 'Princess');
+
+    // Run Smudge and Princess to the fence opening to block the player
+    if (smudge) { smudge.group.visible = true; smudge.group.position.set(1, 0, 70.5); smudge.group.lookAt(0, 0, 75); }
+    if (princess) { princess.group.visible = true; princess.group.position.set(-1, 0, 70.5); princess.group.lookAt(0, 0, 75); }
+
+    // Push player back a little so they're facing their friends
+    player.position.z = 73;
+    catGroup.position.set(player.position.x, 0, 73);
+
+    const scenes = [
+      { narration: true, text: '<strong>Smudge</strong> and <strong>Princess</strong> come running up to the fence opening, blocking your path!',
+        camPos: { x: 3, y: 2, z: 74 }, camLook: { x: 0, y: 0.8, z: 71 } },
+
+      { speaker: 'Smudge', text: '"Rusty, WAIT! Where do you think you\'re going?! You can\'t go out there!"',
+        camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Princess', text: '"Rusty, please! The forest is DANGEROUS! Henry went in there once and he barely made it back!"',
+        camPos: { x: -2, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Smudge', text: '"There are HUGE wild cats in there! They have massive claws and they EAT kittypets like us!"',
+        camPos: { x: 1, y: 1.5, z: 71.5 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Princess', text: '"And foxes! Big red foxes with sharp teeth! And badgers that are even BIGGER!"',
+        camPos: { x: -1, y: 1.5, z: 71.5 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Smudge', text: '"I heard there are OWLS that swoop down and carry cats away! And dogs that chase you through the trees!"',
+        camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Princess', text: '"And the Thunderpath — the monsters on it are SO fast, they\'ll squash you flat! You won\'t even see them coming!"',
+        camPos: { x: -2, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Smudge', text: '"Rusty, PLEASE. It\'s nice here! We have food bowls and warm beds and the Twolegs pet us. Why would you want to leave?"',
+        camPos: { x: 0, y: 2, z: 73 }, camLook: { x: 0, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Princess', text: '"We just don\'t want you to get hurt, Rusty. You\'re our brother... our friend... please think about this."',
+        camPos: { x: -1, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
+
+      { narration: true, text: 'Smudge and Princess stare at you with wide, worried eyes. The dark forest looms beyond the fence...',
+        camPos: { x: 0, y: 2, z: 74 }, camLook: { x: 0, y: 1, z: 68 } },
+    ];
+
+    startCutscene(scenes, () => {
+      // Show the choice screen
+      showForestChoice();
+    });
+  }
+
+  function showForestChoice () {
+    gameState = 'choice';
+    forestChoiceScreen.classList.remove('hidden');
+  }
+
+  function playerChoseForest () {
+    forestChoiceScreen.classList.add('hidden');
+    forestConfirmScreen.classList.add('hidden');
+    gameState = 'cutscene';
+
+    const smudge = npcCats.find(c => c.name === 'Smudge');
+    const princess = npcCats.find(c => c.name === 'Princess');
+
+    const scenes = [
+      { speaker: 'Smudge', text: '"You\'re really going?! Rusty, you\'re CRAZY!"',
+        camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Princess', text: '"Please be careful, Rusty! Come back and visit us, okay? Promise me!"',
+        camPos: { x: -1, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Smudge', text: '"If you get eaten by a fox, I\'m NOT coming to save you!"',
+        camPos: { x: 1, y: 1.5, z: 71.5 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
+
+      { narration: true, text: 'Smudge and Princess step aside reluctantly. The fence opening beckons. Beyond it — the dark, mysterious forest.',
+        camPos: { x: 0, y: 3, z: 73 }, camLook: { x: 0, y: 1, z: 65 } },
+
+      { narration: true, text: 'You take a deep breath and step through the fence. The forest smells wild — earth, leaves, and something else... something exciting.',
+        camPos: { x: 0, y: 2, z: 68 }, camLook: { x: 0, y: 1, z: 55 } },
+    ];
+
+    startCutscene(scenes, () => {
+      // Move Smudge and Princess back by the house
+      if (smudge) { smudge.group.position.set(3, 0, 83); }
+      if (princess) { princess.group.position.set(-3, 0, 84); }
+
+      // Player is now in the forest
+      storyPhase = 'forest';
+      gameState = 'playing';
+      player.position = { x: 0, y: 0, z: 64 };
+      catGroup.position.set(0, 0, 64);
+      saveGame();
+      queueMessage('Narrator', 'You\'ve entered the forest! The trees tower above you. ' +
+        (isMobile ? 'Use the joystick to explore.' : 'Use WASD to explore deeper into the forest...'));
+    });
+  }
+
+  function playerStayedHome () {
+    forestChoiceScreen.classList.add('hidden');
+    forestConfirmScreen.classList.add('hidden');
+    gameState = 'cutscene';
+
+    const scenes = [
+      { speaker: 'Smudge', text: '"Oh thank goodness! I\'m so glad you\'re staying, Rusty!"',
+        camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
+
+      { speaker: 'Princess', text: '"Good choice! Let\'s go back inside where it\'s warm and safe."',
+        camPos: { x: -1, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
+
+      { narration: true, text: 'You head back toward the house with your friends. But the forest still calls to you... maybe another time.',
+        camPos: { x: 0, y: 3, z: 78 }, camLook: { x: 0, y: 1, z: 85 } },
+    ];
+
+    startCutscene(scenes, () => {
+      // Put player back near the house
+      gameState = 'playing';
+      player.position = { x: 0, y: 0, z: 80 };
+      catGroup.position.set(0, 0, 80);
+      fenceWarningTriggered = false; // allow re-triggering when they approach again
+      queueMessage('Narrator', 'You went back... but the forest still calls. Walk to the fence again when you\'re ready.');
     });
   }
 
@@ -4171,6 +4318,7 @@ window.onerror = function(msg, url, line, col, err) {
       storyPhase: storyPhase,
       knownCats: Array.from(knownCats),
       redtailEventTriggered: redtailEventTriggered,
+      fenceWarningTriggered: fenceWarningTriggered,
       graypawEncounterTriggered: graypawEncounterTriggered,
       bluestarEncounterTriggered: bluestarEncounterTriggered,
       mothermouthTriggered: mothermouthTriggered,
