@@ -42,9 +42,12 @@
   let scene, camera, renderer;
   let catGroup;
   let highrock;
-  let npcCats = [];             // { group, data }
+  let npcCats = [];             // { group, name, data, label, known }
   let trees = [], rocks = [];
   let treeObjects = [], rockObjects = [];
+
+  /* ---------- known cats ---------- */
+  const knownCats = new Set(); // names of cats the player has been introduced to
 
   /* ---------- input ---------- */
   const keys = {};
@@ -770,13 +773,13 @@
 
     /* --- body (two overlapping capsules for smooth shape) --- */
     const bodyMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 15 });
-    const bodyMain = makeCapsuleMesh(0.38, 0.85, 12, 16, bodyMat);
-    bodyMain.rotation.z = Math.PI / 2; bodyMain.position.set(0, 0.65, 0); bodyMain.castShadow = true;
+    const bodyMain = makeCapsuleMesh(0.28, 0.90, 12, 16, bodyMat);
+    bodyMain.rotation.z = Math.PI / 2; bodyMain.position.set(0, 0.60, 0); bodyMain.castShadow = true;
     catGroup.add(bodyMain);
     // belly (lighter, slightly below)
     const bellyMat = new THREE.MeshPhongMaterial({ color: cream, shininess: 10 });
-    const belly = makeCapsuleMesh(0.30, 0.6, 8, 12, bellyMat);
-    belly.rotation.z = Math.PI / 2; belly.position.set(0, 0.52, 0.05);
+    const belly = makeCapsuleMesh(0.22, 0.62, 8, 12, bellyMat);
+    belly.rotation.z = Math.PI / 2; belly.position.set(0, 0.50, 0.04);
     catGroup.add(belly);
 
     /* --- head --- */
@@ -813,31 +816,50 @@
       catGroup.add(tuft);
     });
 
-    /* --- eyes (detailed: sclera, iris, pupil, highlight) --- */
+    /* --- eyes (detailed: sclera, iris, pupil, highlight, eyelid) --- */
     [[-1, 1],[1, 1]].forEach(([side]) => {
-      const x = side * 0.13;
-      // sclera
-      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.072, 10, 8), new THREE.MeshPhongMaterial({ color: 0xeeffee }));
-      sclera.position.set(x, 0.92, 0.84); sclera.scale.set(1, 0.85, 0.6);
+      const x = side * 0.14;
+      // sclera (white of eye) - bigger, more visible
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), new THREE.MeshPhongMaterial({ color: 0xf0fff0, shininess: 30 }));
+      sclera.position.set(x, 0.92, 0.86); sclera.scale.set(1.1, 0.9, 0.55);
       catGroup.add(sclera);
-      // iris (bright green)
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.058, 10, 8), new THREE.MeshPhongMaterial({ color: 0x33dd33, shininess: 60 }));
-      iris.position.set(x, 0.92, 0.87); iris.scale.set(1, 0.85, 0.5);
+      // iris (bright green, Rusty's signature eyes)
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), new THREE.MeshPhongMaterial({ color: 0x22cc22, shininess: 80 }));
+      iris.position.set(x, 0.92, 0.89); iris.scale.set(1.0, 0.9, 0.45);
       catGroup.add(iris);
-      // pupil
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), new THREE.MeshBasicMaterial({ color: 0x111111 }));
-      pupil.position.set(x, 0.92, 0.90);
+      // pupil (vertical slit - cat eye!)
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+      pupil.position.set(x, 0.92, 0.91); pupil.scale.set(0.4, 0.85, 0.3);
       catGroup.add(pupil);
-      // specular highlight
-      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl.position.set(x - side * 0.02, 0.94, 0.91);
-      catGroup.add(hl);
+      // specular highlights (two - big and small)
+      const hl1 = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl1.position.set(x - side * 0.02, 0.95, 0.92);
+      catGroup.add(hl1);
+      const hl2 = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl2.position.set(x + side * 0.01, 0.90, 0.92);
+      catGroup.add(hl2);
+      // dark eyelid line above eye
+      const lid = new THREE.Mesh(new THREE.SphereGeometry(0.082, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.35), new THREE.MeshPhongMaterial({ color: darkOrange }));
+      lid.position.set(x, 0.93, 0.86); lid.scale.set(1.1, 0.5, 0.55);
+      catGroup.add(lid);
     });
 
-    /* --- nose --- */
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), new THREE.MeshPhongMaterial({ color: pink, shininess: 50 }));
-    nose.position.set(0, 0.84, 0.92); nose.scale.set(1.3, 0.7, 0.7);
+    /* --- nose (triangle-shaped, pink, more prominent) --- */
+    const noseMat = new THREE.MeshPhongMaterial({ color: pink, shininess: 60 });
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), noseMat);
+    nose.position.set(0, 0.835, 0.93); nose.scale.set(1.2, 0.6, 0.6);
     catGroup.add(nose);
+    // nostrils (tiny dark dots)
+    [[-1,1],[1,1]].forEach(([s]) => {
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), new THREE.MeshBasicMaterial({ color: 0x331111 }));
+      nostril.position.set(s * 0.025, 0.825, 0.95);
+      catGroup.add(nostril);
+    });
+    // mouth line
+    const mouthMat = new THREE.MeshBasicMaterial({ color: 0x332222 });
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.005, 0.005), mouthMat);
+    mouth.position.set(0, 0.79, 0.92);
+    catGroup.add(mouth);
 
     /* --- whiskers (thin cylinders) --- */
     const whiskerMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
@@ -880,32 +902,37 @@
       catGroup.add(bigBean);
     });
 
-    /* --- tail (curved, many segments) --- */
+    /* --- tail (curved upward, tight segments) --- */
     const tailMat = new THREE.MeshPhongMaterial({ color: orange });
     catGroup.tailSegs = [];
-    for (let i = 0; i < 8; i++) {
-      const radius = 0.065 - i * 0.005;
-      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.02, radius), 6, 4), tailMat);
-      seg.position.set(0, 0.55 + i * 0.1, -0.48 - i * 0.1);
+    const tailSegs = 10;
+    for (let i = 0; i < tailSegs; i++) {
+      const t = i / (tailSegs - 1); // 0 to 1
+      const radius = 0.06 - t * 0.035; // tapers from 0.06 to 0.025
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.02, radius), 6, 5), tailMat);
+      // tail curves upward and back in a gentle arc
+      const zOff = -0.40 - t * 0.45; // goes back
+      const yOff = 0.52 + t * 0.35;  // curves up
+      seg.position.set(0, yOff, zOff);
       catGroup.add(seg);
       catGroup.tailSegs.push(seg);
     }
-    // tail tip (white)
-    const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), new THREE.MeshPhongMaterial({ color: darkOrange }));
-    tailTip.position.set(0, 1.35, -1.28);
+    // tail tip (darker)
+    const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), new THREE.MeshPhongMaterial({ color: darkOrange }));
+    tailTip.position.set(0, 0.87, -0.85);
     catGroup.add(tailTip);
     catGroup.tailSegs.push(tailTip);
 
     /* --- chest patch --- */
-    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), new THREE.MeshPhongMaterial({ color: cream }));
-    chest.position.set(0, 0.58, 0.38); chest.scale.set(0.7, 0.8, 0.5);
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 8), new THREE.MeshPhongMaterial({ color: cream }));
+    chest.position.set(0, 0.55, 0.36); chest.scale.set(0.6, 0.7, 0.45);
     catGroup.add(chest);
 
     /* --- tabby stripes --- */
     const stripeMat = new THREE.MeshPhongMaterial({ color: darkOrange });
     for (let i = 0; i < 5; i++) {
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.015, 0.06), stripeMat);
-      stripe.position.set(0, 0.96, 0.15 - i * 0.15);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.015, 0.05), stripeMat);
+      stripe.position.set(0, 0.88, 0.12 - i * 0.13);
       catGroup.add(stripe);
     }
     // forehead M marking
@@ -921,18 +948,15 @@
   /* ====================================================
      NAME LABEL (floating text sprite above a cat)
      ==================================================== */
-  function makeNameLabel (name, yOffset) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 64;
+  function drawLabelCanvas (canvas, text, color) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, 256, 64);
-    // background pill (with fallback for older browsers)
+    // background pill
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.beginPath();
     if (ctx.roundRect) {
       ctx.roundRect(8, 8, 240, 48, 12);
     } else {
-      // manual rounded rect fallback
       const x=8,y=8,w=240,h=48,r=12;
       ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
       ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
@@ -945,8 +969,14 @@
     ctx.font = 'bold 28px Georgia, serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffe0a0';
-    ctx.fillText(name, 128, 34);
+    ctx.fillStyle = color || '#ffe0a0';
+    ctx.fillText(text, 128, 34);
+  }
+
+  function makeNameLabel (name, yOffset) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 64;
+    drawLabelCanvas(canvas, name);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.minFilter = THREE.LinearFilter;
@@ -955,7 +985,31 @@
     sprite.scale.set(2.0, 0.5, 1);
     sprite.position.set(0, yOffset || 1.6, 0);
     sprite.renderOrder = 999;
+    sprite._labelCanvas = canvas;   // keep ref so we can update it
+    sprite._labelTexture = tex;
     return sprite;
+  }
+
+  /** Update the text on an existing name label sprite */
+  function updateLabelText (sprite, newText, color) {
+    if (!sprite || !sprite._labelCanvas) return;
+    drawLabelCanvas(sprite._labelCanvas, newText, color);
+    sprite._labelTexture.needsUpdate = true;
+  }
+
+  /** Reveal a cat's real name (called when the player learns it) */
+  function revealCatName (catName) {
+    if (knownCats.has(catName)) return;
+    knownCats.add(catName);
+    const npc = npcCats.find(c => c.name === catName);
+    if (npc && npc.label) {
+      updateLabelText(npc.label, catName, '#ffe0a0');
+    }
+  }
+
+  /** Reveal multiple cat names at once */
+  function revealCatNames (names) {
+    names.forEach(n => revealCatName(n));
   }
 
   /* ====================================================
@@ -1113,14 +1167,15 @@
       mM.position.set(0, 0.96*sz, 0.56*sz); g.add(mM);
     }
 
-    /* name label */
-    const label = makeNameLabel(desc.name, 1.45 * sz);
+    /* name label - starts as ??? until the player meets this cat */
+    const displayName = knownCats.has(desc.name) ? desc.name : '???';
+    const label = makeNameLabel(displayName, 1.45 * sz);
     g.add(label);
 
     g.position.set(px, 0, pz);
     g.visible = false;
     scene.add(g);
-    return { group: g, name: desc.name, data: desc };
+    return { group: g, name: desc.name, data: desc, label: label };
   }
 
   function createNPCCats () {
@@ -1581,14 +1636,14 @@
       { narration: true, text: 'You creep through the undergrowth. The forest is bigger and darker than you imagined. Suddenly - a rustle in the bushes!',
         camPos: { x: player.position.x + 4, y: 3, z: player.position.z - 2 },
         camLook: { x: player.position.x, y: 1, z: player.position.z - 3 } },
-      { narration: true, text: 'A gray cat leaps out of the ferns and lands right in front of you!',
+      { narration: true, text: 'A gray cat leaps out of the ferns and lands right in front of you! Who is this stranger?',
         camPos: { x: player.position.x + 3, y: 2, z: player.position.z - 3 },
         camLook: { x: player.position.x + 1, y: 1, z: player.position.z - 4 } },
-      { speaker: 'Graypaw', text: '"Hey! What are you doing here, kittypet? This is ThunderClan territory!"' },
-      { speaker: 'Graypaw', text: '"You smell like Twoleg food! You don\'t belong here! Let\'s see if you can fight like a real cat!"' },
+      { speaker: '???', text: '"Hey! What are you doing here, kittypet? This is ThunderClan territory!"' },
+      { speaker: '???', text: '"You smell like Twoleg food! You don\'t belong here! Let\'s see if you can fight like a real cat!"' },
     ];
     startCutscene(scenes, () => {
-      // After dialogue → start the fight!
+      // After dialogue → start the fight! (name stays ??? during fight)
       startGraypawFight();
     });
   }
@@ -1605,17 +1660,20 @@
       const pDmg = 10 + Math.floor(Math.random() * 10);
       grayHP = Math.max(0, grayHP - pDmg);
 
-      const hitText = 'You swipe at Graypaw! (-' + pDmg + ' damage) Graypaw HP: ' + grayHP + '/' + maxGrayHP;
+      const enemyName = knownCats.has('Graypaw') ? 'Graypaw' : 'the gray cat';
+      const hitText = 'You swipe at ' + enemyName + '! (-' + pDmg + ' damage) ' + (knownCats.has('Graypaw') ? 'Graypaw' : 'Enemy') + ' HP: ' + grayHP + '/' + maxGrayHP;
 
       if (grayHP <= 20) {
-        // Graypaw gives up
+        // Graypaw gives up and introduces himself → reveal name!
         const scenes = [
           { narration: true, text: hitText },
-          { speaker: 'Graypaw', text: '"Okay, okay! You\'re pretty good for a kittypet! I give up!"' },
-          { speaker: 'Graypaw', text: '"I\'m Graypaw, by the way. You know, you fight pretty well. Most kittypets just run away screaming."' },
-          { narration: true, text: 'Graypaw sits up and shakes his thick gray fur, looking at you with new respect.' },
+          { speaker: '???', text: '"Okay, okay! You\'re pretty good for a kittypet! I give up!"' },
+          { speaker: '???', text: '"I\'m <strong>Graypaw</strong>, by the way. You know, you fight pretty well. Most kittypets just run away screaming."' },
+          { narration: true, text: 'The gray cat introduces himself as Graypaw. He shakes his thick fur, looking at you with new respect.' },
           { speaker: 'Graypaw', text: '"Hey, do you want to see something cool? Follow me deeper into the forest - but be careful, there might be a patrol around."' },
         ];
+        // Reveal Graypaw's name when he introduces himself
+        revealCatName('Graypaw');
         startCutscene(scenes, () => {
           storyPhase = 'fought_graypaw';
           gameState = 'playing';
@@ -1629,12 +1687,12 @@
         return;
       }
 
-      // Graypaw attacks back
+      // ??? attacks back (name not known yet)
       const gDmg = 5 + Math.floor(Math.random() * 8);
       playerHP = Math.max(10, playerHP - gDmg); // don't let player die in tutorial
       player.health = playerHP;
 
-      const grayText = 'Graypaw swipes back! (-' + gDmg + ' damage) Your HP: ' + playerHP + '/' + player.maxHealth;
+      const grayText = 'The gray cat swipes back! (-' + gDmg + ' damage) Your HP: ' + playerHP + '/' + player.maxHealth;
 
       const scenes = [
         { narration: true, text: hitText },
@@ -1668,18 +1726,20 @@
       { narration: true, text: 'Two more cats emerge from the shadows - a large golden tabby and a blue-gray she-cat with piercing blue eyes.',
         camPos: { x: player.position.x + 4, y: 3, z: player.position.z - 3 },
         camLook: { x: player.position.x - 2, y: 1, z: player.position.z - 5 } },
-      { speaker: 'Lionheart', text: '"Graypaw! What is going on here? Who is this kittypet?"' },
-      { speaker: 'Graypaw', text: '"We were just... um... he\'s actually a pretty good fighter, Lionheart!"' },
-      { speaker: 'Bluestar', text: '"Wait, Lionheart. Look at this young cat. There is fire in his eyes... something the forest needs."',
+      { speaker: '???', text: '"Graypaw! What is going on here? Who is this kittypet?"' },
+      { speaker: 'Graypaw', text: '"We were just... um... he\'s actually a pretty good fighter!"' },
+      { speaker: '???', text: '"Wait. Look at this young cat. There is fire in his eyes... something the forest needs."',
         camPos: { x: player.position.x - 1, y: 2.5, z: player.position.z - 2 },
         camLook: { x: player.position.x - 3, y: 1.2, z: player.position.z - 5 } },
-      { speaker: 'Bluestar', text: '"I am Bluestar, leader of ThunderClan. I have been watching you. You showed courage coming into the forest, and skill in your fight."' },
-      { speaker: 'Bluestar', text: '"I would like to offer you a place in our Clan. Join us, and you will learn to be a true warrior."' },
+      { speaker: '???', text: '"I am <strong>Bluestar</strong>, leader of ThunderClan. And this is <strong>Lionheart</strong>, my deputy. I have been watching you."' },
+      { speaker: 'Bluestar', text: '"You showed courage coming into the forest, and skill in your fight. I would like to offer you a place in our Clan."' },
       { speaker: 'Lionheart', text: '"Are you sure, Bluestar? He\'s a kittypet..."' },
       { speaker: 'Bluestar', text: '"I am sure. StarClan has shown me a prophecy: <em>Fire alone will save our Clan.</em> This cat may be the one."' },
       { speaker: 'Graypaw', text: '"Wow! You\'re going to join ThunderClan? That\'s awesome!"' },
       { narration: true, text: 'Your heart pounds with excitement. A real warrior clan! But first, every clan cat needs a warrior name...' },
     ];
+    // Reveal Bluestar and Lionheart's names when they introduce themselves
+    revealCatNames(['Bluestar', 'Lionheart']);
     startCutscene(scenes, () => {
       storyPhase = 'met_bluestar';
       showNameScreen();
@@ -1745,28 +1805,243 @@
 
     playSound('ceremony');
     startCutscene(scenes, () => {
-      // After ceremony → start playing!
-      npcCats.forEach(c => { c.group.visible = true; }); // keep visible in camp
+      // After ceremony → start training with Lionheart!
+      npcCats.forEach(c => { c.group.visible = true; });
       saveGame();
-      startPlaying();
+      startTraining();
     });
   }
 
   /* ====================================================
-     START PLAYING (after naming ceremony, in camp)
+     TRAINING SYSTEM (Lionheart teaches the new apprentice)
      ==================================================== */
-  function startPlaying () {
+  let trainingStep = 0;
+  let trainingTarget = null;  // { x, z } where to walk next
+  let trainingLionheart = null;
+
+  function startTraining () {
     gameState = 'playing';
-    storyPhase = 'playing';
+    storyPhase = 'training';
     catGroup.visible = true;
 
     // Place player in camp
     player.position = { x: 2, y: 0, z: 3 };
     catGroup.position.set(2, 0, 3);
 
-    // show NPC cats in camp
-    npcCats.forEach(c => { c.group.visible = true; });
-    // Place cats around camp
+    // Reveal cats you've met
+    revealCatNames(['Bluestar', 'Lionheart', 'Graypaw']);
+
+    // Place only a few cats visible in camp
+    npcCats.forEach(c => { c.group.visible = false; });
+    trainingLionheart = npcCats.find(c => c.name === 'Lionheart');
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+    if (trainingLionheart) { trainingLionheart.group.position.set(3, 0, 2); trainingLionheart.group.visible = true; }
+    if (gp) { gp.group.position.set(4, 0, 4); gp.group.visible = true; }
+
+    gameHud.classList.add('visible');
+    playerNameEl.textContent = player.name;
+    if (isMobile) mobileControls.classList.add('visible');
+    startForestAmbience();
+
+    trainingStep = 0;
+    advanceTraining();
+  }
+
+  function advanceTraining () {
+    const pName = player.name;
+    const isMob = isMobile;
+    const moveKey = isMob ? 'the joystick' : 'WASD or Arrow keys';
+    const sprintKey = isMob ? 'the RUN button' : 'SHIFT';
+    const lookKey = isMob ? 'dragging on the right side of the screen' : 'clicking the screen and moving your mouse';
+
+    switch (trainingStep) {
+      case 0:
+        // Intro to training
+        queueMessage('Lionheart', 'Welcome, ' + pName + '! As your mentor, it is my duty to teach you the ways of the warrior.', () => {
+          queueMessage('Lionheart', 'First, let me show you around camp. Follow me!', () => {
+            queueMessage('Narrator', 'CONTROLS: Move with ' + moveKey + '. Look around with ' + lookKey + '.', () => {
+              trainingStep = 1;
+              // Lionheart walks to the Apprentices' Den
+              trainingTarget = { x: 6, z: 5 };
+              moveLionheartTo(6, 5);
+              queueMessage('Lionheart', 'Come, follow me to the Apprentices\' Den! This is where you will sleep.');
+            });
+          });
+        });
+        break;
+
+      case 1:
+        // At Apprentices' Den
+        revealCatNames(['Dustpaw', 'Sandpaw', 'Ravenpaw']);
+        // Show some apprentice cats
+        ['Dustpaw', 'Sandpaw', 'Ravenpaw'].forEach(n => {
+          const c = npcCats.find(cc => cc.name === n);
+          if (c) { c.group.visible = true; c.group.position.set(5 + Math.random()*2, 0, 5 + Math.random()*2); }
+        });
+        queueMessage('Lionheart', 'This is the Apprentices\' Den. You\'ll share it with Graypaw, Dustpaw, Sandpaw, and Ravenpaw.', () => {
+          queueMessage('Lionheart', 'Now let me show you the Warriors\' Den and the Leader\'s Den.', () => {
+            trainingStep = 2;
+            trainingTarget = { x: 8, z: -2 };
+            moveLionheartTo(8, -2);
+          });
+        });
+        break;
+
+      case 2:
+        // At Warriors' Den
+        revealCatNames(['Whitestorm', 'Mousefur', 'Darkstripe', 'Tigerclaw']);
+        ['Whitestorm', 'Mousefur', 'Darkstripe', 'Tigerclaw'].forEach(n => {
+          const c = npcCats.find(cc => cc.name === n);
+          if (c) { c.group.visible = true; c.group.position.set(7 + Math.random()*3, 0, -2 + Math.random()*2); }
+        });
+        queueMessage('Lionheart', 'This is the Warriors\' Den. One day, when you earn your warrior name, you\'ll sleep here.', () => {
+          queueMessage('Lionheart', 'The Leader\'s Den is right by Highrock, where Bluestar lives. Now let me show you the Medicine Den.', () => {
+            trainingStep = 3;
+            trainingTarget = { x: -10, z: 3 };
+            moveLionheartTo(-10, 3);
+          });
+        });
+        break;
+
+      case 3:
+        // At Medicine Den
+        revealCatName('Spottedleaf');
+        const sp = npcCats.find(c => c.name === 'Spottedleaf');
+        if (sp) { sp.group.visible = true; sp.group.position.set(-9, 0, 4); }
+        queueMessage('Lionheart', 'This is the Medicine Den, where Spottedleaf heals wounded cats. If you get hurt, come here.', () => {
+          queueMessage('Spottedleaf', 'Welcome, ' + pName + '. May StarClan light your path. Come see me if you ever need help.', () => {
+            queueMessage('Lionheart', 'Good. Now follow me to the fresh-kill pile. You need to learn about hunting!', () => {
+              trainingStep = 4;
+              trainingTarget = { x: 2, z: 0 };
+              moveLionheartTo(2, 0);
+            });
+          });
+        });
+        break;
+
+      case 4:
+        // Fresh-kill pile - hunting lesson
+        queueMessage('Lionheart', 'This is the fresh-kill pile. Warriors bring prey here to feed the Clan.', () => {
+          queueMessage('Lionheart', 'Hunting is one of your most important duties. When you\'re out in the forest, ' +
+            'crouch low and stay downwind of your prey.', () => {
+            queueMessage('Lionheart', 'HUNTING: ' + (isMob
+              ? 'Press the ACT button when near prey to catch it.'
+              : 'Press E or click ACT when you see prey in the forest to try to catch it.'), () => {
+              queueMessage('Lionheart', 'Now, let me teach you about water. Follow me to the stream.', () => {
+                trainingStep = 5;
+                trainingTarget = { x: 20, z: -15 };
+                moveLionheartTo(20, -15);
+              });
+            });
+          });
+        });
+        break;
+
+      case 5:
+        // Water lesson
+        queueMessage('Lionheart', 'You can drink from streams and puddles to restore your energy. Look for water in the territory.', () => {
+          queueMessage('Lionheart', 'WATER: ' + (isMob
+            ? 'Walk near water and press ACT to drink and restore energy.'
+            : 'Walk near water and press E to drink and restore your energy.'), () => {
+            queueMessage('Lionheart', 'Now, the most important lesson - fighting! Follow me.', () => {
+              trainingStep = 6;
+              trainingTarget = { x: 15, z: -25 };
+              moveLionheartTo(15, -25);
+            });
+          });
+        });
+        break;
+
+      case 6:
+        // Fighting lesson
+        queueMessage('Lionheart', 'A warrior must know how to fight. You already showed skill against Graypaw!', () => {
+          queueMessage('Lionheart', 'FIGHTING: When you encounter an enemy, the battle happens automatically. ' +
+            'Choose to attack, dodge, or run away.', () => {
+            queueMessage('Lionheart', 'SPRINTING: Hold ' + sprintKey + ' to run fast, but it uses your energy. ' +
+              'Use it to escape danger or chase prey!', () => {
+              queueMessage('Lionheart', 'Now, let me show you the borders of our territory. Follow me!', () => {
+                trainingStep = 7;
+                trainingTarget = { x: -45, z: -10 };
+                moveLionheartTo(-45, -10);
+              });
+            });
+          });
+        });
+        break;
+
+      case 7:
+        // ShadowClan border
+        queueMessage('Lionheart', 'This is the ShadowClan border. Do you smell that? That\'s ShadowClan scent marks.', () => {
+          queueMessage('Lionheart', 'NEVER cross the border into another Clan\'s territory. It could start a war!', () => {
+            queueMessage('Lionheart', 'If you see ShadowClan cats on our side, report it to Bluestar immediately.', () => {
+              queueMessage('Lionheart', 'Let me show you Sunningrocks - follow me the other way!', () => {
+                trainingStep = 8;
+                trainingTarget = { x: 50, z: 5 };
+                moveLionheartTo(50, 5);
+              });
+            });
+          });
+        });
+        break;
+
+      case 8:
+        // Sunningrocks
+        queueMessage('Lionheart', 'These are Sunningrocks. RiverClan claims them too. It\'s always been disputed territory.', () => {
+          queueMessage('Lionheart', 'Be careful around here - RiverClan warriors might attack.', () => {
+            queueMessage('Lionheart', 'That covers the basics, ' + pName + '! Let\'s head back to camp. You\'re ready to start your life as an apprentice!', () => {
+              trainingStep = 9;
+              trainingTarget = { x: 0, z: 0 };
+              moveLionheartTo(0, 0);
+            });
+          });
+        });
+        break;
+
+      case 9:
+        // Training complete!
+        revealCatNames([
+          'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
+          'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
+          'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Yellowfang'
+        ]);
+        npcCats.forEach(c => { c.group.visible = true; });
+        placeCatsInCamp();
+
+        queueMessage('Lionheart', 'Your training tour is complete, ' + pName + '! You are now free to explore the territory on your own.', () => {
+          queueMessage('Graypaw', 'Hey ' + pName + '! Want to go explore? There\'s so much to see!', () => {
+            storyPhase = 'playing';
+            saveGame();
+            queueMessage('Narrator', 'You are now free to explore! ' +
+              (isMob ? 'Use the joystick to move. RUN to sprint. ACT to interact.'
+                     : 'WASD to move. SHIFT to sprint. E to interact. Click to look around.'));
+          });
+        });
+        break;
+    }
+  }
+
+  /** Move Lionheart to a target position (he walks there) */
+  function moveLionheartTo (tx, tz) {
+    if (trainingLionheart) {
+      trainingLionheart.group.position.set(tx, 0, tz);
+    }
+  }
+
+  /** Check if the player is near the training target */
+  function checkTrainingProximity () {
+    if (storyPhase !== 'training' || !trainingTarget) return;
+    const dx = player.position.x - trainingTarget.x;
+    const dz = player.position.z - trainingTarget.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < 5) {
+      const target = trainingTarget;
+      trainingTarget = null; // clear so we don't trigger again
+      advanceTraining();
+    }
+  }
+
+  /** Place all cats in their camp positions */
+  function placeCatsInCamp () {
     const campPositions = [
       { name: 'Bluestar', x: -4, z: -2 },
       { name: 'Lionheart', x: -1, z: 1 },
@@ -1785,6 +2060,30 @@
       const cat = npcCats.find(c => c.name === cp.name);
       if (cat) { cat.group.position.set(cp.x, 0, cp.z); cat.group.visible = true; }
     });
+  }
+
+  /* ====================================================
+     START PLAYING (free roam after training or loading save)
+     ==================================================== */
+  function startPlaying () {
+    gameState = 'playing';
+    storyPhase = 'playing';
+    catGroup.visible = true;
+
+    // Place player in camp
+    player.position = { x: 2, y: 0, z: 3 };
+    catGroup.position.set(2, 0, 3);
+
+    // Reveal all cats
+    revealCatNames([
+      'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
+      'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
+      'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Yellowfang'
+    ]);
+
+    // show NPC cats in camp
+    npcCats.forEach(c => { c.group.visible = true; });
+    placeCatsInCamp();
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
@@ -1796,8 +2095,9 @@
 
     // Welcome message
     queueMessage('Narrator',
-      'Welcome to ThunderClan, ' + player.name + '! You are now an apprentice. Explore the camp and territory! ' +
-      (isMobile ? 'Use the joystick to move.' : 'Use WASD to move. Click to control camera. Hold SHIFT to sprint.'));
+      'Welcome back, ' + player.name + '! Explore the territory. ' +
+      (isMobile ? 'Use the joystick to move. RUN to sprint. ACT to interact.'
+                : 'WASD to move. SHIFT to sprint. E to interact. Click to look around.'));
   }
 
   /* ====================================================
@@ -1850,7 +2150,7 @@
       const sw = Math.sin(walkCycle * 3) * 0.35;
       catGroup.legs[0].rotation.x = sw;  catGroup.legs[1].rotation.x = -sw;
       catGroup.legs[2].rotation.x = -sw; catGroup.legs[3].rotation.x = sw;
-      catGroup.children[0].position.y = 0.65 + Math.sin(walkCycle * 6) * 0.03;
+      catGroup.children[0].position.y = 0.60 + Math.sin(walkCycle * 6) * 0.02;
       if (stepTimer > 0.3 / spd) { stepTimer = 0; playSound('step'); }
     } else {
       catGroup.legs.forEach(l => { l.rotation.x *= 0.9; });
@@ -1861,7 +2161,8 @@
   function animateTail (time) {
     if (!catGroup || !catGroup.tailSegs) return;
     catGroup.tailSegs.forEach((s, i) => {
-      s.position.x = Math.sin(time * 2 + i * 0.5) * 0.06 * (i + 1);
+      // gentle sway, increases toward the tip
+      s.position.x = Math.sin(time * 2.5 + i * 0.4) * 0.02 * i;
     });
   }
 
@@ -1869,7 +2170,7 @@
     npcCats.forEach((c, ci) => {
       if (!c.group.visible || !c.group.tailSegs) return;
       c.group.tailSegs.forEach((s, i) => {
-        s.position.x = Math.sin(time * 1.8 + ci * 2 + i * 0.5) * 0.05 * (i + 1);
+        s.position.x = Math.sin(time * 1.8 + ci * 2 + i * 0.4) * 0.018 * i;
       });
     });
   }
@@ -1891,18 +2192,51 @@
      NPC FOLLOW (Graypaw follows during story)
      ==================================================== */
   function updateFollowers (dt) {
-    if (storyPhase !== 'fought_graypaw') return;
-    const gp = npcCats.find(c => c.name === 'Graypaw');
-    if (!gp || !gp.group.visible) return;
-    const gpPos = gp.group.position;
-    const dx = player.position.x - gpPos.x;
-    const dz = player.position.z - gpPos.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    if (dist > 3) {
-      const spd = 4 * dt;
-      gpPos.x += (dx / dist) * spd;
-      gpPos.z += (dz / dist) * spd;
-      gp.group.lookAt(player.position.x, 0, player.position.z);
+    // Graypaw follows during the forest walk
+    if (storyPhase === 'fought_graypaw') {
+      const gp = npcCats.find(c => c.name === 'Graypaw');
+      if (gp && gp.group.visible) {
+        const gpPos = gp.group.position;
+        const dx = player.position.x - gpPos.x;
+        const dz = player.position.z - gpPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > 3) {
+          const spd = 4 * dt;
+          gpPos.x += (dx / dist) * spd;
+          gpPos.z += (dz / dist) * spd;
+          gp.group.lookAt(player.position.x, 0, player.position.z);
+        }
+      }
+    }
+
+    // During training, Lionheart walks toward his target and Graypaw follows player
+    if (storyPhase === 'training' && trainingLionheart && trainingTarget) {
+      const lhPos = trainingLionheart.group.position;
+      const tx = trainingTarget.x, tz = trainingTarget.z;
+      const dx = tx - lhPos.x, dz = tz - lhPos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > 1) {
+        const spd = 5 * dt;
+        lhPos.x += (dx / dist) * spd;
+        lhPos.z += (dz / dist) * spd;
+        trainingLionheart.group.lookAt(tx, 0, tz);
+      }
+    }
+    // Graypaw also tags along during training
+    if (storyPhase === 'training') {
+      const gp = npcCats.find(c => c.name === 'Graypaw');
+      if (gp && gp.group.visible) {
+        const gpPos = gp.group.position;
+        const dx = player.position.x - gpPos.x;
+        const dz = player.position.z - gpPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > 4) {
+          const spd = 4.5 * dt;
+          gpPos.x += (dx / dist) * spd;
+          gpPos.z += (dz / dist) * spd;
+          gp.group.lookAt(player.position.x, 0, player.position.z);
+        }
+      }
     }
   }
 
@@ -1922,6 +2256,7 @@
       animateTail(time);
       animateNPCTails(time);
       checkStoryTriggers();
+      checkTrainingProximity();
       updateFollowers(dt);
       gameTime += dt;
       // autosave every 15s
