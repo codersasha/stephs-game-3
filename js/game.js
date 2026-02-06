@@ -138,6 +138,9 @@ window.onerror = function(msg, url, line, col, err) {
     'Smudge':      { base: 440, end: 360, dur: 0.35, type: 'sine',     vol: 0.12, vibrato: 5 },   // chubby friendly tom, medium pitch
     'Princess':    { base: 500, end: 420, dur: 0.32, type: 'sine',     vol: 0.11, vibrato: 4 },   // gentle, sweet she-cat
     'Longtail':    { base: 280, end: 200, dur: 0.40, type: 'sawtooth', vol: 0.11, vibrato: 3 },   // young warrior, sneering, mid-low
+    'ShadowClan Warrior': { base: 180, end: 130, dur: 0.50, type: 'sawtooth', vol: 0.11, vibrato: 2 }, // deep, menacing
+    'RiverClan Warrior':  { base: 250, end: 190, dur: 0.40, type: 'triangle', vol: 0.10, vibrato: 3 }, // smooth, strong
+    'WindClan Warrior':   { base: 350, end: 280, dur: 0.30, type: 'sine',     vol: 0.11, vibrato: 5 }, // quick, sharp
     '???':         { base: 350, end: 280, dur: 0.30, type: 'triangle', vol: 0.10, vibrato: 3 },   // unknown cat
   };
 
@@ -318,6 +321,41 @@ window.onerror = function(msg, url, line, col, err) {
           gain.gain.setValueAtTime(0.12, t + 0.4);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
           osc.start(); osc.stop(t + 1.0); break;
+        case 'hit':
+          osc.frequency.setValueAtTime(200, t); osc.type = 'sawtooth';
+          osc.frequency.linearRampToValueAtTime(80, t + 0.12);
+          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          osc.start(); osc.stop(t + 0.15); break;
+        case 'hurt':
+          osc.frequency.setValueAtTime(300, t); osc.type = 'sawtooth';
+          osc.frequency.linearRampToValueAtTime(100, t + 0.2);
+          gain.gain.setValueAtTime(0.10, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          osc.start(); osc.stop(t + 0.25); break;
+        case 'swoosh':
+          osc.frequency.setValueAtTime(800, t); osc.type = 'sine';
+          osc.frequency.linearRampToValueAtTime(200, t + 0.15);
+          gain.gain.setValueAtTime(0.06, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+          osc.start(); osc.stop(t + 0.18); break;
+        case 'battle':
+          // Dramatic battle start sound
+          osc.frequency.setValueAtTime(150, t); osc.type = 'sawtooth';
+          osc.frequency.linearRampToValueAtTime(400, t + 0.2);
+          osc.frequency.linearRampToValueAtTime(200, t + 0.5);
+          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.setValueAtTime(0.14, t + 0.2);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+          osc.start(); osc.stop(t + 0.6); break;
+        case 'danger':
+          // Warning buzzer
+          osc.frequency.setValueAtTime(440, t); osc.type = 'square';
+          osc.frequency.setValueAtTime(0, t + 0.15);
+          osc.frequency.setValueAtTime(440, t + 0.3);
+          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          osc.start(); osc.stop(t + 0.5); break;
         case 'ambient':
           // Randomly pick a forest ambient sound
           gain.gain.value = 0; osc.start(); osc.stop(t + 0.01); // dummy, we use the functions below
@@ -489,6 +527,9 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* ---- GARDEN FENCE ---- */
     createGardenFence();
+
+    /* ---- TERRITORY LANDMARKS ---- */
+    createTerritoryLandmarks();
   }
 
   /* ====================================================
@@ -735,6 +776,161 @@ window.onerror = function(msg, url, line, col, err) {
     scene.add(fLabel);
 
     scene.add(fenceGroup);
+  }
+
+  /* ====================================================
+     TERRITORY LANDMARKS (book-accurate borders & landmarks)
+     ==================================================== */
+  function createTerritoryLandmarks () {
+    /* --- THUNDERPATH (road between ThunderClan & ShadowClan) --- */
+    const roadMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(7, 200), roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.set(-58.5, 0.03, 0);
+    scene.add(road);
+    // Yellow center line
+    const lineMat = new THREE.MeshLambertMaterial({ color: 0xcccc00 });
+    const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 200), lineMat);
+    centerLine.rotation.x = -Math.PI / 2;
+    centerLine.position.set(-58.5, 0.04, 0);
+    scene.add(centerLine);
+    // Dashed white edge lines
+    for (let z = -95; z < 95; z += 6) {
+      const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 3), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(-55.2, 0.04, z);
+      scene.add(dash);
+      const dash2 = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 3), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+      dash2.rotation.x = -Math.PI / 2;
+      dash2.position.set(-61.8, 0.04, z);
+      scene.add(dash2);
+    }
+    const tpLabel = makeNameLabel('Thunderpath', 3.0);
+    tpLabel.position.set(-58.5, 0, -10);
+    scene.add(tpLabel);
+
+    /* --- SUNNINGROCKS (large flat rocks near river) --- */
+    const srMat = new THREE.MeshLambertMaterial({ color: 0xbbaa88 });
+    for (let i = 0; i < 8; i++) {
+      const rx = 58 + Math.random() * 12;
+      const rz = -12 + Math.random() * 24;
+      const rs = 1.5 + Math.random() * 2;
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(rs, 0), srMat);
+      rock.position.set(rx, rs * 0.3, rz);
+      rock.scale.set(1, 0.35, 1);
+      rock.rotation.y = Math.random() * Math.PI;
+      rock.castShadow = true;
+      scene.add(rock);
+    }
+    const srLabel = makeNameLabel('Sunningrocks', 3.0);
+    srLabel.position.set(63, 0, 0);
+    scene.add(srLabel);
+
+    /* --- FOURTREES (sacred meeting place of all clans) --- */
+    // Four large oaks in a hollow
+    const ftMat = new THREE.MeshLambertMaterial({ color: 0x4a3018 });
+    const ftLeafMat = new THREE.MeshLambertMaterial({ color: 0x1a4a0e });
+    const ftPositions = [[-42, -42], [-42, -48], [-48, -42], [-48, -48]];
+    ftPositions.forEach(([fx, fz]) => {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 8, 8), ftMat);
+      trunk.position.set(fx, 4, fz); trunk.castShadow = true; scene.add(trunk);
+      const canopy = new THREE.Mesh(new THREE.SphereGeometry(4, 10, 8), ftLeafMat);
+      canopy.position.set(fx, 9, fz); canopy.castShadow = true; scene.add(canopy);
+    });
+    // Hollow ground (slightly sunken)
+    const hollowGeo = new THREE.CircleGeometry(8, 16);
+    const hollowMat = new THREE.MeshLambertMaterial({ color: 0x4a3a28 });
+    const hollow = new THREE.Mesh(hollowGeo, hollowMat);
+    hollow.rotation.x = -Math.PI / 2; hollow.position.set(-45, 0.02, -45);
+    scene.add(hollow);
+    // Great Rock in the center
+    const greatRock = new THREE.Mesh(new THREE.DodecahedronGeometry(2, 0),
+      new THREE.MeshLambertMaterial({ color: 0x888888 }));
+    greatRock.position.set(-45, 1, -45); greatRock.scale.set(1, 0.6, 1);
+    greatRock.castShadow = true; scene.add(greatRock);
+    const ftLabel = makeNameLabel('Fourtrees', 3.0);
+    ftLabel.position.set(-45, 0, -45);
+    scene.add(ftLabel);
+
+    /* --- SHADOWCLAN TERRITORY (dark pine forest, past Thunderpath) --- */
+    const scGroundMat = new THREE.MeshLambertMaterial({ color: 0x2a3a20 });
+    const scGround = new THREE.Mesh(new THREE.PlaneGeometry(33, 200), scGroundMat);
+    scGround.rotation.x = -Math.PI / 2; scGround.position.set(-78.5, 0.015, 0);
+    scene.add(scGround);
+    const scLabel = makeNameLabel('ShadowClan Territory', 3.5);
+    scLabel.position.set(-78, 0, 0);
+    scene.add(scLabel);
+
+    /* --- RIVERCLAN TERRITORY (past the river, marshy) --- */
+    const rcGroundMat = new THREE.MeshLambertMaterial({ color: 0x3a6a45 });
+    const rcGround = new THREE.Mesh(new THREE.PlaneGeometry(16, 200), rcGroundMat);
+    rcGround.rotation.x = -Math.PI / 2; rcGround.position.set(87, 0.015, 0);
+    scene.add(rcGround);
+    // Reeds near water
+    const reedMat = new THREE.MeshLambertMaterial({ color: 0x5a7a3a });
+    for (let i = 0; i < 40; i++) {
+      const rz = -80 + Math.random() * 160;
+      const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 1.5 + Math.random(), 4), reedMat);
+      reed.position.set(78 + Math.random() * 3, 0.75, rz);
+      scene.add(reed);
+    }
+    const rcLabel = makeNameLabel('RiverClan Territory', 3.5);
+    rcLabel.position.set(87, 0, 0);
+    scene.add(rcLabel);
+
+    /* --- WINDCLAN TERRITORY (open moorland, few trees) --- */
+    const wcGroundMat = new THREE.MeshLambertMaterial({ color: 0x7a8a55 });
+    const wcGround = new THREE.Mesh(new THREE.PlaneGeometry(200, 35), wcGroundMat);
+    wcGround.rotation.x = -Math.PI / 2; wcGround.position.set(0, 0.015, -77.5);
+    scene.add(wcGround);
+    // Rolling hills
+    for (let i = 0; i < 12; i++) {
+      const hx = -60 + Math.random() * 120;
+      const hz = -65 - Math.random() * 25;
+      const hs = 3 + Math.random() * 5;
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(hs, 8, 6),
+        new THREE.MeshLambertMaterial({ color: 0x6a7a45 }));
+      hill.position.set(hx, 0, hz); hill.scale.set(1, 0.3, 1);
+      scene.add(hill);
+    }
+    const wcLabel = makeNameLabel('WindClan Territory', 3.5);
+    wcLabel.position.set(0, 0, -75);
+    scene.add(wcLabel);
+
+    /* --- BORDER SCENT MARKERS (small stones/sticks at territory edges) --- */
+    const markerMat = new THREE.MeshLambertMaterial({ color: 0x888866 });
+    // ShadowClan border markers (along x = -50)
+    for (let z = -80; z <= 80; z += 12) {
+      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.6, 5), markerMat);
+      marker.position.set(-50, 0.3, z); scene.add(marker);
+      const markerTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4),
+        new THREE.MeshLambertMaterial({ color: 0xaaaa44 }));
+      markerTop.position.set(-50, 0.65, z); scene.add(markerTop);
+    }
+    // RiverClan border markers (along x = 70)
+    for (let z = -80; z <= 80; z += 12) {
+      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.6, 5), markerMat);
+      marker.position.set(70, 0.3, z); scene.add(marker);
+      const markerTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4),
+        new THREE.MeshLambertMaterial({ color: 0x44aaaa }));
+      markerTop.position.set(70, 0.65, z); scene.add(markerTop);
+    }
+    // WindClan border markers (along z = -55)
+    for (let x = -50; x <= 70; x += 12) {
+      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.6, 5), markerMat);
+      marker.position.set(x, 0.3, -55); scene.add(marker);
+      const markerTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4),
+        new THREE.MeshLambertMaterial({ color: 0xaa8844 }));
+      markerTop.position.set(x, 0.65, -55); scene.add(markerTop);
+    }
+
+    // Border labels
+    const sbLabel = makeNameLabel('ShadowClan Border', 2.5);
+    sbLabel.position.set(-50, 0, 20); scene.add(sbLabel);
+    const rbLabel = makeNameLabel('RiverClan Border', 2.5);
+    rbLabel.position.set(70, 0, 20); scene.add(rbLabel);
+    const wbLabel = makeNameLabel('WindClan Border', 2.5);
+    wbLabel.position.set(20, 0, -55); scene.add(wbLabel);
   }
 
   function makeOak (d) {
@@ -1867,6 +2063,155 @@ window.onerror = function(msg, url, line, col, err) {
       bluestarEncounterTriggered = true;
       triggerBluestarEncounter();
     }
+
+    // TRIGGER: Territory trespassing (only when free-roaming, not training)
+    if (storyPhase === 'playing') {
+      checkTerritoryTrespass();
+    }
+  }
+
+  /* ====================================================
+     TERRITORY TRESPASSING SYSTEM
+     ==================================================== */
+  let trespassCooldown = 0; // prevent spamming
+  let trespassWarned = false; // first time just a warning
+  let lastTerritory = 'ThunderClan';
+
+  function checkTerritoryTrespass () {
+    if (!player || gameState !== 'playing') return;
+    if (trespassCooldown > 0) { trespassCooldown--; return; }
+
+    const territory = GameLogic.getTerritory(player.position);
+
+    // Thunderpath - danger warning
+    if (territory === 'Thunderpath' && lastTerritory !== 'Thunderpath') {
+      lastTerritory = 'Thunderpath';
+      trespassCooldown = 300; // ~5 seconds at 60fps
+      queueMessage('Narrator', 'DANGER! You are on the Thunderpath! Monsters (cars) race past here. Get off quickly!');
+      playSound('danger');
+      return;
+    }
+
+    // Entering enemy territory
+    if (territory !== 'ThunderClan' && territory !== 'Thunderpath' && territory !== 'neutral') {
+      if (lastTerritory === 'ThunderClan' || lastTerritory === 'Thunderpath' || lastTerritory === 'neutral') {
+        lastTerritory = territory;
+        trespassCooldown = 600; // ~10 seconds
+
+        if (!trespassWarned) {
+          // First time: just a warning
+          trespassWarned = true;
+          queueMessage('Narrator', 'WARNING! You have crossed into ' + territory + ' territory! Their warriors will not be happy about this.', () => {
+            queueMessage('Narrator', 'You can still explore, but be ready to fight or run!');
+          });
+        } else {
+          // Subsequent times: hostile patrol encounter
+          triggerTrespassEncounter(territory);
+        }
+      }
+    }
+
+    if (territory === 'ThunderClan' || territory === 'neutral') {
+      lastTerritory = territory;
+    }
+  }
+
+  function triggerTrespassEncounter (clanName) {
+    gameState = 'cutscene';
+
+    const clanData = {
+      'ShadowClan': {
+        warrior: 'ShadowClan Warrior',
+        furColor: 0x333333, eyeColor: 0xffcc00, stripes: false,
+        hp: 70 + player.level * 10,
+        attack: 12 + player.level * 2,
+        defense: 5 + player.level,
+        exp: 50 + player.level * 10,
+        dialogue: [
+          '"What is a ThunderClan cat doing on ShadowClan territory?!"',
+          '"You dare trespass here? I\'ll shred your ears, kittypet!"',
+          '"ShadowClan will teach you a lesson you\'ll never forget!"',
+        ],
+      },
+      'RiverClan': {
+        warrior: 'RiverClan Warrior',
+        furColor: 0x6688aa, eyeColor: 0x44cccc, stripes: false,
+        hp: 65 + player.level * 10,
+        attack: 10 + player.level * 2,
+        defense: 6 + player.level,
+        exp: 50 + player.level * 10,
+        dialogue: [
+          '"A ThunderClan cat?! This is RiverClan territory! Get out!"',
+          '"You smell like the forest. You don\'t belong near our river!"',
+          '"I\'ll drag you back across the border myself!"',
+        ],
+      },
+      'WindClan': {
+        warrior: 'WindClan Warrior',
+        furColor: 0xbbaa77, eyeColor: 0xddbb33, stripes: true,
+        hp: 55 + player.level * 10,
+        attack: 14 + player.level * 2,
+        defense: 3 + player.level,
+        exp: 50 + player.level * 10,
+        dialogue: [
+          '"ThunderClan! What are you doing on our moor?!"',
+          '"You\'re trespassing! WindClan doesn\'t tolerate intruders!"',
+          '"Turn back now, or face the consequences!"',
+        ],
+      },
+    };
+
+    const data = clanData[clanName] || clanData['ShadowClan'];
+    const line = data.dialogue[Math.floor(Math.random() * data.dialogue.length)];
+
+    const scenes = [
+      { narration: true, text: 'A patrol of ' + clanName + ' warriors appears! They look furious that you\'re on their territory!' },
+      { speaker: data.warrior, text: line },
+    ];
+
+    startCutscene(scenes, () => {
+      // Start the battle!
+      startBattle({
+        enemyName: data.warrior,
+        enemyHP: data.hp,
+        enemyMaxHP: data.hp,
+        enemyAttack: data.attack,
+        enemyDefense: data.defense,
+        enemyFurColor: data.furColor,
+        enemyEyeColor: data.eyeColor,
+        enemyStripes: data.stripes,
+        enemyStripeColor: 0x444433,
+        playerMinHP: 5,
+        expReward: data.exp,
+        onWin: function () {
+          const scenes2 = [
+            { narration: true, text: 'The ' + clanName + ' warrior staggers back, defeated.' },
+            { speaker: data.warrior, text: '"This isn\'t over, ThunderClan! Next time there will be more of us!"' },
+            { narration: true, text: 'The warrior retreats into their territory. You should head back to ThunderClan land before more arrive.' },
+          ];
+          startCutscene(scenes2, () => {
+            gameState = 'playing';
+            // Push player back toward ThunderClan territory
+            queueMessage('Narrator', 'You won the fight! But you should return to ThunderClan territory before another patrol comes.');
+          });
+        },
+        onLose: function () {
+          // Player gets chased back
+          const scenes2 = [
+            { narration: true, text: 'The ' + clanName + ' warrior overpowers you and chases you back to the border!' },
+            { speaker: data.warrior, text: '"And STAY OUT! Next time, I won\'t be so merciful!"' },
+          ];
+          // Teleport player back to safety
+          player.position = { x: 0, y: 0, z: 0 };
+          catGroup.position.set(0, 0, 0);
+          player.health = Math.max(15, Math.floor(player.maxHealth * 0.3));
+          startCutscene(scenes2, () => {
+            gameState = 'playing';
+            queueMessage('Narrator', 'You wake up back at ThunderClan camp, bruised but alive. Don\'t trespass without being prepared!');
+          });
+        },
+      });
+    });
   }
 
   /* ====================================================
@@ -2530,14 +2875,14 @@ window.onerror = function(msg, url, line, col, err) {
       case 6:
         // Fighting lesson
         queueMessage('Lionheart', 'A warrior must know how to fight. You already showed skill against Graypaw!', () => {
-          queueMessage('Lionheart', 'FIGHTING: When you encounter an enemy, the battle happens automatically. ' +
-            'Choose to attack, dodge, or run away.', () => {
+          queueMessage('Lionheart', 'FIGHTING: When you encounter an enemy, a battle screen will open. ' +
+            'You can Attack, Dodge, or use a Fierce Attack!', () => {
             queueMessage('Lionheart', 'SPRINTING: Hold ' + sprintKey + ' to run fast, but it uses your energy. ' +
               'Use it to escape danger or chase prey!', () => {
-              queueMessage('Lionheart', 'Now, let me show you the borders of our territory. Follow me!', () => {
+              queueMessage('Lionheart', 'Now, the MOST important part of being a warrior - knowing our borders! Follow me to the ShadowClan border!', () => {
                 trainingStep = 7;
-                trainingTarget = { x: -45, z: -10 };
-                moveLionheartTo(-45, -10);
+                trainingTarget = { x: -48, z: -10 };
+                moveLionheartTo(-48, -10);
               });
             });
           });
@@ -2546,13 +2891,15 @@ window.onerror = function(msg, url, line, col, err) {
 
       case 7:
         // ShadowClan border
-        queueMessage('Lionheart', 'This is the ShadowClan border. Do you smell that? That\'s ShadowClan scent marks.', () => {
-          queueMessage('Lionheart', 'NEVER cross the border into another Clan\'s territory. It could start a war!', () => {
-            queueMessage('Lionheart', 'If you see ShadowClan cats on our side, report it to Bluestar immediately.', () => {
-              queueMessage('Lionheart', 'Let me show you Sunningrocks - follow me the other way!', () => {
-                trainingStep = 8;
-                trainingTarget = { x: 50, z: 5 };
-                moveLionheartTo(50, 5);
+        queueMessage('Lionheart', 'Stop here, ' + pName + '. Do you see those scent markers? This is the ShadowClan border.', () => {
+          queueMessage('Lionheart', 'Beyond those markers is the Thunderpath - a hard black path where monsters roar past. It\'s very dangerous!', () => {
+            queueMessage('Lionheart', 'Past the Thunderpath lies ShadowClan territory. Their cats are cunning and dangerous. NEVER cross into their land unless the Clan sends you.', () => {
+              queueMessage('Lionheart', 'If you cross into another Clan\'s territory, their warriors WILL chase you out - or worse!', () => {
+                queueMessage('Lionheart', 'Now follow me south. I want to show you Fourtrees - the sacred meeting place.', () => {
+                  trainingStep = 8;
+                  trainingTarget = { x: -42, z: -42 };
+                  moveLionheartTo(-42, -42);
+                });
               });
             });
           });
@@ -2560,19 +2907,55 @@ window.onerror = function(msg, url, line, col, err) {
         break;
 
       case 8:
-        // Sunningrocks
-        queueMessage('Lionheart', 'These are Sunningrocks. RiverClan claims them too. It\'s always been disputed territory.', () => {
-          queueMessage('Lionheart', 'Be careful around here - RiverClan warriors might attack.', () => {
-            queueMessage('Lionheart', 'That covers the basics, ' + pName + '! Let\'s head back to camp. You\'re ready to start your life as an apprentice!', () => {
-              trainingStep = 9;
-              trainingTarget = { x: 0, z: 0 };
-              moveLionheartTo(0, 0);
+        // Fourtrees
+        queueMessage('Lionheart', 'This is Fourtrees - where all four Clans meet every full moon for a Gathering.', () => {
+          queueMessage('Lionheart', 'See the four great oaks? And the Great Rock in the center - that\'s where the Clan leaders stand to speak.', () => {
+            queueMessage('Lionheart', 'During a Gathering, there is a truce. No Clan may attack another. It is sacred law.', () => {
+              queueMessage('Lionheart', 'WindClan territory is to the north - open moorland with few trees. They are fast runners.', () => {
+                queueMessage('Lionheart', 'Now let me show you the RiverClan border and Sunningrocks. Follow me east!', () => {
+                  trainingStep = 9;
+                  trainingTarget = { x: 60, z: 0 };
+                  moveLionheartTo(60, 0);
+                });
+              });
             });
           });
         });
         break;
 
       case 9:
+        // Sunningrocks & RiverClan border
+        queueMessage('Lionheart', 'These are Sunningrocks - the warm rocks where cats love to bask in the sun.', () => {
+          queueMessage('Lionheart', 'RiverClan claims these rocks belong to them, but they are OURS. ThunderClan has fought many battles here.', () => {
+            queueMessage('Lionheart', 'See the river beyond? That\'s the border with RiverClan. Their warriors swim and fish - don\'t try to cross the water!', () => {
+              queueMessage('Lionheart', 'If you enter another Clan\'s territory, their border patrols will attack you. Be careful!', () => {
+                queueMessage('Lionheart', 'Now, let me show you the WindClan border to the north, then we\'ll head back to camp.', () => {
+                  trainingStep = 10;
+                  trainingTarget = { x: 10, z: -52 };
+                  moveLionheartTo(10, -52);
+                });
+              });
+            });
+          });
+        });
+        break;
+
+      case 10:
+        // WindClan border
+        queueMessage('Lionheart', 'This is the WindClan border. See how the trees thin out and the land becomes open moorland?', () => {
+          queueMessage('Lionheart', 'WindClan cats are the fastest in all the forest. Don\'t chase them - you won\'t catch them!', () => {
+            queueMessage('Lionheart', 'Remember: respect ALL borders. The scent markers tell you where each territory ends.', () => {
+              queueMessage('Lionheart', 'That covers the full border tour, ' + pName + '! Let\'s head back to camp. You\'re ready to start your life as an apprentice!', () => {
+                trainingStep = 11;
+                trainingTarget = { x: 0, z: 0 };
+                moveLionheartTo(0, 0);
+              });
+            });
+          });
+        });
+        break;
+
+      case 11:
         // Training complete!
         revealCatNames([
           'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',

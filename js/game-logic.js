@@ -531,17 +531,53 @@ const GameLogic = {
    */
   getLocationName(position) {
     const dist = Math.sqrt(position.x * position.x + position.z * position.z);
-    
+    const x = position.x, z = position.z;
+
     // Twoleg house area
-    if (position.z > 70 && Math.abs(position.x) < 15) return 'Twoleg House';
+    if (z > 70 && Math.abs(x) < 15) return 'Twoleg House';
+    // Thunderpath (road between ThunderClan and ShadowClan)
+    if (x < -55 && x > -62) return 'Thunderpath';
+    // ShadowClan territory (past Thunderpath)
+    if (x < -62) return 'ShadowClan Territory';
+    // Fourtrees (where all territories meet)
+    if (x < -35 && x > -55 && z < -35 && z > -55) return 'Fourtrees';
+    // WindClan territory (far north-west open moorland)
+    if (z < -60) return 'WindClan Territory';
+    // Sunningrocks (near river)
+    if (x > 55 && x < 72 && Math.abs(z) < 20) return 'Sunningrocks';
+    // River
+    if (x > 71 && x < 79) return 'River';
+    // RiverClan territory (past the river)
+    if (x > 79) return 'RiverClan Territory';
     // ThunderClan camp
     if (dist < 15) return 'ThunderClan Camp';
+    // ShadowClan border zone
+    if (x < -45 && x >= -55) return 'ShadowClan Border';
+    // RiverClan border zone
+    if (x > 55) return 'RiverClan Border';
+    // WindClan border zone
+    if (z < -50 && z >= -60) return 'WindClan Border';
+    // Tallpines
+    if (z > 50 && x > -30) return 'Tallpines';
+    // Treecut place
+    if (z > 60 && x < -30) return 'Treecut Place';
+    // Near camp
     if (dist < 40) return 'ThunderClan Forest';
-    if (position.x > 50) return 'Sunningrocks';
-    if (position.x < -50) return 'ShadowClan Border';
-    if (position.z > 50) return 'Tallpines';
-    if (position.z < -50) return 'River Border';
     return 'ThunderClan Territory';
+  },
+
+  /**
+   * Get which clan's territory the position is in
+   * Returns: 'ThunderClan', 'ShadowClan', 'RiverClan', 'WindClan', 'neutral', or 'Thunderpath'
+   */
+  getTerritory(position) {
+    const x = position.x, z = position.z;
+    if (x < -55 && x > -62) return 'Thunderpath';
+    if (x < -62) return 'ShadowClan';
+    if (x > 79) return 'RiverClan';
+    if (z < -60) return 'WindClan';
+    if (x < -35 && x > -55 && z < -35 && z > -55) return 'neutral'; // Fourtrees
+    return 'ThunderClan';
   }
 };
 
