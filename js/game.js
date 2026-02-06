@@ -272,6 +272,9 @@
     step.position.set(1.2, 0.25, 0.8); step.castShadow = true;
     highrock.add(step);
     highrock.position.set(-3, 0, -4);
+    // Highrock name label
+    const hrLabel = makeNameLabel('Highrock', 4.2);
+    highrock.add(hrLabel);
     scene.add(highrock);
   }
 
@@ -434,51 +437,299 @@
   }
 
   /* ====================================================
-     NPC CATS (sit in camp for meetings)
+     NAME LABEL (floating text sprite above a cat)
      ==================================================== */
-  function makeSimpleCat (color, name, px, pz) {
+  function makeNameLabel (name, yOffset) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 256, 64);
+    // background pill
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.roundRect(8, 8, 240, 48, 12);
+    ctx.fill();
+    // text
+    ctx.font = 'bold 28px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffe0a0';
+    ctx.fillText(name, 128, 34);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(2.0, 0.5, 1);
+    sprite.position.set(0, yOffset || 1.6, 0);
+    sprite.renderOrder = 999;
+    return sprite;
+  }
+
+  /* ====================================================
+     BOOK-ACCURATE NPC CATS
+     ==================================================== */
+  /**
+   * Build a detailed cat from a descriptor object:
+   * { name, fur, belly, stripeColor, stripes, eyeColor, earInner,
+   *   noseColor, size, longFur, whiteChest, whitePaws, maneColor }
+   */
+  function makeBookCat (desc, px, pz) {
     const g = new THREE.Group();
-    const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 10 });
-    // body
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.55, 8, 10), mat);
-    body.rotation.z = Math.PI / 2; body.position.y = 0.55; body.castShadow = true;
+    const sz = desc.size || 1;
+    const furMat  = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 12 });
+    const bellyC  = desc.belly || desc.fur;
+    const bellyMat = new THREE.MeshPhongMaterial({ color: bellyC, shininess: 8 });
+    const earInC  = desc.earInner || 0xff9999;
+    const noseC   = desc.noseColor || 0xff7799;
+    const eyeC    = desc.eyeColor || 0xffdd44;
+    const pawC    = desc.whitePaws ? 0xffeedd : desc.fur;
+
+    /* body */
+    const bodyR = 0.34 * sz, bodyL = 0.7 * sz;
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(bodyR, bodyL, 10, 14), furMat);
+    body.rotation.z = Math.PI / 2; body.position.y = 0.58 * sz; body.castShadow = true;
     g.add(body);
-    // head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), mat);
-    head.position.set(0, 0.75, 0.42); g.add(head);
-    // ears
-    [[-0.13, 0.98, 0.42],[0.13, 0.98, 0.42]].forEach(p => {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.16, 4), mat);
-      ear.position.set(...p); g.add(ear);
-    });
-    // eyes
-    [[-.09, 0.78, 0.63],[.09, 0.78, 0.63]].forEach(p => {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffdd44 }));
-      eye.position.set(...p); g.add(eye);
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.02, 4, 4), new THREE.MeshBasicMaterial({ color: 0x111111 }));
-      pupil.position.set(p[0], p[1], p[2]+0.03); g.add(pupil);
-    });
-    // tail
-    for (let i = 0; i < 4; i++) {
-      const s = new THREE.Mesh(new THREE.SphereGeometry(0.05-i*0.005, 5, 4), mat);
-      s.position.set(0, 0.45+i*0.08, -0.35-i*0.1); g.add(s);
+    // belly
+    const bellyM = new THREE.Mesh(new THREE.CapsuleGeometry(bodyR * 0.78, bodyL * 0.65, 8, 10), bellyMat);
+    bellyM.rotation.z = Math.PI / 2; bellyM.position.set(0, 0.48 * sz, 0.04);
+    g.add(bellyM);
+
+    /* mane / thick neck fur (for Lionheart etc.) */
+    if (desc.maneColor) {
+      const maneMat = new THREE.MeshPhongMaterial({ color: desc.maneColor, shininess: 8 });
+      const mane = new THREE.Mesh(new THREE.SphereGeometry(0.38 * sz, 10, 8), maneMat);
+      mane.position.set(0, 0.7 * sz, 0.25 * sz); mane.scale.set(1.3, 1.1, 1.0);
+      g.add(mane);
     }
+
+    /* head */
+    const headR = 0.30 * sz;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 12, 10), furMat);
+    head.position.set(0, 0.82 * sz, 0.52 * sz); head.scale.set(1, 0.92, 1.06);
+    head.castShadow = true; g.add(head);
+    // cheeks
+    const cheekMat = new THREE.MeshPhongMaterial({ color: desc.belly || desc.fur, shininess: 8 });
+    [[-1,1],[1,1]].forEach(([s]) => {
+      const ch = new THREE.Mesh(new THREE.SphereGeometry(0.12 * sz, 8, 6), cheekMat);
+      ch.position.set(s * 0.16 * sz, 0.76 * sz, 0.62 * sz); g.add(ch);
+    });
+    // muzzle
+    const mzlMat = new THREE.MeshPhongMaterial({ color: bellyC });
+    const mzl = new THREE.Mesh(new THREE.SphereGeometry(0.11 * sz, 8, 6), mzlMat);
+    mzl.position.set(0, 0.76 * sz, 0.72 * sz); mzl.scale.set(1.1, 0.65, 0.7);
+    g.add(mzl);
+    // chin
+    if (desc.whiteChest) {
+      const chin = new THREE.Mesh(new THREE.SphereGeometry(0.09 * sz, 6, 5), new THREE.MeshPhongMaterial({ color: 0xffeedd }));
+      chin.position.set(0, 0.70 * sz, 0.62 * sz); g.add(chin);
+    }
+
+    /* ears */
+    const earMat = new THREE.MeshPhongMaterial({ color: desc.fur });
+    const earIn  = new THREE.MeshPhongMaterial({ color: earInC });
+    [[-1,1],[1,1]].forEach(([s]) => {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.11 * sz, 0.22 * sz, 4), earMat);
+      ear.position.set(s * 0.15 * sz, 1.06 * sz, 0.50 * sz); ear.rotation.z = s * 0.22;
+      g.add(ear);
+      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.06 * sz, 0.14 * sz, 4), earIn);
+      inner.position.set(s * 0.15 * sz, 1.04 * sz, 0.52 * sz); inner.rotation.z = s * 0.22;
+      g.add(inner);
+    });
+    // long-fur ear tufts
+    if (desc.longFur) {
+      const tuftMat = new THREE.MeshPhongMaterial({ color: desc.fur });
+      [[-1,1],[1,1]].forEach(([s]) => {
+        const tf = new THREE.Mesh(new THREE.ConeGeometry(0.04 * sz, 0.10 * sz, 3), tuftMat);
+        tf.position.set(s * 0.15 * sz, 1.18 * sz, 0.50 * sz); g.add(tf);
+      });
+    }
+
+    /* eyes (sclera, iris, pupil, highlight) */
+    [[-1,1],[1,1]].forEach(([s]) => {
+      const x = s * 0.11 * sz;
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.06 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: 0xeeeedd }));
+      sclera.position.set(x, 0.86 * sz, 0.74 * sz); sclera.scale.set(1, 0.85, 0.5); g.add(sclera);
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.048 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: eyeC, shininess: 50 }));
+      iris.position.set(x, 0.86 * sz, 0.76 * sz); iris.scale.set(1, 0.85, 0.4); g.add(iris);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.024 * sz, 6, 4), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+      pupil.position.set(x, 0.86 * sz, 0.78 * sz); g.add(pupil);
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.012 * sz, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl.position.set(x - s * 0.015 * sz, 0.88 * sz, 0.79 * sz); g.add(hl);
+    });
+
+    /* nose */
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.038 * sz, 6, 5), new THREE.MeshPhongMaterial({ color: noseC, shininess: 40 }));
+    nose.position.set(0, 0.79 * sz, 0.80 * sz); nose.scale.set(1.2, 0.65, 0.6); g.add(nose);
+
+    /* whiskers */
+    const whMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
+    [[-1,1],[1,1]].forEach(([s]) => {
+      for (let w = 0; w < 3; w++) {
+        const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.001, 0.32 * sz, 3), whMat);
+        wh.rotation.z = s * (0.15 + w * 0.12); wh.rotation.x = -0.1 + w * 0.1;
+        wh.position.set(s * 0.20 * sz, 0.76 * sz - w * 0.015, 0.72 * sz);
+        g.add(wh);
+      }
+    });
+
+    /* legs & paws */
+    const legMat = new THREE.MeshPhongMaterial({ color: desc.fur });
+    const pawMat = new THREE.MeshPhongMaterial({ color: pawC });
+    const padMat = new THREE.MeshPhongMaterial({ color: 0xff8899 });
+    const legPos = [
+      [-0.18*sz, 0.18*sz, 0.28*sz], [0.18*sz, 0.18*sz, 0.28*sz],
+      [-0.18*sz, 0.18*sz, -0.28*sz],[0.18*sz, 0.18*sz, -0.28*sz]
+    ];
+    g.legs = [];
+    legPos.forEach(([x,y,z]) => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08*sz, 0.06*sz, 0.38*sz, 7), legMat);
+      leg.position.set(x,y,z); leg.castShadow = true; g.add(leg); g.legs.push(leg);
+      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.07*sz, 7, 5), pawMat);
+      paw.position.set(x, 0.02, z); paw.scale.set(1, 0.5, 1.2); g.add(paw);
+      // toe beans
+      for (let t = 0; t < 3; t++) {
+        const bean = new THREE.Mesh(new THREE.SphereGeometry(0.015*sz, 4, 4), padMat);
+        bean.position.set(x+(t-1)*0.025*sz, 0.008, z+0.03*sz); g.add(bean);
+      }
+    });
+
+    /* tail */
+    g.tailSegs = [];
+    for (let i = 0; i < 6; i++) {
+      const r = (0.055 - i * 0.006) * sz;
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.015, r), 5, 4), furMat);
+      seg.position.set(0, (0.45 + i * 0.09) * sz, (-0.38 - i * 0.09) * sz);
+      g.add(seg); g.tailSegs.push(seg);
+    }
+
+    /* chest patch */
+    if (desc.whiteChest) {
+      const cp = new THREE.Mesh(new THREE.SphereGeometry(0.20*sz, 8, 6), new THREE.MeshPhongMaterial({ color: 0xffeedd }));
+      cp.position.set(0, 0.52*sz, 0.32*sz); cp.scale.set(0.65, 0.7, 0.45); g.add(cp);
+    }
+
+    /* tabby stripes */
+    if (desc.stripes && desc.stripeColor) {
+      const stMat = new THREE.MeshPhongMaterial({ color: desc.stripeColor });
+      for (let i = 0; i < desc.stripes; i++) {
+        const st = new THREE.Mesh(new THREE.BoxGeometry(0.36*sz, 0.012, 0.05*sz), stMat);
+        st.position.set(0, 0.90*sz, (0.12 - i*0.14)*sz); g.add(st);
+      }
+      // forehead M
+      const mM = new THREE.Mesh(new THREE.BoxGeometry(0.16*sz, 0.012, 0.025*sz), stMat);
+      mM.position.set(0, 0.96*sz, 0.56*sz); g.add(mM);
+    }
+
+    /* name label */
+    const label = makeNameLabel(desc.name, 1.45 * sz);
+    g.add(label);
+
     g.position.set(px, 0, pz);
-    g.visible = false; // only visible during meetings & gameplay
+    g.visible = false;
     scene.add(g);
-    return { group: g, name: name };
+    return { group: g, name: desc.name, data: desc };
   }
 
   function createNPCCats () {
+    /* Book-accurate descriptions from Warriors: Into the Wild */
     npcCats = [
-      makeSimpleCat(0x4466aa, 'Bluestar', -3, -1.5),  // on highrock during meetings
-      makeSimpleCat(0xccaa44, 'Lionheart', -1, 1),
-      makeSimpleCat(0x888888, 'Graypaw', 1, 2),
-      makeSimpleCat(0xffffff, 'Whitestorm', 2, -1),
-      makeSimpleCat(0x885522, 'Dustpaw', -2, 3),
-      makeSimpleCat(0xaa8866, 'Sandpaw', 0, 3.5),
-      makeSimpleCat(0x996633, 'Mousefur', 3, 1),
-      makeSimpleCat(0x444444, 'Darkstripe', -4, 2),
+      // Bluestar - blue-gray she-cat, silver muzzle, piercing ice-blue eyes
+      makeBookCat({
+        name: 'Bluestar', fur: 0x6680aa, belly: 0x8899bb,
+        eyeColor: 0x66bbff, earInner: 0xcc8899, noseColor: 0x8888aa,
+        size: 1.05, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, -3, -1.5),
+
+      // Lionheart - magnificent golden tabby tom, thick fur, amber eyes, lion-like mane
+      makeBookCat({
+        name: 'Lionheart', fur: 0xccaa33, belly: 0xddcc77,
+        stripeColor: 0x997711, stripes: 5,
+        eyeColor: 0xffaa22, earInner: 0xffaa88, noseColor: 0xdd8866,
+        size: 1.2, maneColor: 0xddbb44,
+        whiteChest: false, whitePaws: false, longFur: true
+      }, -1, 1),
+
+      // Graypaw - long-haired solid gray tom, yellow eyes, thick fur
+      makeBookCat({
+        name: 'Graypaw', fur: 0x777788, belly: 0x9999aa,
+        eyeColor: 0xeedd33, earInner: 0xcc9999, noseColor: 0x887788,
+        size: 0.9, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: true
+      }, 1, 2),
+
+      // Whitestorm - big white tom, yellow eyes
+      makeBookCat({
+        name: 'Whitestorm', fur: 0xeeeeee, belly: 0xffffff,
+        eyeColor: 0xeedd44, earInner: 0xffaaaa, noseColor: 0xffaabb,
+        size: 1.15, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, 2, -1),
+
+      // Dustpaw - dark brown tabby tom, amber eyes
+      makeBookCat({
+        name: 'Dustpaw', fur: 0x7a5533, belly: 0x997755,
+        stripeColor: 0x442200, stripes: 4,
+        eyeColor: 0xddaa22, earInner: 0xcc8877, noseColor: 0x664433,
+        size: 0.85, whiteChest: false, whitePaws: false, longFur: false
+      }, -2, 3),
+
+      // Sandpaw - pale ginger (sandy) she-cat, green eyes, small and sleek
+      makeBookCat({
+        name: 'Sandpaw', fur: 0xddbb88, belly: 0xeedd99,
+        eyeColor: 0x44cc44, earInner: 0xffbb99, noseColor: 0xddaa88,
+        size: 0.82, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, 0, 3.5),
+
+      // Mousefur - small dusky brown she-cat, amber eyes
+      makeBookCat({
+        name: 'Mousefur', fur: 0x8b6b4a, belly: 0xa08060,
+        eyeColor: 0xddaa33, earInner: 0xcc9988, noseColor: 0x886655,
+        size: 0.78, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, 3, 1),
+
+      // Darkstripe - large dark gray tabby tom, black stripes, amber eyes
+      makeBookCat({
+        name: 'Darkstripe', fur: 0x555566, belly: 0x6b6b7a,
+        stripeColor: 0x222233, stripes: 5,
+        eyeColor: 0xddaa22, earInner: 0xaa7788, noseColor: 0x555555,
+        size: 1.1, whiteChest: false, whitePaws: false, longFur: false
+      }, -4, 2),
+
+      // Ravenpaw - sleek black tom, white-tipped tail, amber eyes, nervous
+      makeBookCat({
+        name: 'Ravenpaw', fur: 0x1a1a1a, belly: 0x2a2a2a,
+        eyeColor: 0xddaa33, earInner: 0x885566, noseColor: 0x333333,
+        size: 0.85, whiteChest: true, whitePaws: false,
+        stripes: 0, longFur: false
+      }, 1, -2),
+
+      // Spottedleaf - beautiful tortoiseshell she-cat, amber eyes, dappled coat
+      makeBookCat({
+        name: 'Spottedleaf', fur: 0xaa6633, belly: 0xcc9966,
+        stripeColor: 0x553311, stripes: 3,
+        eyeColor: 0xddaa44, earInner: 0xffaa88, noseColor: 0xcc7755,
+        size: 0.88, whiteChest: true, whitePaws: true, longFur: false
+      }, 4, -3),
+
+      // Tigerclaw - big dark brown tabby, unusually long claws, amber eyes
+      makeBookCat({
+        name: 'Tigerclaw', fur: 0x5a3a1a, belly: 0x7a5a3a,
+        stripeColor: 0x221100, stripes: 6,
+        eyeColor: 0xffaa11, earInner: 0xaa7766, noseColor: 0x553322,
+        size: 1.25, whiteChest: false, whitePaws: false, longFur: false
+      }, -5, 0),
+
+      // Yellowfang - old dark gray she-cat, flat face, orange eyes, matted fur
+      makeBookCat({
+        name: 'Yellowfang', fur: 0x555555, belly: 0x666666,
+        eyeColor: 0xff8822, earInner: 0x886677, noseColor: 0x555544,
+        size: 0.95, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: true
+      }, 5, 2),
     ];
   }
 
@@ -910,6 +1161,15 @@
     });
   }
 
+  function animateNPCTails (time) {
+    npcCats.forEach((c, ci) => {
+      if (!c.group.visible || !c.group.tailSegs) return;
+      c.group.tailSegs.forEach((s, i) => {
+        s.position.x = Math.sin(time * 1.8 + ci * 2 + i * 0.5) * 0.05 * (i + 1);
+      });
+    });
+  }
+
   function animateFireflies (time) {
     const f = scene.getObjectByName('fireflies');
     if (!f) return;
@@ -937,6 +1197,7 @@
       updateHUD();
       animateFireflies(time);
       animateTail(time);
+      animateNPCTails(time);
       gameTime += dt;
       // autosave every 15s
       if (Math.floor(time * 10) % 150 === 0) saveGame();
