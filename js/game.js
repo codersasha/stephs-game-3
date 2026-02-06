@@ -4056,18 +4056,19 @@ window.onerror = function(msg, url, line, col, err) {
   /** Place all cats in their camp positions */
   function placeCatsInCamp () {
     const campPositions = [
-      { name: 'Bluestar', x: -4, z: -2 },
+      { name: 'Bluestar', x: DEN_SPOTS['Leader'].x, z: DEN_SPOTS['Leader'].z }, // In Leader's Den
       { name: 'Lionheart', x: -1, z: 1 },
-      { name: 'Graypaw', x: 5, z: 4 },
-      { name: 'Whitestorm', x: 7, z: -1 },
-      { name: 'Dustpaw', x: 5, z: 6 },
-      { name: 'Sandpaw', x: 4, z: 7 },
-      { name: 'Mousefur', x: 9, z: -3 },
-      { name: 'Darkstripe', x: -5, z: -6 },
-      { name: 'Ravenpaw', x: 3, z: 5 },
-      { name: 'Spottedleaf', x: -9, z: 4 },
-      { name: 'Tigerclaw', x: 6, z: -4 },
-      { name: 'Yellowfang', x: -7, z: 6 },
+      { name: 'Graypaw', x: DEN_SPOTS['Apprentices'].x + 1, z: DEN_SPOTS['Apprentices'].z },
+      { name: 'Whitestorm', x: DEN_SPOTS['Warriors'].x, z: DEN_SPOTS['Warriors'].z },
+      { name: 'Dustpaw', x: DEN_SPOTS['Apprentices'].x - 1, z: DEN_SPOTS['Apprentices'].z + 1 },
+      { name: 'Sandpaw', x: DEN_SPOTS['Apprentices'].x, z: DEN_SPOTS['Apprentices'].z + 1 },
+      { name: 'Mousefur', x: DEN_SPOTS['Warriors'].x + 1, z: DEN_SPOTS['Warriors'].z + 1 },
+      { name: 'Darkstripe', x: DEN_SPOTS['Warriors'].x - 1, z: DEN_SPOTS['Warriors'].z - 1 },
+      { name: 'Ravenpaw', x: DEN_SPOTS['Apprentices'].x + 2, z: DEN_SPOTS['Apprentices'].z - 1 },
+      { name: 'Spottedleaf', x: DEN_SPOTS['Medicine'].x, z: DEN_SPOTS['Medicine'].z }, // In Medicine Den
+      { name: 'Tigerclaw', x: DEN_SPOTS['Warriors'].x + 2, z: DEN_SPOTS['Warriors'].z },
+      { name: 'Yellowfang', x: DEN_SPOTS['Elders'].x, z: DEN_SPOTS['Elders'].z },
+      { name: 'Longtail', x: DEN_SPOTS['Warriors'].x - 2, z: DEN_SPOTS['Warriors'].z + 1 },
     ];
     campPositions.forEach(cp => {
       const cat = npcCats.find(c => c.name === cp.name);
@@ -4350,16 +4351,217 @@ window.onerror = function(msg, url, line, col, err) {
     return DEN_SPOTS['Warriors'];
   }
 
+  /**
+   * Cat behavior roles:
+   * - 'leader':      stays in den mostly, walks around camp to talk, NEVER leaves camp
+   * - 'medicine':    stays in medicine den mostly, walks around camp, NEVER leaves camp
+   * - 'warrior':     hunts, patrols borders, drinks, eats, rests — goes far out
+   * - 'apprentice':  hunts, patrols (shorter range), drinks, eats, trains
+   * - 'elder':       stays near camp, eats, drinks, rests
+   * - 'kittypet':    stays near Twoleg house
+   */
+  function getCatRole (name) {
+    if (name === 'Bluestar') return 'leader';
+    if (name === 'Spottedleaf') return 'medicine';
+    if (name === 'Yellowfang') return 'elder';
+    if (name === 'Smudge' || name === 'Princess') return 'kittypet';
+    if (['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'].includes(name)) return 'apprentice';
+    return 'warrior'; // Lionheart, Whitestorm, Tigerclaw, Mousefur, Darkstripe, Longtail
+  }
+
   function initNPCAI () {
     npcCats.forEach(c => {
+      const role = getCatRole(c.name);
       c.ai = {
         task: 'idle',
-        target: null,      // { x, z }
-        timer: Math.random() * 8 + 2, // time before picking next task
+        target: null,
+        timer: Math.random() * 6 + 2,
         carryingPrey: false,
-        walkSpeed: 2.5 + Math.random() * 1.5,
+        walkSpeed: role === 'apprentice' ? 3.0 + Math.random() : (role === 'elder' ? 1.8 : 2.5 + Math.random() * 1.5),
+        role: role,
+        homePos: null,  // where they return to
       };
+      // Set home position based on role
+      const den = getDenForCat(c.name);
+      c.ai.homePos = { x: den.x, z: den.z };
     });
+  }
+
+  /** Pick next task for a cat based on its role */
+  function pickNextTask (c) {
+    const ai = c.ai;
+    const role = ai.role;
+    const roll = Math.random();
+
+    // --- LEADER (Bluestar): mostly in den or walking around camp ---
+    if (role === 'leader') {
+      if (roll < 0.35) {
+        // Rest in Leader's Den
+        ai.task = 'rest';
+        ai.target = { x: DEN_SPOTS['Leader'].x + (Math.random()-0.5)*1.5, z: DEN_SPOTS['Leader'].z + (Math.random()-0.5)*1.5 };
+        ai.timer = 15 + Math.random() * 15;
+      } else if (roll < 0.65) {
+        // Walk around camp (talk to cats)
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 3 + Math.random() * 8; // stays within camp
+        ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+        ai.timer = 10 + Math.random() * 10;
+      } else if (roll < 0.80) {
+        // Stand on Highrock
+        ai.task = 'patrol';
+        ai.target = { x: -3, z: -3.5 };
+        ai.timer = 8 + Math.random() * 8;
+      } else if (roll < 0.90) {
+        // Eat at fresh-kill pile
+        ai.task = 'eat';
+        ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
+        ai.timer = 8;
+      } else {
+        // Drink
+        ai.task = 'drink';
+        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
+        ai.timer = 15;
+      }
+      return;
+    }
+
+    // --- MEDICINE CAT (Spottedleaf): mostly in medicine den, sometimes walks camp ---
+    if (role === 'medicine') {
+      if (roll < 0.50) {
+        // Stay in Medicine Den
+        ai.task = 'rest';
+        ai.target = { x: DEN_SPOTS['Medicine'].x + (Math.random()-0.5)*2, z: DEN_SPOTS['Medicine'].z + (Math.random()-0.5)*2 };
+        ai.timer = 15 + Math.random() * 20;
+      } else if (roll < 0.80) {
+        // Walk around camp (checking on cats)
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 3 + Math.random() * 8;
+        ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+        ai.timer = 8 + Math.random() * 8;
+      } else if (roll < 0.92) {
+        // Eat
+        ai.task = 'eat';
+        ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
+        ai.timer = 8;
+      } else {
+        // Drink
+        ai.task = 'drink';
+        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
+        ai.timer = 15;
+      }
+      return;
+    }
+
+    // --- ELDER (Yellowfang): stays in camp, eats, drinks, rests ---
+    if (role === 'elder') {
+      if (roll < 0.40) {
+        ai.task = 'rest';
+        ai.target = { x: DEN_SPOTS['Elders'].x + (Math.random()-0.5)*2, z: DEN_SPOTS['Elders'].z + (Math.random()-0.5)*2 };
+        ai.timer = 15 + Math.random() * 15;
+      } else if (roll < 0.60) {
+        ai.task = 'eat';
+        ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
+        ai.timer = 10;
+      } else if (roll < 0.80) {
+        // Walk around camp slowly
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 3 + Math.random() * 6;
+        ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+        ai.timer = 10;
+      } else {
+        ai.task = 'drink';
+        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
+        ai.timer = 15;
+      }
+      return;
+    }
+
+    // --- KITTYPET (Smudge, Princess): stay near Twoleg house ---
+    if (role === 'kittypet') {
+      if (roll < 0.50) {
+        ai.task = 'rest';
+        ai.target = { x: (Math.random()-0.5)*6, z: 82 + Math.random()*6 };
+        ai.timer = 12 + Math.random() * 10;
+      } else {
+        ai.task = 'patrol';
+        ai.target = { x: (Math.random()-0.5)*8, z: 78 + Math.random()*10 };
+        ai.timer = 8 + Math.random() * 8;
+      }
+      return;
+    }
+
+    // --- WARRIOR: hunts, patrols territory borders, drinks, eats, rests ---
+    if (role === 'warrior') {
+      if (roll < 0.30) {
+        // Hunt (walk far into territory, come back with prey)
+        ai.task = 'hunt';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 25 + Math.random() * 35;
+        ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+        ai.timer = 35;
+        ai.carryingPrey = false;
+      } else if (roll < 0.55) {
+        // Patrol borders
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 30;
+        ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+        ai.timer = 20 + Math.random() * 15;
+      } else if (roll < 0.70) {
+        // Rest in Warriors' Den
+        ai.task = 'rest';
+        const den = getDenForCat(c.name);
+        ai.target = { x: den.x + (Math.random()-0.5)*2, z: den.z + (Math.random()-0.5)*2 };
+        ai.timer = 12 + Math.random() * 10;
+      } else if (roll < 0.85) {
+        // Eat
+        ai.task = 'eat';
+        ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
+        ai.timer = 8;
+      } else {
+        // Drink
+        ai.task = 'drink';
+        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
+        ai.timer = 15;
+      }
+      return;
+    }
+
+    // --- APPRENTICE: hunts (closer range), patrols, trains, eats, drinks ---
+    if (roll < 0.30) {
+      // Hunt (shorter range than warriors)
+      ai.task = 'hunt';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 15 + Math.random() * 25;
+      ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+      ai.timer = 25;
+      ai.carryingPrey = false;
+    } else if (roll < 0.50) {
+      // Patrol (shorter range)
+      ai.task = 'patrol';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 10 + Math.random() * 20;
+      ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+      ai.timer = 15 + Math.random() * 10;
+    } else if (roll < 0.65) {
+      // Rest in Apprentices' Den
+      ai.task = 'rest';
+      ai.target = { x: DEN_SPOTS['Apprentices'].x + (Math.random()-0.5)*2, z: DEN_SPOTS['Apprentices'].z + (Math.random()-0.5)*2 };
+      ai.timer = 10 + Math.random() * 8;
+    } else if (roll < 0.80) {
+      // Eat
+      ai.task = 'eat';
+      ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
+      ai.timer = 8;
+    } else {
+      // Drink
+      ai.task = 'drink';
+      ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
+      ai.timer = 12;
+    }
   }
 
   function updateNPCAI (dt) {
@@ -4377,40 +4579,7 @@ window.onerror = function(msg, url, line, col, err) {
         case 'idle':
           c._walking = false;
           if (ai.timer <= 0) {
-            // Pick a random task
-            const roll = Math.random();
-            if (roll < 0.25) {
-              // Go patrol / walk around territory
-              ai.task = 'patrol';
-              const angle = Math.random() * Math.PI * 2;
-              const dist = 15 + Math.random() * 30;
-              ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
-              ai.timer = 15 + Math.random() * 20;
-            } else if (roll < 0.45) {
-              // Go hunt (walk out, come back with prey)
-              ai.task = 'hunt';
-              const angle = Math.random() * Math.PI * 2;
-              const dist = 25 + Math.random() * 40;
-              ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
-              ai.timer = 30;
-              ai.carryingPrey = false;
-            } else if (roll < 0.60) {
-              // Go drink water
-              ai.task = 'drink';
-              ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
-              ai.timer = 20;
-            } else if (roll < 0.75) {
-              // Go rest in den
-              ai.task = 'rest';
-              const den = getDenForCat(c.name);
-              ai.target = { x: den.x + (Math.random()-0.5)*2, z: den.z + (Math.random()-0.5)*2 };
-              ai.timer = 12 + Math.random() * 10;
-            } else {
-              // Go eat at fresh-kill pile
-              ai.task = 'eat';
-              ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*2 };
-              ai.timer = 10;
-            }
+            pickNextTask(c);
           }
           break;
 
