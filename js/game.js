@@ -34,9 +34,24 @@ window.onerror = function(msg, url, line, col, err) {
   const messageBox      = $('message-box');
   const messageSpeaker  = $('message-speaker');
   const messageTextEl   = $('message-text');
+  const battleScreen    = $('battle-screen');
+  const battleHeader    = $('battle-header');
+  const battleLog       = $('battle-log');
+  const battleButtons   = $('battle-buttons');
+  const battleAttackBtn = $('battle-attack-btn');
+  const battleDodgeBtn  = $('battle-dodge-btn');
+  const battleFierceBtn = $('battle-fierce-btn');
+  const battlePlayerName = $('battle-player-name');
+  const battleEnemyName  = $('battle-enemy-name');
+  const battlePlayerHP   = $('battle-player-hp');
+  const battleEnemyHP    = $('battle-enemy-hp');
+  const battlePlayerHPText = $('battle-player-hp-text');
+  const battleEnemyHPText  = $('battle-enemy-hp-text');
+  const battlePlayerCanvas = $('battle-player-canvas');
+  const battleEnemyCanvas  = $('battle-enemy-canvas');
 
   /* ---------- state ---------- */
-  // loading | title | saves | cutscene | naming | ceremony | playing
+  // loading | title | saves | cutscene | naming | ceremony | playing | battle
   let gameState = 'loading';
   let player = null;
   let activeSaveSlot = null;    // 1,2,3
@@ -118,6 +133,10 @@ window.onerror = function(msg, url, line, col, err) {
     'Yellowfang':  { base: 260, end: 200, dur: 0.50, type: 'triangle', vol: 0.11, vibrato: 3 },   // raspy, old she-cat
     'ThunderClan': { base: 300, end: 250, dur: 0.60, type: 'sine',     vol: 0.14, vibrato: 2 },   // crowd cheer
     'Narrator':    { base: 0, end: 0, dur: 0, type: 'sine', vol: 0, vibrato: 0 },                 // silent narrator
+    'Smudge':      { base: 440, end: 360, dur: 0.35, type: 'sine',     vol: 0.12, vibrato: 5 },   // chubby friendly tom, medium pitch
+    'Princess':    { base: 500, end: 420, dur: 0.32, type: 'sine',     vol: 0.11, vibrato: 4 },   // gentle, sweet she-cat
+    'Longtail':    { base: 280, end: 200, dur: 0.40, type: 'sawtooth', vol: 0.11, vibrato: 3 },   // young warrior, sneering, mid-low
+    '???':         { base: 350, end: 280, dur: 0.30, type: 'triangle', vol: 0.10, vibrato: 3 },   // unknown cat
   };
 
   /** Play a cat "speaking" sound — unique voice per character */
@@ -789,102 +808,102 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* --- body (two overlapping capsules for smooth shape) --- */
     const bodyMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 15 });
-    const bodyMain = makeCapsuleMesh(0.28, 0.90, 12, 16, bodyMat);
-    bodyMain.rotation.z = Math.PI / 2; bodyMain.position.set(0, 0.60, 0); bodyMain.castShadow = true;
+    const bodyMain = makeCapsuleMesh(0.22, 0.95, 12, 16, bodyMat);
+    bodyMain.rotation.z = Math.PI / 2; bodyMain.position.set(0, 0.58, 0); bodyMain.castShadow = true;
     catGroup.add(bodyMain);
     // belly (lighter, slightly below)
     const bellyMat = new THREE.MeshPhongMaterial({ color: cream, shininess: 10 });
-    const belly = makeCapsuleMesh(0.22, 0.62, 8, 12, bellyMat);
-    belly.rotation.z = Math.PI / 2; belly.position.set(0, 0.50, 0.04);
+    const belly = makeCapsuleMesh(0.17, 0.65, 8, 12, bellyMat);
+    belly.rotation.z = Math.PI / 2; belly.position.set(0, 0.49, 0.04);
     catGroup.add(belly);
 
     /* --- head --- */
     const headMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 20 });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 12), headMat);
-    head.position.set(0, 0.88, 0.60); head.scale.set(1, 0.92, 1.08); head.castShadow = true;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.30, 14, 12), headMat);
+    head.position.set(0, 0.86, 0.60); head.scale.set(1, 0.92, 1.08); head.castShadow = true;
     catGroup.add(head);
     // cheeks
     const cheekMat = new THREE.MeshPhongMaterial({ color: lightOrange, shininess: 10 });
-    [[-0.18, 0.82, 0.72],[0.18, 0.82, 0.72]].forEach(([x,y,z])=>{
-      const ch = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), cheekMat);
+    [[-0.15, 0.80, 0.72],[0.15, 0.80, 0.72]].forEach(([x,y,z])=>{
+      const ch = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), cheekMat);
       ch.position.set(x,y,z); catGroup.add(ch);
     });
     // chin
-    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshPhongMaterial({ color: white }));
-    chin.position.set(0, 0.74, 0.72); catGroup.add(chin);
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 6), new THREE.MeshPhongMaterial({ color: white }));
+    chin.position.set(0, 0.72, 0.72); catGroup.add(chin);
     // muzzle
-    const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshPhongMaterial({ color: cream }));
-    muzzle.position.set(0, 0.80, 0.82); muzzle.scale.set(1.1, 0.7, 0.8); catGroup.add(muzzle);
+    const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), new THREE.MeshPhongMaterial({ color: cream }));
+    muzzle.position.set(0, 0.78, 0.82); muzzle.scale.set(1.1, 0.7, 0.8); catGroup.add(muzzle);
 
     /* --- ears (triangular with inner pink) --- */
     const earMat = new THREE.MeshPhongMaterial({ color: orange });
     const earInnerMat = new THREE.MeshPhongMaterial({ color: pink });
     [[-1, 1],[1, 1]].forEach(([side]) => {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.24, 4), earMat);
-      ear.position.set(side * 0.17, 1.15, 0.58); ear.rotation.z = side * 0.25; ear.castShadow = true;
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.22, 4), earMat);
+      ear.position.set(side * 0.15, 1.10, 0.58); ear.rotation.z = side * 0.25; ear.castShadow = true;
       catGroup.add(ear);
-      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.15, 4), earInnerMat);
-      inner.position.set(side * 0.17, 1.13, 0.60); inner.rotation.z = side * 0.25;
+      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.14, 4), earInnerMat);
+      inner.position.set(side * 0.15, 1.08, 0.60); inner.rotation.z = side * 0.25;
       catGroup.add(inner);
       // fur tuft
       const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.08, 3), new THREE.MeshPhongMaterial({ color: lightOrange }));
-      tuft.position.set(side * 0.17, 1.27, 0.58);
+      tuft.position.set(side * 0.15, 1.22, 0.58);
       catGroup.add(tuft);
     });
 
     /* --- eyes (detailed: sclera, iris, pupil, highlight, eyelid) --- */
     [[-1, 1],[1, 1]].forEach(([side]) => {
-      const x = side * 0.14;
+      const x = side * 0.12;
       // sclera (white of eye) - bigger, more visible
-      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), new THREE.MeshPhongMaterial({ color: 0xf0fff0, shininess: 30 }));
-      sclera.position.set(x, 0.92, 0.86); sclera.scale.set(1.1, 0.9, 0.55);
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), new THREE.MeshPhongMaterial({ color: 0xf0fff0, shininess: 30 }));
+      sclera.position.set(x, 0.90, 0.85); sclera.scale.set(1.1, 0.9, 0.55);
       catGroup.add(sclera);
       // iris (bright green, Rusty's signature eyes)
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), new THREE.MeshPhongMaterial({ color: 0x22cc22, shininess: 80 }));
-      iris.position.set(x, 0.92, 0.89); iris.scale.set(1.0, 0.9, 0.45);
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.058, 12, 10), new THREE.MeshPhongMaterial({ color: 0x22cc22, shininess: 80 }));
+      iris.position.set(x, 0.90, 0.88); iris.scale.set(1.0, 0.9, 0.45);
       catGroup.add(iris);
       // pupil (vertical slit - cat eye!)
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), new THREE.MeshBasicMaterial({ color: 0x050505 }));
-      pupil.position.set(x, 0.92, 0.91); pupil.scale.set(0.4, 0.85, 0.3);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.030, 8, 8), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+      pupil.position.set(x, 0.90, 0.90); pupil.scale.set(0.4, 0.85, 0.3);
       catGroup.add(pupil);
       // specular highlights (two - big and small)
-      const hl1 = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl1.position.set(x - side * 0.02, 0.95, 0.92);
+      const hl1 = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl1.position.set(x - side * 0.02, 0.93, 0.91);
       catGroup.add(hl1);
-      const hl2 = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl2.position.set(x + side * 0.01, 0.90, 0.92);
+      const hl2 = new THREE.Mesh(new THREE.SphereGeometry(0.009, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl2.position.set(x + side * 0.01, 0.88, 0.91);
       catGroup.add(hl2);
       // dark eyelid line above eye
-      const lid = new THREE.Mesh(new THREE.SphereGeometry(0.082, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.35), new THREE.MeshPhongMaterial({ color: darkOrange }));
-      lid.position.set(x, 0.93, 0.86); lid.scale.set(1.1, 0.5, 0.55);
+      const lid = new THREE.Mesh(new THREE.SphereGeometry(0.072, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.35), new THREE.MeshPhongMaterial({ color: darkOrange }));
+      lid.position.set(x, 0.91, 0.85); lid.scale.set(1.1, 0.5, 0.55);
       catGroup.add(lid);
     });
 
     /* --- nose (triangle-shaped, pink, more prominent) --- */
     const noseMat = new THREE.MeshPhongMaterial({ color: pink, shininess: 60 });
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), noseMat);
-    nose.position.set(0, 0.835, 0.93); nose.scale.set(1.2, 0.6, 0.6);
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), noseMat);
+    nose.position.set(0, 0.815, 0.92); nose.scale.set(1.2, 0.6, 0.6);
     catGroup.add(nose);
     // nostrils (tiny dark dots)
     [[-1,1],[1,1]].forEach(([s]) => {
-      const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), new THREE.MeshBasicMaterial({ color: 0x331111 }));
-      nostril.position.set(s * 0.025, 0.825, 0.95);
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.010, 4, 4), new THREE.MeshBasicMaterial({ color: 0x331111 }));
+      nostril.position.set(s * 0.022, 0.805, 0.94);
       catGroup.add(nostril);
     });
     // mouth line
     const mouthMat = new THREE.MeshBasicMaterial({ color: 0x332222 });
     const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.005, 0.005), mouthMat);
-    mouth.position.set(0, 0.79, 0.92);
+    mouth.position.set(0, 0.77, 0.91);
     catGroup.add(mouth);
 
     /* --- whiskers (thin cylinders) --- */
     const whiskerMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
     [[-1,1],[1,1]].forEach(([side])=>{
       for (let w = 0; w < 3; w++) {
-        const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.002, 0.4, 3), whiskerMat);
+        const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.002, 0.35, 3), whiskerMat);
         wh.rotation.z = side * (0.15 + w * 0.12);
         wh.rotation.x = -0.1 + w * 0.1;
-        wh.position.set(side * 0.25, 0.82 - w * 0.02, 0.82);
+        wh.position.set(side * 0.22, 0.80 - w * 0.02, 0.82);
         catGroup.add(wh);
       }
     });
@@ -894,17 +913,17 @@ window.onerror = function(msg, url, line, col, err) {
     const pawMat = new THREE.MeshPhongMaterial({ color: white });
     const padMat = new THREE.MeshPhongMaterial({ color: pink });
     const legPositions = [
-      [-0.20, 0.22, 0.32], [0.20, 0.22, 0.32],
-      [-0.20, 0.22, -0.32],[0.20, 0.22, -0.32]
+      [-0.16, 0.22, 0.32], [0.16, 0.22, 0.32],
+      [-0.16, 0.22, -0.32],[0.16, 0.22, -0.32]
     ];
     catGroup.legs = [];
     legPositions.forEach(([x, y, z]) => {
       // upper leg
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.42, 8), legMat);
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.42, 8), legMat);
       leg.position.set(x, y, z); leg.castShadow = true;
       catGroup.add(leg); catGroup.legs.push(leg);
       // paw
-      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), pawMat);
+      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 6), pawMat);
       paw.position.set(x, 0.03, z); paw.scale.set(1, 0.5, 1.2);
       catGroup.add(paw);
       // toe beans (tiny pink dots under paw)
@@ -1293,6 +1312,30 @@ window.onerror = function(msg, url, line, col, err) {
         size: 0.95, whiteChest: false, whitePaws: false,
         stripes: 0, longFur: true
       }, 5, 2),
+
+      // Longtail - pale tabby tom with dark black stripes, green eyes
+      makeBookCat({
+        name: 'Longtail', fur: 0xccbb99, belly: 0xddccaa,
+        stripeColor: 0x222211, stripes: 5,
+        eyeColor: 0x44cc44, earInner: 0xffbb99, noseColor: 0xbbaa88,
+        size: 1.05, whiteChest: false, whitePaws: false, longFur: false
+      }, -6, 1),
+
+      // Smudge - plump black-and-white tom, Rusty's kittypet friend
+      makeBookCat({
+        name: 'Smudge', fur: 0x222222, belly: 0xeeeeee,
+        eyeColor: 0xddcc33, earInner: 0xffaaaa, noseColor: 0x333333,
+        size: 0.95, whiteChest: true, whitePaws: true,
+        stripes: 0, longFur: false
+      }, 3, 83),
+
+      // Princess - light brown tabby-and-white she-cat, Rusty's sister
+      makeBookCat({
+        name: 'Princess', fur: 0xccaa77, belly: 0xeeddbb,
+        stripeColor: 0x997744, stripes: 3,
+        eyeColor: 0x66bb44, earInner: 0xffbb99, noseColor: 0xddaa88,
+        size: 0.82, whiteChest: true, whitePaws: true, longFur: false
+      }, -3, 84),
     ];
   }
 
@@ -1669,63 +1712,387 @@ window.onerror = function(msg, url, line, col, err) {
     });
   }
 
+  /* ====================================================
+     BATTLE SYSTEM (Turn-based battle screen)
+     ==================================================== */
+  let currentBattle = null; // active battle state
+
+  /**
+   * Draw a simple cat sprite on a canvas for the battle screen.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {number} furColor - hex color e.g. 0xff8800
+   * @param {number} eyeColor - hex color
+   * @param {boolean} flipX - if true, face left
+   * @param {boolean} stripes - draw stripes
+   */
+  function drawBattleCat (ctx, furColor, eyeColor, flipX, hasStripes, stripeColor) {
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    if (flipX) { ctx.translate(w, 0); ctx.scale(-1, 1); }
+
+    const fur = '#' + furColor.toString(16).padStart(6, '0');
+    const eye = '#' + eyeColor.toString(16).padStart(6, '0');
+    const stripe = stripeColor ? '#' + stripeColor.toString(16).padStart(6, '0') : '#333';
+
+    // Body
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.ellipse(100, 130, 55, 35, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.beginPath();
+    ctx.ellipse(145, 95, 30, 28, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ears
+    ctx.beginPath();
+    ctx.moveTo(130, 72); ctx.lineTo(122, 50); ctx.lineTo(140, 68);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(155, 68); ctx.lineTo(163, 48); ctx.lineTo(170, 65);
+    ctx.fill();
+
+    // Ear insides
+    ctx.fillStyle = '#ffaaaa';
+    ctx.beginPath();
+    ctx.moveTo(132, 72); ctx.lineTo(126, 56); ctx.lineTo(138, 70);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(157, 68); ctx.lineTo(162, 53); ctx.lineTo(167, 66);
+    ctx.fill();
+
+    // Legs
+    ctx.fillStyle = fur;
+    ctx.fillRect(62, 152, 16, 30);
+    ctx.fillRect(82, 155, 16, 27);
+    ctx.fillRect(118, 155, 16, 27);
+    ctx.fillRect(130, 152, 16, 30);
+
+    // Paws
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.ellipse(70, 183, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(90, 183, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(126, 183, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(138, 183, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Tail
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(48, 125);
+    ctx.quadraticCurveTo(20, 100, 25, 70);
+    ctx.stroke();
+
+    // Stripes
+    if (hasStripes) {
+      ctx.strokeStyle = stripe;
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(75 + i * 18, 108);
+        ctx.lineTo(80 + i * 18, 148);
+        ctx.stroke();
+      }
+    }
+
+    // Eyes
+    ctx.fillStyle = eye;
+    ctx.beginPath(); ctx.ellipse(138, 92, 7, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(158, 90, 7, 9, 0, 0, Math.PI * 2); ctx.fill();
+    // Pupils
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.ellipse(138, 92, 3, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(158, 90, 3, 7, 0, 0, Math.PI * 2); ctx.fill();
+    // Highlights
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(140, 89, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(160, 87, 2, 0, Math.PI * 2); ctx.fill();
+
+    // Nose
+    ctx.fillStyle = '#ff8899';
+    ctx.beginPath();
+    ctx.moveTo(165, 96); ctx.lineTo(162, 100); ctx.lineTo(168, 100);
+    ctx.fill();
+
+    // Mouth
+    ctx.strokeStyle = '#553333';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(165, 100); ctx.lineTo(165, 104);
+    ctx.moveTo(165, 104); ctx.lineTo(160, 107);
+    ctx.moveTo(165, 104); ctx.lineTo(170, 107);
+    ctx.stroke();
+
+    // Whiskers
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(168, 98); ctx.lineTo(195, 92);
+    ctx.moveTo(168, 101); ctx.lineTo(196, 100);
+    ctx.moveTo(168, 104); ctx.lineTo(194, 108);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  /**
+   * Start a turn-based battle.
+   * @param {object} opts - Battle configuration
+   * @param {string} opts.enemyName - Display name of enemy (can be '???' if unknown)
+   * @param {number} opts.enemyHP - Starting HP
+   * @param {number} opts.enemyMaxHP - Max HP
+   * @param {number} opts.enemyAttack - Base attack damage
+   * @param {number} opts.enemyDefense - Reduces player damage
+   * @param {number} opts.enemyFurColor - Hex fur color
+   * @param {number} opts.enemyEyeColor - Hex eye color
+   * @param {boolean} opts.enemyStripes - Has stripes
+   * @param {number} opts.enemyStripeColor - Stripe color
+   * @param {number} opts.playerMinHP - Don't let player go below this (tutorial safety)
+   * @param {number} opts.expReward - XP given on win
+   * @param {function} opts.onWin - Callback when player wins
+   * @param {function} opts.onLose - Callback when player loses (if null, can't lose)
+   */
+  function startBattle (opts) {
+    gameState = 'battle';
+    currentBattle = {
+      enemyName: opts.enemyName || '???',
+      enemyHP: opts.enemyHP || 60,
+      enemyMaxHP: opts.enemyMaxHP || opts.enemyHP || 60,
+      enemyAttack: opts.enemyAttack || 10,
+      enemyDefense: opts.enemyDefense || 3,
+      enemyFurColor: opts.enemyFurColor || 0x888888,
+      enemyEyeColor: opts.enemyEyeColor || 0xffaa00,
+      enemyStripes: opts.enemyStripes || false,
+      enemyStripeColor: opts.enemyStripeColor || 0x333333,
+      playerHP: player.health,
+      playerMaxHP: player.maxHealth,
+      playerMinHP: opts.playerMinHP != null ? opts.playerMinHP : 0,
+      expReward: opts.expReward || 30,
+      onWin: opts.onWin || null,
+      onLose: opts.onLose || null,
+      playerTurn: true,
+      dodging: false,
+      round: 0,
+    };
+
+    // Show the battle screen
+    battleScreen.classList.remove('hidden');
+    battleLog.innerHTML = '';
+    battleHeader.textContent = 'BATTLE!';
+    battlePlayerName.textContent = player.name || 'Rusty';
+    battleEnemyName.textContent = currentBattle.enemyName;
+
+    // Draw cat sprites
+    const pCtx = battlePlayerCanvas.getContext('2d');
+    drawBattleCat(pCtx, 0xff8833, 0x44cc44, false, false, 0);
+
+    const eCtx = battleEnemyCanvas.getContext('2d');
+    drawBattleCat(eCtx, currentBattle.enemyFurColor, currentBattle.enemyEyeColor,
+      true, currentBattle.enemyStripes, currentBattle.enemyStripeColor);
+
+    updateBattleHP();
+    enableBattleButtons(true);
+
+    addBattleLog('The battle begins!', 'battle-log-fierce');
+    playSound('battle');
+  }
+
+  function updateBattleHP () {
+    if (!currentBattle) return;
+    const b = currentBattle;
+    battlePlayerHP.style.width = Math.max(0, b.playerHP / b.playerMaxHP * 100) + '%';
+    battleEnemyHP.style.width = Math.max(0, b.enemyHP / b.enemyMaxHP * 100) + '%';
+    battlePlayerHPText.textContent = Math.max(0, b.playerHP) + '/' + b.playerMaxHP;
+    battleEnemyHPText.textContent = Math.max(0, b.enemyHP) + '/' + b.enemyMaxHP;
+  }
+
+  function addBattleLog (text, cls) {
+    const div = document.createElement('div');
+    div.className = cls || '';
+    div.innerHTML = text;
+    battleLog.appendChild(div);
+    battleLog.scrollTop = battleLog.scrollHeight;
+  }
+
+  function enableBattleButtons (on) {
+    battleAttackBtn.disabled = !on;
+    battleDodgeBtn.disabled = !on;
+    battleFierceBtn.disabled = !on;
+  }
+
+  function battlePlayerAction (action) {
+    if (!currentBattle || !currentBattle.playerTurn) return;
+    const b = currentBattle;
+    b.playerTurn = false;
+    enableBattleButtons(false);
+    b.round++;
+
+    if (action === 'attack') {
+      const baseDmg = 8 + player.level * 2;
+      const dmg = Math.max(1, baseDmg + Math.floor(Math.random() * 8) - b.enemyDefense);
+      b.enemyHP = Math.max(0, b.enemyHP - dmg);
+      addBattleLog('You swipe at ' + b.enemyName + '! <strong>-' + dmg + '</strong> damage', 'battle-log-player');
+      // Shake enemy
+      const eSide = document.querySelector('.battle-enemy-side');
+      if (eSide) { eSide.classList.add('battle-shake'); setTimeout(() => eSide.classList.remove('battle-shake'), 300); }
+      playSound('hit');
+    } else if (action === 'dodge') {
+      b.dodging = true;
+      addBattleLog('You prepare to dodge the next attack!', 'battle-log-dodge');
+      playSound('swoosh');
+    } else if (action === 'fierce') {
+      // Fierce attack: higher damage but you take more damage next turn
+      const baseDmg = 14 + player.level * 3;
+      const dmg = Math.max(2, baseDmg + Math.floor(Math.random() * 12) - Math.floor(b.enemyDefense / 2));
+      b.enemyHP = Math.max(0, b.enemyHP - dmg);
+      addBattleLog('You unleash a fierce attack! <strong>-' + dmg + '</strong> damage!', 'battle-log-fierce');
+      const eSide = document.querySelector('.battle-enemy-side');
+      if (eSide) { eSide.classList.add('battle-shake'); setTimeout(() => eSide.classList.remove('battle-shake'), 300); }
+      b._fierceVulnerable = true;
+      playSound('hit');
+    }
+
+    updateBattleHP();
+
+    // Check if enemy is defeated
+    if (b.enemyHP <= 0) {
+      setTimeout(() => endBattle(true), 600);
+      return;
+    }
+
+    // Enemy turn after delay
+    setTimeout(() => battleEnemyTurn(), 800);
+  }
+
+  function battleEnemyTurn () {
+    if (!currentBattle) return;
+    const b = currentBattle;
+
+    let dmg = b.enemyAttack + Math.floor(Math.random() * 6);
+    if (b.dodging) {
+      if (Math.random() < 0.6) {
+        addBattleLog('You dodge the attack!', 'battle-log-dodge');
+        dmg = 0;
+      } else {
+        dmg = Math.floor(dmg * 0.4);
+        addBattleLog(b.enemyName + ' partially hits you! <strong>-' + dmg + '</strong>', 'battle-log-hit');
+      }
+      b.dodging = false;
+    } else if (b._fierceVulnerable) {
+      dmg = Math.floor(dmg * 1.5);
+      addBattleLog(b.enemyName + ' strikes while you\'re open! <strong>-' + dmg + '</strong>', 'battle-log-hit');
+      b._fierceVulnerable = false;
+    } else {
+      addBattleLog(b.enemyName + ' attacks! <strong>-' + dmg + '</strong> damage', 'battle-log-hit');
+    }
+
+    if (dmg > 0) {
+      b.playerHP = Math.max(b.playerMinHP, b.playerHP - dmg);
+      player.health = b.playerHP;
+      // Shake player
+      const pSide = document.querySelector('.battle-player-side');
+      if (pSide) { pSide.classList.add('battle-shake'); setTimeout(() => pSide.classList.remove('battle-shake'), 300); }
+      if (dmg > 0) playSound('hurt');
+    }
+
+    updateBattleHP();
+
+    // Check if player is defeated
+    if (b.playerHP <= 0 || (b.playerMinHP > 0 && b.playerHP <= b.playerMinHP)) {
+      if (b.onLose) {
+        setTimeout(() => endBattle(false), 600);
+      } else {
+        // Can't lose (tutorial) - just keep going
+        b.playerTurn = true;
+        enableBattleButtons(true);
+      }
+      return;
+    }
+
+    // Player's turn again
+    setTimeout(() => {
+      b.playerTurn = true;
+      enableBattleButtons(true);
+    }, 400);
+  }
+
+  function endBattle (won) {
+    if (!currentBattle) return;
+    const b = currentBattle;
+
+    if (won) {
+      addBattleLog('<strong>You won the battle!</strong>', 'battle-log-player');
+      // Award XP
+      player = GameLogic.addExperience(player, b.expReward);
+      player.battlesWon = (player.battlesWon || 0) + 1;
+      // Heal a bit after winning
+      player.health = Math.min(player.maxHealth, player.health + Math.floor(player.maxHealth * 0.3));
+      addBattleLog('+' + b.expReward + ' experience! Level ' + player.level, 'battle-log-player');
+      if (player.health < player.maxHealth) {
+        addBattleLog('You rest and recover some health.', 'battle-log-dodge');
+      }
+    } else {
+      addBattleLog('<strong>You lost the battle...</strong>', 'battle-log-hit');
+    }
+
+    updateBattleHP();
+    enableBattleButtons(false);
+
+    // Close battle screen after a moment
+    setTimeout(() => {
+      battleScreen.classList.add('hidden');
+      currentBattle = null;
+      if (won && b.onWin) b.onWin();
+      else if (!won && b.onLose) b.onLose();
+      else {
+        gameState = 'playing';
+      }
+    }, 1800);
+  }
+
+  // Wire up battle buttons
+  battleAttackBtn.addEventListener('click', () => battlePlayerAction('attack'));
+  battleDodgeBtn.addEventListener('click', () => battlePlayerAction('dodge'));
+  battleFierceBtn.addEventListener('click', () => battlePlayerAction('fierce'));
+
+  /* ====================================================
+     GRAYPAW FIGHT (uses new battle system)
+     ==================================================== */
   function startGraypawFight () {
-    gameState = 'cutscene';
-    // Simple turn-based fight with Graypaw
-    let playerHP = player.health;
-    let grayHP = 60;
-    const maxGrayHP = 60;
-
-    function fightRound () {
-      // Player attacks
-      const pDmg = 10 + Math.floor(Math.random() * 10);
-      grayHP = Math.max(0, grayHP - pDmg);
-
-      const enemyName = knownCats.has('Graypaw') ? 'Graypaw' : 'the gray cat';
-      const hitText = 'You swipe at ' + enemyName + '! (-' + pDmg + ' damage) ' + (knownCats.has('Graypaw') ? 'Graypaw' : 'Enemy') + ' HP: ' + grayHP + '/' + maxGrayHP;
-
-      if (grayHP <= 20) {
+    startBattle({
+      enemyName: '???',
+      enemyHP: 50,
+      enemyMaxHP: 50,
+      enemyAttack: 6,
+      enemyDefense: 2,
+      enemyFurColor: 0x888899,
+      enemyEyeColor: 0xffcc00,
+      enemyStripes: false,
+      playerMinHP: 15,  // can't die in tutorial
+      expReward: 25,
+      onWin: function () {
         // Graypaw gives up and introduces himself → reveal name!
         const scenes = [
-          { narration: true, text: hitText },
           { speaker: '???', text: '"Okay, okay! You\'re pretty good for a kittypet! I give up!"' },
           { speaker: '???', text: '"I\'m <strong>Graypaw</strong>, by the way. You know, you fight pretty well. Most kittypets just run away screaming."' },
           { narration: true, text: 'The gray cat introduces himself as Graypaw. He shakes his thick fur, looking at you with new respect.' },
           { speaker: 'Graypaw', text: '"Hey, do you want to see something cool? Follow me deeper into the forest - but be careful, there might be a patrol around."' },
         ];
-        // Reveal Graypaw's name when he introduces himself
         revealCatName('Graypaw');
         startCutscene(scenes, () => {
           storyPhase = 'fought_graypaw';
           gameState = 'playing';
-          // Graypaw follows nearby
           const gp = npcCats.find(c => c.name === 'Graypaw');
           if (gp) {
             gp.group.position.set(player.position.x + 1.5, 0, player.position.z - 1);
           }
           queueMessage('Narrator', 'Graypaw seems friendly now. Keep walking deeper into the forest...');
         });
-        return;
-      }
-
-      // ??? attacks back (name not known yet)
-      const gDmg = 5 + Math.floor(Math.random() * 8);
-      playerHP = Math.max(10, playerHP - gDmg); // don't let player die in tutorial
-      player.health = playerHP;
-
-      const grayText = 'The gray cat swipes back! (-' + gDmg + ' damage) Your HP: ' + playerHP + '/' + player.maxHealth;
-
-      const scenes = [
-        { narration: true, text: hitText },
-        { narration: true, text: grayText },
-        { narration: true, text: '<em>Press Space/tap to attack again!</em>' },
-      ];
-      startCutscene(scenes, () => {
-        fightRound(); // next round
-      });
-    }
-
-    fightRound();
+      },
+    });
   }
 
   /* ====================================================

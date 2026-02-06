@@ -125,6 +125,32 @@
     </div>
   </div>
 
+  <!-- Battle Screen -->
+  <div id="battle-screen" class="hidden">
+    <div class="battle-header" id="battle-header">BATTLE!</div>
+    <div class="battle-arena">
+      <div class="battle-side battle-player-side">
+        <div class="battle-cat-label" id="battle-player-name">Firepaw</div>
+        <canvas id="battle-player-canvas" width="200" height="200"></canvas>
+        <div class="battle-hp-bar"><div class="battle-hp-fill battle-player-hp" id="battle-player-hp"></div></div>
+        <div class="battle-hp-text" id="battle-player-hp-text">100/100</div>
+      </div>
+      <div class="battle-vs">VS</div>
+      <div class="battle-side battle-enemy-side">
+        <div class="battle-cat-label" id="battle-enemy-name">???</div>
+        <canvas id="battle-enemy-canvas" width="200" height="200"></canvas>
+        <div class="battle-hp-bar"><div class="battle-hp-fill battle-enemy-hp" id="battle-enemy-hp"></div></div>
+        <div class="battle-hp-text" id="battle-enemy-hp-text">60/60</div>
+      </div>
+    </div>
+    <div class="battle-log" id="battle-log"></div>
+    <div class="battle-buttons" id="battle-buttons">
+      <button class="battle-btn battle-attack-btn" id="battle-attack-btn">Attack</button>
+      <button class="battle-btn battle-dodge-btn" id="battle-dodge-btn">Dodge</button>
+      <button class="battle-btn battle-fierce-btn" id="battle-fierce-btn">Fierce Attack</button>
+    </div>
+  </div>
+
   <!-- Message Box -->
   <div id="message-box">
     <div class="message-speaker" id="message-speaker"></div>
