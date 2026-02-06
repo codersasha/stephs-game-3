@@ -20,6 +20,8 @@ window.onerror = function(msg, url, line, col, err) {
   const saveScreen      = $('save-screen');
   const cutsceneOverlay = $('cutscene-overlay');
   const cutsceneText    = $('cutscene-text');
+  const joinChoiceScreen  = $('join-choice-screen');
+  const joinConfirmScreen = $('join-confirm-screen');
   const nameScreen      = $('name-screen');
   const nameInput       = $('name-input');
   const namePreview     = $('name-preview-text');
@@ -79,7 +81,7 @@ window.onerror = function(msg, url, line, col, err) {
   /* ---------- input ---------- */
   const keys = {};
   let isPointerLocked = false;
-  let cameraAngleY = 0, cameraAngleX = 0.3;
+  let cameraAngleY = 0, cameraAngleX = 0; // 0 = level, negative = look up, positive = look down
   let joystickInput = { x: 0, z: 0 };
   let isMobile = false;
 
@@ -2018,7 +2020,7 @@ window.onerror = function(msg, url, line, col, err) {
     document.addEventListener('mousemove', e => {
       if (isPointerLocked) {
         cameraAngleY -= e.movementX * 0.003;
-        cameraAngleX = Math.max(0.1, Math.min(0.8, cameraAngleX + e.movementY * 0.003));
+        cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + e.movementY * 0.003));
       }
     });
 
@@ -2084,7 +2086,7 @@ window.onerror = function(msg, url, line, col, err) {
       for (const t of e.changedTouches) {
         if (t.identifier === touchCamId) {
           cameraAngleY -= (t.clientX - ltx) * 0.005;
-          cameraAngleX = Math.max(0.1, Math.min(0.8, cameraAngleX + (t.clientY - lty) * 0.005));
+          cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + (t.clientY - lty) * 0.005));
           ltx = t.clientX; lty = t.clientY;
         }
       }
@@ -2491,6 +2493,7 @@ window.onerror = function(msg, url, line, col, err) {
      ==================================================== */
   function startCutscene (scenes, onDone) {
     gameState = 'cutscene';
+    setCatFirstPerson(false); // show full cat during cutscenes
     cutsceneQueue = scenes.slice();
     cutsceneOverlay.classList.remove('hidden');
     cutsceneOverlay._onDone = onDone;
@@ -4789,6 +4792,10 @@ window.onerror = function(msg, url, line, col, err) {
     }
 
     const moving = Math.abs(dx) > 0.1 || Math.abs(dz) > 0.1;
+
+    // First-person: cat always faces where camera looks (cameraAngleY)
+    catGroup.rotation.y = cameraAngleY + Math.PI;
+
     if (moving) {
       const angle = Math.atan2(dx, dz) + cameraAngleY;
       const dir = GameLogic.normalizeDirection({ x: Math.sin(angle), z: Math.cos(angle) });
@@ -4801,8 +4808,6 @@ window.onerror = function(msg, url, line, col, err) {
       const cp = GameLogic.clampPosition(np, GameLogic.getForestBounds());
       if (!GameLogic.checkCollisions(cp, trees, 1.2) && !checkWallCollision(cp)) {
         player.position = cp;
-        const tr = Math.atan2(dir.x, dir.z);
-        catGroup.rotation.y = lerpAngle(catGroup.rotation.y, tr, 0.15);
       }
       animateCatLegs(dt, true, spd / player.speed);
     } else {
@@ -4820,12 +4825,45 @@ window.onerror = function(msg, url, line, col, err) {
     return a + d * t;
   }
 
+  /** Show full cat model (for cutscenes) or hide body for first-person */
+  function setCatFirstPerson (firstPerson) {
+    if (!catGroup) return;
+    catGroup.children.forEach(child => {
+      if (firstPerson) {
+        const isLeg = catGroup.legs && catGroup.legs.includes(child);
+        const isTail = catGroup.tailSegs && catGroup.tailSegs.includes(child);
+        child.visible = isLeg || isTail; // only paws + tail visible
+      } else {
+        child.visible = true; // show everything
+      }
+    });
+  }
+
   function updateCamera () {
-    const dist = 8, h = 3 + cameraAngleX * 5;
-    const cx = player.position.x + Math.sin(cameraAngleY) * dist;
-    const cz = player.position.z + Math.cos(cameraAngleY) * dist;
-    camera.position.lerp(new THREE.Vector3(cx, h, cz), 0.08);
-    camera.lookAt(new THREE.Vector3(player.position.x, 1.2, player.position.z));
+    // FIRST-PERSON: camera at cat's eye level, looking forward
+    const eyeHeight = 0.9; // cat's eye height
+    const px = player.position.x;
+    const pz = player.position.z;
+
+    // Camera sits at the cat's eye position, slightly forward
+    const headForwardX = -Math.sin(cameraAngleY) * 0.35;
+    const headForwardZ = -Math.cos(cameraAngleY) * 0.35;
+    const camX = px + headForwardX;
+    const camZ = pz + headForwardZ;
+    const camY = eyeHeight;
+
+    // Look direction: forward based on cameraAngleY, pitch from cameraAngleX
+    const lookDist = 10;
+    const pitch = -cameraAngleX; // negative cameraAngleX = look up
+    const lookX = camX - Math.sin(cameraAngleY) * Math.cos(pitch) * lookDist;
+    const lookZ = camZ - Math.cos(cameraAngleY) * Math.cos(pitch) * lookDist;
+    const lookY = camY + Math.sin(pitch) * lookDist;
+
+    camera.position.set(camX, camY, camZ);
+    camera.lookAt(lookX, lookY, lookZ);
+
+    // First-person: hide body, show paws and tail only
+    setCatFirstPerson(true);
   }
 
   function updateHUD () {
