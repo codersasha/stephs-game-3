@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warriors Game - Tests</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { color: #ff8c00; }
+    .test-pass { color: #4caf50; }
+    .test-fail { color: #f44336; }
+    .test-group { 
+      margin: 15px 0; 
+      padding: 10px;
+      border-left: 3px solid #444;
+    }
+    .test-group h2 { 
+      color: #88aaff; 
+      font-size: 1.1rem; 
+      margin-bottom: 8px;
+    }
+    .test-result {
+      padding: 4px 0;
+      padding-left: 20px;
+    }
+    .summary {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .summary.all-pass {
+      background: rgba(76, 175, 80, 0.2);
+      border: 2px solid #4caf50;
+      color: #4caf50;
+    }
+    .summary.has-fail {
+      background: rgba(244, 67, 54, 0.2);
+      border: 2px solid #f44336;
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <h1>Warriors: Into the Wild - Test Suite</h1>
+  <div id="test-output"></div>
+  <div id="test-summary"></div>
+
+  <script src="../js/game-logic.js"></script>
+  <script>
+    // Simple test framework
+    const results = { passed: 0, failed: 0, total: 0 };
+    const output = document.getElementById('test-output');
+    const summary = document.getElementById('test-summary');
+
+    function describe(groupName, fn) {
+      const group = document.createElement('div');
+      group.className = 'test-group';
+      group.innerHTML = `<h2>${groupName}</h2>`;
+      output.appendChild(group);
+      window._currentGroup = group;
+      fn();
+    }
+
+    function test(name, fn) {
+      results.total++;
+      try {
+        fn();
+        results.passed++;
+        const el = document.createElement('div');
+        el.className = 'test-result test-pass';
+        el.textContent = `✓ ${name}`;
+        window._currentGroup.appendChild(el);
+      } catch (e) {
+        results.failed++;
+        const el = document.createElement('div');
+        el.className = 'test-result test-fail';
+        el.textContent = `✗ ${name}: ${e.message}`;
+        window._currentGroup.appendChild(el);
+      }
+    }
+
+    function expect(value) {
+      return {
+        toBe(expected) {
+          if (value !== expected) {
+            throw new Error(`Expected ${expected}, got ${value}`);
+          }
+        },
+        toEqual(expected) {
+          if (JSON.stringify(value) !== JSON.stringify(expected)) {
+            throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(value)}`);
+          }
+        },
+        toBeGreaterThan(expected) {
+          if (!(value > expected)) {
+            throw new Error(`Expected ${value} to be greater than ${expected}`);
+          }
+        },
+        toBeLessThan(expected) {
+          if (!(value < expected)) {
+            throw new Error(`Expected ${value} to be less than ${expected}`);
+          }
+        },
+        toBeTruthy() {
+          if (!value) {
+            throw new Error(`Expected truthy value, got ${value}`);
+          }
+        },
+        toBeFalsy() {
+          if (value) {
+            throw new Error(`Expected falsy value, got ${value}`);
+          }
+        },
+        toBeNull() {
+          if (value !== null) {
+            throw new Error(`Expected null, got ${value}`);
+          }
+        }
+      };
+    }
+
+    // ========================================
+    // Tests
+    // ========================================
+
+    describe('Player Creation', () => {
+      test('creates a player with default name', () => {
+        const player = GameLogic.createPlayer();
+        expect(player.name).toBe('Fireheart');
+        expect(player.health).toBe(100);
+        expect(player.energy).toBe(100);
+        expect(player.level).toBe(1);
+        expect(player.clan).toBe('ThunderClan');
+      });
+
+      test('creates a player with custom name', () => {
+        const player = GameLogic.createPlayer('Graystripe');
+        expect(player.name).toBe('Graystripe');
+      });
+    });
+
+    describe('Health System', () => {
+      test('takes damage correctly', () => {
+        const player = GameLogic.createPlayer();
+        const hurt = GameLogic.takeDamage(player, 30);
+        expect(hurt.health).toBe(70);
+      });
+
+      test('health does not go below 0', () => {
+        const player = GameLogic.createPlayer();
+        const hurt = GameLogic.takeDamage(player, 150);
+        expect(hurt.health).toBe(0);
+      });
+
+      test('heals correctly', () => {
+        let player = GameLogic.createPlayer();
+        player = GameLogic.takeDamage(player, 50);
+        player = GameLogic.heal(player, 30);
+        expect(player.health).toBe(80);
+      });
+
+      test('health does not exceed max', () => {
+        const player = GameLogic.createPlayer();
+        const healed = GameLogic.heal(player, 50);
+        expect(healed.health).toBe(100);
+      });
+
+      test('isAlive returns true when health > 0', () => {
+        const player = GameLogic.createPlayer();
+        expect(GameLogic.isAlive(player)).toBeTruthy();
+      });
+
+      test('isAlive returns false when health is 0', () => {
+        const player = GameLogic.takeDamage(GameLogic.createPlayer(), 100);
+        expect(GameLogic.isAlive(player)).toBeFalsy();
+      });
+    });
+
+    describe('Energy System', () => {
+      test('uses energy correctly', () => {
+        const player = GameLogic.createPlayer();
+        const tired = GameLogic.useEnergy(player, 20);
+        expect(tired.energy).toBe(80);
+      });
+
+      test('energy does not go below 0', () => {
+        const player = GameLogic.createPlayer();
+        const tired = GameLogic.useEnergy(player, 150);
+        expect(tired.energy).toBe(0);
+      });
+
+      test('recovers energy correctly', () => {
+        let player = GameLogic.createPlayer();
+        player = GameLogic.useEnergy(player, 40);
+        player = GameLogic.recoverEnergy(player, 20);
+        expect(player.energy).toBe(80);
+      });
+    });
+
+    describe('Experience & Leveling', () => {
+      test('adds experience correctly', () => {
+        const player = GameLogic.createPlayer();
+        const gained = GameLogic.addExperience(player, 50);
+        expect(gained.experience).toBe(50);
+        expect(gained.level).toBe(1);
+      });
+
+      test('levels up when reaching threshold', () => {
+        const player = GameLogic.createPlayer();
+        const leveled = GameLogic.addExperience(player, 100);
+        expect(leveled.level).toBe(2);
+        expect(leveled.experience).toBe(0);
+      });
+
+      test('increases max stats on level up', () => {
+        const player = GameLogic.createPlayer();
+        const leveled = GameLogic.addExperience(player, 100);
+        expect(leveled.maxHealth).toBeGreaterThan(100);
+        expect(leveled.maxEnergy).toBeGreaterThan(100);
+      });
+    });
+
+    describe('Movement', () => {
+      test('calculates movement correctly', () => {
+        const pos = { x: 0, y: 0, z: 0 };
+        const dir = { x: 1, z: 0 };
+        const newPos = GameLogic.calculateMovement(pos, dir, 5, 1);
+        expect(newPos.x).toBe(5);
+        expect(newPos.z).toBe(0);
+      });
+
+      test('normalizes direction vector', () => {
+        const dir = GameLogic.normalizeDirection({ x: 3, z: 4 });
+        const length = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
+        expect(Math.abs(length - 1)).toBeLessThan(0.001);
+      });
+
+      test('handles zero direction', () => {
+        const dir = GameLogic.normalizeDirection({ x: 0, z: 0 });
+        expect(dir.x).toBe(0);
+        expect(dir.z).toBe(0);
+      });
+
+      test('clamps position within bounds', () => {
+        const pos = { x: 200, y: 0, z: -200 };
+        const bounds = GameLogic.getForestBounds();
+        const clamped = GameLogic.clampPosition(pos, bounds);
+        expect(clamped.x).toBe(bounds.maxX);
+        expect(clamped.z).toBe(bounds.minZ);
+      });
+    });
+
+    describe('World Generation', () => {
+      test('generates tree positions deterministically', () => {
+        const bounds = GameLogic.getForestBounds();
+        const trees1 = GameLogic.generateTreePositions(50, 12345, bounds);
+        const trees2 = GameLogic.generateTreePositions(50, 12345, bounds);
+        expect(trees1.length).toBe(trees2.length);
+        expect(trees1[0].x).toBe(trees2[0].x);
+      });
+
+      test('trees are within bounds', () => {
+        const bounds = GameLogic.getForestBounds();
+        const trees = GameLogic.generateTreePositions(100, 42, bounds);
+        for (const tree of trees) {
+          expect(tree.x >= bounds.minX).toBeTruthy();
+          expect(tree.x <= bounds.maxX).toBeTruthy();
+          expect(tree.z >= bounds.minZ).toBeTruthy();
+          expect(tree.z <= bounds.maxZ).toBeTruthy();
+        }
+      });
+
+      test('no trees at spawn point', () => {
+        const bounds = GameLogic.getForestBounds();
+        const trees = GameLogic.generateTreePositions(200, 42, bounds);
+        for (const tree of trees) {
+          const dist = Math.sqrt(tree.x * tree.x + tree.z * tree.z);
+          expect(dist > 8).toBeTruthy();
+        }
+      });
+    });
+
+    describe('Collision Detection', () => {
+      test('detects collision when close', () => {
+        const pos = { x: 1, z: 1 };
+        const obstacle = { x: 1.5, z: 1, scale: 1 };
+        expect(GameLogic.checkCollision(pos, obstacle, 1)).toBeTruthy();
+      });
+
+      test('no collision when far', () => {
+        const pos = { x: 0, z: 0 };
+        const obstacle = { x: 10, z: 10, scale: 1 };
+        expect(GameLogic.checkCollision(pos, obstacle, 1)).toBeFalsy();
+      });
+    });
+
+    describe('Time of Day', () => {
+      test('returns value between 0 and 1', () => {
+        const tod = GameLogic.getTimeOfDay(45);
+        expect(tod >= 0).toBeTruthy();
+        expect(tod < 1).toBeTruthy();
+      });
+
+      test('sky color returns valid RGB', () => {
+        const color = GameLogic.getSkyColor(0.3);
+        expect(color.r >= 0).toBeTruthy();
+        expect(color.g >= 0).toBeTruthy();
+        expect(color.b >= 0).toBeTruthy();
+      });
+    });
+
+    describe('Save/Load System', () => {
+      test('serializes and deserializes player state', () => {
+        const player = GameLogic.createPlayer();
+        const json = GameLogic.serializeState(player);
+        const loaded = GameLogic.deserializeState(json);
+        expect(loaded.name).toBe('Fireheart');
+        expect(loaded.health).toBe(100);
+      });
+
+      test('returns null for invalid JSON', () => {
+        const result = GameLogic.deserializeState('not json');
+        expect(result).toBeNull();
+      });
+
+      test('returns null for missing required fields', () => {
+        const result = GameLogic.deserializeState('{"foo": "bar"}');
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('Location Names', () => {
+      test('spawn is ThunderClan Camp', () => {
+        const name = GameLogic.getLocationName({ x: 0, y: 0, z: 0 });
+        expect(name).toBe('ThunderClan Camp');
+      });
+
+      test('far east is Sunningrocks', () => {
+        const name = GameLogic.getLocationName({ x: 60, y: 0, z: 0 });
+        expect(name).toBe('Sunningrocks');
+      });
+
+      test('far west is ShadowClan Border', () => {
+        const name = GameLogic.getLocationName({ x: -60, y: 0, z: 0 });
+        expect(name).toBe('ShadowClan Border');
+      });
+    });
+
+    // ========================================
+    // Summary
+    // ========================================
+    const summaryEl = document.createElement('div');
+    summaryEl.className = `summary ${results.failed === 0 ? 'all-pass' : 'has-fail'}`;
+    summaryEl.textContent = `${results.passed}/${results.total} tests passed` + 
+      (results.failed > 0 ? ` (${results.failed} failed)` : ' - All tests pass!');
+    summary.appendChild(summaryEl);
+    
+    console.log(`Tests: ${results.passed}/${results.total} passed, ${results.failed} failed`);
+  </script>
+</body>
+</html>

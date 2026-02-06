@@ -1,0 +1,445 @@
+/* ========================================
+   Warriors: Into the Wild - Styles
+   ======================================== */
+
+/* Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  background: #0a0a0a;
+  color: #e0d5c0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Three.js Canvas */
+#game-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* ========================================
+   Title Screen
+   ======================================== */
+#title-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(180deg, 
+    #0d1b0e 0%, 
+    #1a2f1a 30%, 
+    #2d4a2d 60%, 
+    #1a3a1a 80%, 
+    #0d1b0e 100%
+  );
+  transition: opacity 1s ease-out;
+}
+
+#title-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Animated stars/fireflies on title screen */
+.firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffdd88;
+  box-shadow: 0 0 8px 2px rgba(255, 221, 136, 0.6);
+  animation: float 6s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes float {
+  0%, 100% { 
+    opacity: 0; 
+    transform: translateY(0) translateX(0); 
+  }
+  25% { 
+    opacity: 0.8; 
+  }
+  50% { 
+    opacity: 1; 
+    transform: translateY(-30px) translateX(15px); 
+  }
+  75% { 
+    opacity: 0.6; 
+  }
+}
+
+/* Title text */
+.title-warriors {
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  text-transform: uppercase;
+  letter-spacing: 0.5em;
+  color: #8b7355;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 10px rgba(139, 115, 85, 0.5);
+}
+
+.title-main {
+  font-size: clamp(2.5rem, 10vw, 6rem);
+  font-weight: bold;
+  color: #ff8c00;
+  text-shadow: 
+    0 0 20px rgba(255, 140, 0, 0.8),
+    0 0 40px rgba(255, 100, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+  margin-bottom: 0.5rem;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  from { 
+    text-shadow: 
+      0 0 20px rgba(255, 140, 0, 0.8),
+      0 0 40px rgba(255, 100, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.8);
+  }
+  to { 
+    text-shadow: 
+      0 0 30px rgba(255, 160, 0, 1),
+      0 0 60px rgba(255, 120, 0, 0.6),
+      0 0 80px rgba(255, 80, 0, 0.3),
+      0 2px 4px rgba(0, 0, 0, 0.8);
+  }
+}
+
+.title-subtitle {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: #a0c0a0;
+  font-style: italic;
+  margin-bottom: 3rem;
+  text-shadow: 0 0 10px rgba(160, 192, 160, 0.3);
+}
+
+/* Start prompt */
+.start-prompt {
+  font-size: clamp(1rem, 3vw, 1.4rem);
+  color: #ccbb99;
+  animation: pulse 2s ease-in-out infinite;
+  padding: 1rem 2rem;
+  border: 2px solid rgba(204, 187, 153, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-prompt:hover {
+  background: rgba(255, 140, 0, 0.2);
+  border-color: rgba(255, 140, 0, 0.5);
+  color: #ffcc88;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Cat silhouette decoration */
+.cat-silhouette {
+  width: clamp(100px, 20vw, 200px);
+  height: auto;
+  margin-bottom: 2rem;
+  filter: drop-shadow(0 0 15px rgba(255, 140, 0, 0.4));
+  animation: catBreathe 4s ease-in-out infinite;
+}
+
+@keyframes catBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* ========================================
+   Game HUD
+   ======================================== */
+#game-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  padding: 15px;
+  display: none;
+  pointer-events: none;
+}
+
+#game-hud.visible {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hud-left, .hud-right {
+  pointer-events: auto;
+}
+
+.hud-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.hud-bar {
+  width: clamp(80px, 15vw, 150px);
+  height: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.hud-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.health-fill {
+  background: linear-gradient(90deg, #ff4444, #ff6666);
+  width: 100%;
+}
+
+.energy-fill {
+  background: linear-gradient(90deg, #44aaff, #66ccff);
+  width: 100%;
+}
+
+.hud-location {
+  font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+  color: #a0c0a0;
+  font-style: italic;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ========================================
+   Mobile Controls
+   ======================================== */
+#mobile-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  display: none;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 20px;
+  pointer-events: none;
+}
+
+#mobile-controls.visible {
+  display: flex;
+}
+
+.joystick-area {
+  width: 140px;
+  height: 140px;
+  position: relative;
+  pointer-events: auto;
+}
+
+.joystick-base {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.joystick-stick {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  transition: transform 0.1s ease;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.action-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action-btn:active {
+  background: rgba(255, 140, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.8);
+}
+
+/* ========================================
+   Loading Screen
+   ======================================== */
+#loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 200;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s ease-out;
+}
+
+#loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  color: #ccbb99;
+  margin-top: 1rem;
+}
+
+.loading-bar {
+  width: 200px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c00, #ffaa44);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ========================================
+   Message/Dialog System
+   ======================================== */
+#message-box {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90%, 600px);
+  background: rgba(0, 0, 0, 0.85);
+  border: 2px solid rgba(255, 140, 0, 0.4);
+  border-radius: 12px;
+  padding: 20px;
+  z-index: 60;
+  display: none;
+  color: #e0d5c0;
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  line-height: 1.6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#message-box.visible {
+  display: block;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { 
+    transform: translateX(-50%) translateY(20px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(-50%) translateY(0); 
+    opacity: 1; 
+  }
+}
+
+.message-speaker {
+  color: #ff8c00;
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+}
+
+.message-continue {
+  text-align: right;
+  color: #888;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Responsive Adjustments
+   ======================================== */
+@media (max-width: 768px) {
+  .title-warriors {
+    letter-spacing: 0.3em;
+  }
+  
+  #mobile-controls {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  #mobile-controls {
+    display: none !important;
+  }
+}
+
+@media (max-height: 500px) {
+  .title-subtitle {
+    margin-bottom: 1.5rem;
+  }
+  
+  .cat-silhouette {
+    display: none;
+  }
+}
