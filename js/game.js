@@ -34,6 +34,8 @@ window.onerror = function(msg, url, line, col, err) {
   const messageBox      = $('message-box');
   const messageSpeaker  = $('message-speaker');
   const messageTextEl   = $('message-text');
+  const interactHint    = $('interact-hint');
+  const interactHintText = $('interact-hint-text');
   const battleScreen    = $('battle-screen');
   const battleHeader    = $('battle-header');
   const battleLog       = $('battle-log');
@@ -1395,11 +1397,22 @@ window.onerror = function(msg, url, line, col, err) {
         if (gameState === 'cutscene') advanceCutscene();
         if (messageBox.classList.contains('visible')) advanceMessage();
       }
+      // 'E' or 'e' to talk to nearest cat
+      if ((e.key === 'e' || e.key === 'E') && gameState === 'playing') {
+        talkToNearestCat();
+      }
     });
     window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
 
-    renderer.domElement.addEventListener('click', () => {
-      if (gameState === 'playing' && !isMobile) renderer.domElement.requestPointerLock();
+    renderer.domElement.addEventListener('click', (e) => {
+      if (gameState === 'playing' && !isMobile) {
+        if (!isPointerLocked) {
+          // First click: try talking to a cat, if not, lock pointer
+          if (!tryTalkByRaycast(e.clientX, e.clientY)) {
+            renderer.domElement.requestPointerLock();
+          }
+        }
+      }
     });
     document.addEventListener('pointerlockchange', () => { isPointerLocked = document.pointerLockElement === renderer.domElement; });
     document.addEventListener('mousemove', e => {
@@ -1459,7 +1472,12 @@ window.onerror = function(msg, url, line, col, err) {
     let touchCamId = null, ltx = 0, lty = 0;
     renderer.domElement.addEventListener('touchstart', e => {
       if (gameState !== 'playing') return;
-      for (const t of e.changedTouches) { if (t.clientX > window.innerWidth * 0.5) { touchCamId = t.identifier; ltx = t.clientX; lty = t.clientY; } }
+      for (const t of e.changedTouches) {
+        // Try to talk to cat by tapping on them
+        if (tryTalkByRaycast(t.clientX, t.clientY)) return;
+        // Otherwise use right half for camera
+        if (t.clientX > window.innerWidth * 0.5) { touchCamId = t.identifier; ltx = t.clientX; lty = t.clientY; }
+      }
     });
     renderer.domElement.addEventListener('touchmove', e => {
       e.preventDefault();
@@ -1498,7 +1516,176 @@ window.onerror = function(msg, url, line, col, err) {
     jArea.addEventListener('touchend', resetJ); jArea.addEventListener('touchcancel', resetJ);
     bSprint.addEventListener('touchstart', e => { e.preventDefault(); if (player) player.isSprinting = true; });
     bSprint.addEventListener('touchend', e => { e.preventDefault(); if (player) player.isSprinting = false; });
-    bAction.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); playSound('meow'); });
+    bAction.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); talkToNearestCat(); });
+  }
+
+  /* ====================================================
+     NPC INTERACTION (Talk to cats)
+     ==================================================== */
+  const catDialogue = {
+    'Bluestar': [
+      '"Remember, young one: fire alone will save our Clan."',
+      '"A true warrior fights for what is right, not for glory."',
+      '"StarClan watches over us all. Trust in their guidance."',
+      '"The forest needs brave cats now more than ever."',
+      '"I see great things in your future."',
+    ],
+    'Lionheart': [
+      '"Keep your eyes open and your ears pricked when you\'re in the forest."',
+      '"A warrior must be strong, but also wise."',
+      '"Never turn your back on a fight, but never fight without reason."',
+      '"You\'re learning fast. I\'m proud to be your mentor."',
+      '"Always protect your Clanmates. That is the warrior code."',
+    ],
+    'Graypaw': [
+      '"Hey! Want to go hunting later? I bet I can catch more prey than you!"',
+      '"Did you hear? Tigerclaw caught a huge rabbit yesterday!"',
+      '"Being an apprentice is awesome! Way better than being a kittypet, right?"',
+      '"Shh, don\'t tell anyone, but I swiped an extra mouse from the fresh-kill pile!"',
+      '"You\'re my best friend, you know that?"',
+    ],
+    'Tigerclaw': [
+      '"Hmph. A kittypet will never truly be a warrior."',
+      '"Don\'t get in my way."',
+      '"I have my eye on you..."',
+      '"ThunderClan needs strong cats, not soft ones."',
+    ],
+    'Whitestorm': [
+      '"The forest is peaceful today. Enjoy it while it lasts."',
+      '"I remember when Bluestar was just a young warrior. Time moves fast."',
+      '"Respect your elders, young one. They have much to teach."',
+    ],
+    'Spottedleaf': [
+      '"Come to me if you\'re ever hurt. I have herbs that can help."',
+      '"StarClan speaks to me in dreams... I sense great things ahead."',
+      '"Be careful out there. The forest holds many dangers."',
+    ],
+    'Dustpaw': [
+      '"I bet I can beat you in a fight any day."',
+      '"Don\'t think you\'re special just because Bluestar chose you."',
+      '"Hmph. I was here first, kittypet."',
+    ],
+    'Sandpaw': [
+      '"You\'re not bad... for a kittypet."',
+      '"Keep up if you can!"',
+      '"Maybe you\'ll make a decent warrior one day. Maybe."',
+    ],
+    'Ravenpaw': [
+      '"H-hey... can I tell you something? I... never mind."',
+      '"I saw something terrible... but I can\'t talk about it here."',
+      '"Tigerclaw scares me... don\'t tell anyone I said that!"',
+    ],
+    'Darkstripe': [
+      '"What do you want, kittypet?"',
+      '"Tigerclaw is the greatest warrior in the Clan. You\'d do well to remember that."',
+      '"I\'m watching you..."',
+    ],
+    'Mousefur': [
+      '"When I was your age, we didn\'t stand around chatting. Get to work!"',
+      '"The borders need checking. Always."',
+    ],
+    'Yellowfang': [
+      '"What are you staring at, mouse-brain?"',
+      '"Ugh, my old bones ache. Fetch me some mouse bile, would you?"',
+      '"I wasn\'t always a medicine cat, you know. I was a fierce warrior once."',
+    ],
+    'Longtail': [
+      '"A kittypet doesn\'t belong in ThunderClan."',
+      '"Bluestar made a mistake bringing you here."',
+      '"Stay out of my way."',
+    ],
+    'Smudge': [
+      '"Rusty! Why did you go into the forest? It\'s so scary out there!"',
+      '"I miss you! Come home soon, okay?"',
+      '"The Twoleg gave me extra food today! I saved some for you!"',
+    ],
+    'Princess': [
+      '"Oh, Rusty! I\'m so glad you\'re okay!"',
+      '"Tell me all about the wild cats! Is it exciting?"',
+      '"Be safe out there, okay? I worry about you."',
+    ],
+  };
+
+  let lastTalkTime = 0;
+  const TALK_COOLDOWN = 2000; // ms between talks
+  const TALK_RANGE = 5; // distance to talk
+
+  function talkToNearestCat () {
+    if (gameState !== 'playing' || !player) return;
+    if (messageBox.classList.contains('visible')) return; // already in conversation
+    if (Date.now() - lastTalkTime < TALK_COOLDOWN) return;
+
+    // Find the nearest visible NPC cat in range
+    let nearest = null, nearestDist = TALK_RANGE;
+    for (const npc of npcCats) {
+      if (!npc.group.visible) continue;
+      const dx = npc.group.position.x - player.position.x;
+      const dz = npc.group.position.z - player.position.z;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = npc;
+      }
+    }
+
+    if (!nearest) {
+      queueMessage('Narrator', 'There\'s no one close enough to talk to. Walk closer to a cat!');
+      lastTalkTime = Date.now();
+      return;
+    }
+
+    talkToCat(nearest);
+  }
+
+  function talkToCat (npc) {
+    if (!npc) return;
+    lastTalkTime = Date.now();
+
+    const displayName = knownCats.has(npc.name) ? npc.name : '???';
+    const lines = catDialogue[npc.name] || ['"..."'];
+    const line = lines[Math.floor(Math.random() * lines.length)];
+
+    // Make the cat face the player
+    npc.group.lookAt(player.position.x, 0, player.position.z);
+
+    // Make the player face the cat
+    const dx = npc.group.position.x - player.position.x;
+    const dz = npc.group.position.z - player.position.z;
+    const angle = Math.atan2(dx, dz);
+    catGroup.rotation.y = angle;
+
+    queueMessage(displayName, line);
+    playCatVoice(npc.name);
+  }
+
+  function tryTalkByRaycast (clientX, clientY) {
+    if (gameState !== 'playing' || !player) return false;
+    if (messageBox.classList.contains('visible')) return false;
+    if (Date.now() - lastTalkTime < TALK_COOLDOWN) return false;
+
+    // Raycast from click position
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    // Check each visible NPC group
+    for (const npc of npcCats) {
+      if (!npc.group.visible) continue;
+      const dx = npc.group.position.x - player.position.x;
+      const dz = npc.group.position.z - player.position.z;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d > TALK_RANGE) continue;
+
+      // Test against all meshes in the NPC group
+      const hits = raycaster.intersectObjects(npc.group.children, true);
+      if (hits.length > 0) {
+        talkToCat(npc);
+        return true;
+      }
+    }
+    return false;
   }
 
   /* ====================================================
@@ -2931,6 +3118,35 @@ window.onerror = function(msg, url, line, col, err) {
     healthBar.style.width = (player.health / player.maxHealth * 100) + '%';
     energyBar.style.width = (player.energy / player.maxEnergy * 100) + '%';
     locationText.textContent = GameLogic.getLocationName(player.position);
+    updateInteractHint();
+  }
+
+  function updateInteractHint () {
+    if (!player || gameState !== 'playing' || messageBox.classList.contains('visible')) {
+      interactHint.classList.add('hidden');
+      return;
+    }
+    // Find nearest visible cat
+    let nearest = null, nearestDist = TALK_RANGE;
+    for (const npc of npcCats) {
+      if (!npc.group.visible) continue;
+      const dx = npc.group.position.x - player.position.x;
+      const dz = npc.group.position.z - player.position.z;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = npc;
+      }
+    }
+    if (nearest) {
+      const displayName = knownCats.has(nearest.name) ? nearest.name : '???';
+      interactHintText.textContent = isMobile
+        ? 'Tap ACT to talk to ' + displayName
+        : 'Press E to talk to ' + displayName;
+      interactHint.classList.remove('hidden');
+    } else {
+      interactHint.classList.add('hidden');
+    }
   }
 
   /* ====================================================
