@@ -2006,6 +2006,7 @@
         ]);
         npcCats.forEach(c => { c.group.visible = true; });
         placeCatsInCamp();
+        initNPCAI(); // cats start living their lives
 
         queueMessage('Lionheart', 'Your training tour is complete, ' + pName + '! You are now free to explore the territory on your own.', () => {
           queueMessage('Graypaw', 'Hey ' + pName + '! Want to go explore? There\'s so much to see!', () => {
@@ -2084,6 +2085,9 @@
     // show NPC cats in camp
     npcCats.forEach(c => { c.group.visible = true; });
     placeCatsInCamp();
+
+    // Start NPC AI - cats walk around, hunt, drink, rest
+    initNPCAI();
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
@@ -2189,55 +2193,256 @@
   }
 
   /* ====================================================
-     NPC FOLLOW (Graypaw follows during story)
+     NPC FOLLOW (story followers)
      ==================================================== */
   function updateFollowers (dt) {
     // Graypaw follows during the forest walk
     if (storyPhase === 'fought_graypaw') {
-      const gp = npcCats.find(c => c.name === 'Graypaw');
-      if (gp && gp.group.visible) {
-        const gpPos = gp.group.position;
-        const dx = player.position.x - gpPos.x;
-        const dz = player.position.z - gpPos.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 3) {
-          const spd = 4 * dt;
-          gpPos.x += (dx / dist) * spd;
-          gpPos.z += (dz / dist) * spd;
-          gp.group.lookAt(player.position.x, 0, player.position.z);
-        }
-      }
+      walkNPCToward(npcCats.find(c => c.name === 'Graypaw'), player.position.x, player.position.z, 3, 4, dt);
     }
 
     // During training, Lionheart walks toward his target and Graypaw follows player
     if (storyPhase === 'training' && trainingLionheart && trainingTarget) {
-      const lhPos = trainingLionheart.group.position;
-      const tx = trainingTarget.x, tz = trainingTarget.z;
-      const dx = tx - lhPos.x, dz = tz - lhPos.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist > 1) {
-        const spd = 5 * dt;
-        lhPos.x += (dx / dist) * spd;
-        lhPos.z += (dz / dist) * spd;
-        trainingLionheart.group.lookAt(tx, 0, tz);
-      }
+      walkNPCToward(trainingLionheart, trainingTarget.x, trainingTarget.z, 1, 5, dt);
     }
-    // Graypaw also tags along during training
     if (storyPhase === 'training') {
-      const gp = npcCats.find(c => c.name === 'Graypaw');
-      if (gp && gp.group.visible) {
-        const gpPos = gp.group.position;
-        const dx = player.position.x - gpPos.x;
-        const dz = player.position.z - gpPos.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 4) {
-          const spd = 4.5 * dt;
-          gpPos.x += (dx / dist) * spd;
-          gpPos.z += (dz / dist) * spd;
-          gp.group.lookAt(player.position.x, 0, player.position.z);
-        }
-      }
+      walkNPCToward(npcCats.find(c => c.name === 'Graypaw'), player.position.x, player.position.z, 4, 4.5, dt);
     }
+  }
+
+  /** Helper: walk an NPC cat toward (tx, tz), stop within minDist */
+  function walkNPCToward (npc, tx, tz, minDist, speed, dt) {
+    if (!npc || !npc.group.visible) return;
+    const pos = npc.group.position;
+    const dx = tx - pos.x, dz = tz - pos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > minDist) {
+      const spd = speed * dt;
+      pos.x += (dx / dist) * spd;
+      pos.z += (dz / dist) * spd;
+      npc.group.lookAt(tx, 0, tz);
+      npc._walking = true;
+    } else {
+      npc._walking = false;
+    }
+  }
+
+  /* ====================================================
+     NPC AI - Cats living their lives in camp & territory
+     ==================================================== */
+  // Each NPC gets an AI state: idle, walking, hunting, carrying, drinking, resting
+  // They pick tasks, walk to locations, do them, and return to camp
+
+  const NPC_TASKS = ['idle', 'patrol', 'hunt', 'drink', 'rest', 'eat'];
+  const FRESH_KILL = { x: 2, z: 0 };   // fresh-kill pile
+  const WATER_SPOT = { x: 20, z: -15 }; // stream location
+  const DEN_SPOTS = {
+    'Apprentices': { x: 6, z: 5 },
+    'Warriors': { x: 8, z: -2 },
+    'Leader': { x: -3, z: -1.5 },
+    'Medicine': { x: -10, z: 3 },
+    'Nursery': { x: -8, z: 5 },
+    'Elders': { x: -6, z: -7 },
+  };
+
+  // Assign rank-based dens
+  function getDenForCat (name) {
+    const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'];
+    if (apprentices.includes(name)) return DEN_SPOTS['Apprentices'];
+    if (name === 'Bluestar') return DEN_SPOTS['Leader'];
+    if (name === 'Spottedleaf') return DEN_SPOTS['Medicine'];
+    if (name === 'Yellowfang') return DEN_SPOTS['Elders'];
+    return DEN_SPOTS['Warriors'];
+  }
+
+  function initNPCAI () {
+    npcCats.forEach(c => {
+      c.ai = {
+        task: 'idle',
+        target: null,      // { x, z }
+        timer: Math.random() * 8 + 2, // time before picking next task
+        carryingPrey: false,
+        walkSpeed: 2.5 + Math.random() * 1.5,
+      };
+    });
+  }
+
+  function updateNPCAI (dt) {
+    if (storyPhase !== 'playing') return; // only during free roam
+
+    npcCats.forEach(c => {
+      if (!c.group.visible || !c.ai) return;
+      const ai = c.ai;
+      const pos = c.group.position;
+
+      // Count down timer
+      ai.timer -= dt;
+
+      switch (ai.task) {
+        case 'idle':
+          c._walking = false;
+          if (ai.timer <= 0) {
+            // Pick a random task
+            const roll = Math.random();
+            if (roll < 0.25) {
+              // Go patrol / walk around territory
+              ai.task = 'patrol';
+              const angle = Math.random() * Math.PI * 2;
+              const dist = 15 + Math.random() * 30;
+              ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+              ai.timer = 15 + Math.random() * 20;
+            } else if (roll < 0.45) {
+              // Go hunt (walk out, come back with prey)
+              ai.task = 'hunt';
+              const angle = Math.random() * Math.PI * 2;
+              const dist = 25 + Math.random() * 40;
+              ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+              ai.timer = 30;
+              ai.carryingPrey = false;
+            } else if (roll < 0.60) {
+              // Go drink water
+              ai.task = 'drink';
+              ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
+              ai.timer = 20;
+            } else if (roll < 0.75) {
+              // Go rest in den
+              ai.task = 'rest';
+              const den = getDenForCat(c.name);
+              ai.target = { x: den.x + (Math.random()-0.5)*2, z: den.z + (Math.random()-0.5)*2 };
+              ai.timer = 12 + Math.random() * 10;
+            } else {
+              // Go eat at fresh-kill pile
+              ai.task = 'eat';
+              ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*2 };
+              ai.timer = 10;
+            }
+          }
+          break;
+
+        case 'patrol':
+          // Walk to patrol point then go idle
+          if (ai.target) {
+            walkNPCToTarget(c, dt);
+            if (isNPCNearTarget(c, 2)) {
+              ai.task = 'idle';
+              ai.timer = 3 + Math.random() * 5;
+              ai.target = null;
+            }
+          }
+          if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 2; ai.target = null; }
+          break;
+
+        case 'hunt':
+          if (!ai.carryingPrey) {
+            // Walk to hunting spot
+            if (ai.target) {
+              walkNPCToTarget(c, dt);
+              if (isNPCNearTarget(c, 2)) {
+                // "Caught prey" - now carry it back
+                ai.carryingPrey = true;
+                ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
+              }
+            }
+          } else {
+            // Carry prey back to fresh-kill pile
+            if (ai.target) {
+              walkNPCToTarget(c, dt);
+              if (isNPCNearTarget(c, 2)) {
+                ai.carryingPrey = false;
+                ai.task = 'idle';
+                ai.timer = 4 + Math.random() * 6;
+                ai.target = null;
+              }
+            }
+          }
+          if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 2; ai.target = null; ai.carryingPrey = false; }
+          break;
+
+        case 'drink':
+          if (ai.target) {
+            walkNPCToTarget(c, dt);
+            if (isNPCNearTarget(c, 2)) {
+              // Drinking for a moment
+              c._walking = false;
+              ai.timer -= dt;
+              if (ai.timer <= 16) { // drank for ~4 seconds
+                ai.task = 'idle';
+                ai.timer = 3 + Math.random() * 5;
+                // Walk back toward camp
+                ai.task = 'patrol';
+                ai.target = { x: (Math.random()-0.5)*10, z: (Math.random()-0.5)*10 };
+                ai.timer = 15;
+              }
+            }
+          }
+          if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 2; ai.target = null; }
+          break;
+
+        case 'rest':
+          if (ai.target) {
+            walkNPCToTarget(c, dt);
+            if (isNPCNearTarget(c, 2)) {
+              c._walking = false;
+              ai.target = null;
+              // Rest for a while
+            }
+          }
+          if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 2 + Math.random() * 4; ai.target = null; }
+          break;
+
+        case 'eat':
+          if (ai.target) {
+            walkNPCToTarget(c, dt);
+            if (isNPCNearTarget(c, 2)) {
+              c._walking = false;
+              ai.target = null;
+            }
+          }
+          if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 3 + Math.random() * 5; ai.target = null; }
+          break;
+      }
+    });
+  }
+
+  function walkNPCToTarget (npc, dt) {
+    if (!npc.ai.target) return;
+    const pos = npc.group.position;
+    const tx = npc.ai.target.x, tz = npc.ai.target.z;
+    const dx = tx - pos.x, dz = tz - pos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > 1) {
+      const spd = npc.ai.walkSpeed * dt;
+      pos.x += (dx / dist) * spd;
+      pos.z += (dz / dist) * spd;
+      npc.group.lookAt(tx, 0, tz);
+      npc._walking = true;
+    } else {
+      npc._walking = false;
+    }
+  }
+
+  function isNPCNearTarget (npc, dist) {
+    if (!npc.ai.target) return true;
+    const pos = npc.group.position;
+    const dx = npc.ai.target.x - pos.x, dz = npc.ai.target.z - pos.z;
+    return Math.sqrt(dx * dx + dz * dz) < dist;
+  }
+
+  /** Animate NPC legs when walking */
+  function animateNPCLegs (dt) {
+    npcCats.forEach(c => {
+      if (!c.group.visible || !c.group.legs) return;
+      if (c._walking) {
+        if (!c._walkCycle) c._walkCycle = 0;
+        c._walkCycle += dt * (c.ai ? c.ai.walkSpeed : 3) * 2;
+        const sw = Math.sin(c._walkCycle * 3) * 0.3;
+        c.group.legs[0].rotation.x = sw;  c.group.legs[1].rotation.x = -sw;
+        c.group.legs[2].rotation.x = -sw; c.group.legs[3].rotation.x = sw;
+      } else {
+        if (c.group.legs) c.group.legs.forEach(l => { l.rotation.x *= 0.85; });
+        c._walkCycle = 0;
+      }
+    });
   }
 
   /* ====================================================
@@ -2248,13 +2453,17 @@
     const dt = Math.min(clock.getDelta(), 0.1);
     const time = clock.getElapsedTime();
 
+    // Always animate tails, legs, fireflies regardless of state
+    animateFireflies(time);
+    animateTail(time);
+    animateNPCTails(time);
+    animateNPCLegs(dt);
+
     if (gameState === 'playing') {
       updatePlayer(dt);
       updateCamera();
       updateHUD();
-      animateFireflies(time);
-      animateTail(time);
-      animateNPCTails(time);
+      updateNPCAI(dt);
       checkStoryTriggers();
       checkTrainingProximity();
       updateFollowers(dt);
@@ -2270,7 +2479,6 @@
       camera.position.z = 50 + Math.cos(time * 0.06) * 30;
       camera.position.y = 10;
       camera.lookAt(0, 2, 60);
-      animateFireflies(time);
     }
 
     renderer.render(scene, camera);
