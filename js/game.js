@@ -3239,21 +3239,55 @@ window.onerror = function(msg, url, line, col, err) {
     }
   }
 
-  /** Move Lionheart to a target position (he walks there) */
+  /** Set Lionheart's walk target (he walks there smoothly, doesn't teleport) */
   function moveLionheartTo (tx, tz) {
     if (trainingLionheart) {
-      trainingLionheart.group.position.set(tx, 0, tz);
+      trainingTarget = { x: tx, z: tz };
+      trainingLionheart._waiting = false;
     }
   }
 
+  let waitingMessageShown = false;
+  let waitingMessageTimer = 0;
+
   /** Check if the player is near the training target */
   function checkTrainingProximity () {
-    if (storyPhase !== 'training' || !trainingTarget) return;
+    if (storyPhase !== 'training' || !trainingTarget || !player) return;
+
+    // Distance from player to the training target destination
     const dx = player.position.x - trainingTarget.x;
     const dz = player.position.z - trainingTarget.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    if (dist < 5) {
-      const target = trainingTarget;
+    const distToTarget = Math.sqrt(dx * dx + dz * dz);
+
+    // Distance from player to Lionheart
+    let distToLion = 999;
+    if (trainingLionheart && trainingLionheart.group.visible) {
+      const lx = trainingLionheart.group.position.x - player.position.x;
+      const lz = trainingLionheart.group.position.z - player.position.z;
+      distToLion = Math.sqrt(lx * lx + lz * lz);
+    }
+
+    // If the player is too far from Lionheart, he stops and waits
+    const MAX_FOLLOW_DIST = 15;
+    if (distToLion > MAX_FOLLOW_DIST && trainingLionheart) {
+      trainingLionheart._waiting = true;
+      // Show a hint every few seconds
+      waitingMessageTimer++;
+      if (!waitingMessageShown || waitingMessageTimer > 300) {
+        waitingMessageTimer = 0;
+        waitingMessageShown = true;
+        if (!messageBox.classList.contains('visible')) {
+          queueMessage('Lionheart', 'Come on, ' + (player.name || 'young one') + '! Keep up! Follow me!');
+        }
+      }
+    } else {
+      if (trainingLionheart) trainingLionheart._waiting = false;
+      waitingMessageShown = false;
+      waitingMessageTimer = 0;
+    }
+
+    // Player arrived near the target?
+    if (distToTarget < 6) {
       trainingTarget = null; // clear so we don't trigger again
       advanceTraining();
     }
@@ -3419,12 +3453,31 @@ window.onerror = function(msg, url, line, col, err) {
       walkNPCToward(npcCats.find(c => c.name === 'Graypaw'), player.position.x, player.position.z, 3, 4, dt);
     }
 
-    // During training, Lionheart walks toward his target and Graypaw follows player
+    // During training, Lionheart walks toward his target — but stops if player is too far
     if (storyPhase === 'training' && trainingLionheart && trainingTarget) {
-      walkNPCToward(trainingLionheart, trainingTarget.x, trainingTarget.z, 1, 5, dt);
+      if (trainingLionheart._waiting) {
+        // Lionheart stops and faces the player, waiting
+        trainingLionheart._walking = false;
+        trainingLionheart.group.lookAt(player.position.x, 0, player.position.z);
+      } else {
+        // Lionheart walks toward the target at a pace the player can follow
+        // Walk a bit slower than normal, and stay ahead of the player but not too far
+        const lPos = trainingLionheart.group.position;
+        const plx = player.position.x - lPos.x;
+        const plz = player.position.z - lPos.z;
+        const playerDist = Math.sqrt(plx * plx + plz * plz);
+
+        // If player is close, walk at normal pace. If player is medium distance, slow down
+        let speed = 4;
+        if (playerDist > 10) speed = 2;
+        else if (playerDist > 6) speed = 3;
+
+        walkNPCToward(trainingLionheart, trainingTarget.x, trainingTarget.z, 1.5, speed, dt);
+      }
     }
+    // Graypaw follows the player during training
     if (storyPhase === 'training') {
-      walkNPCToward(npcCats.find(c => c.name === 'Graypaw'), player.position.x, player.position.z, 4, 4.5, dt);
+      walkNPCToward(npcCats.find(c => c.name === 'Graypaw'), player.position.x, player.position.z, 3.5, 4.5, dt);
     }
   }
 
