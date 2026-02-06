@@ -656,79 +656,266 @@ window.onerror = function(msg, url, line, col, err) {
   function createTwolegHouse () {
     const house = new THREE.Group();
 
-    // Walls
-    const wallMat = new THREE.MeshLambertMaterial({ color: 0xddccaa });
-    const wallFront = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 0.3), wallMat);
-    wallFront.position.set(0, 2.5, -3); wallFront.castShadow = true;
-    house.add(wallFront);
-    const wallBack = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 0.3), wallMat);
-    wallBack.position.set(0, 2.5, 3); wallBack.castShadow = true;
-    house.add(wallBack);
-    const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5, 6), wallMat);
-    wallLeft.position.set(-5, 2.5, 0); wallLeft.castShadow = true;
-    house.add(wallLeft);
-    const wallRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5, 6), wallMat);
-    wallRight.position.set(5, 2.5, 0); wallRight.castShadow = true;
-    house.add(wallRight);
+    /* --- MATERIALS --- */
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0xe8dbc8, shininess: 5 });
+    const trimMat = new THREE.MeshPhongMaterial({ color: 0xfaf5ee, shininess: 10 });
+    const roofMat = new THREE.MeshPhongMaterial({ color: 0x7a3a1a, shininess: 8 });
+    const doorMat = new THREE.MeshPhongMaterial({ color: 0x5a3318, shininess: 20 });
+    const winGlassMat = new THREE.MeshPhongMaterial({ color: 0x99ccee, emissive: 0x223344, shininess: 80, transparent: true, opacity: 0.85 });
+    const winFrameMat = new THREE.MeshPhongMaterial({ color: 0xf5f0e8, shininess: 15 });
+    const brickMat = new THREE.MeshPhongMaterial({ color: 0xcc8866, shininess: 3 });
+    const concreteMat = new THREE.MeshPhongMaterial({ color: 0xbbbbaa, shininess: 5 });
 
-    // Roof
-    const roofMat = new THREE.MeshLambertMaterial({ color: 0x884422 });
-    const roofLeft = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 11), roofMat);
-    roofLeft.position.set(-2.5, 6.2, 0); roofLeft.rotation.z = 0.6; roofLeft.castShadow = true;
-    house.add(roofLeft);
-    const roofRight = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 11), roofMat);
-    roofRight.position.set(2.5, 6.2, 0); roofRight.rotation.z = -0.6; roofRight.castShadow = true;
-    house.add(roofRight);
+    /* --- FOUNDATION --- */
+    const foundation = new THREE.Mesh(new THREE.BoxGeometry(11, 0.5, 7.5), concreteMat);
+    foundation.position.set(0, 0.25, 0); foundation.castShadow = true;
+    house.add(foundation);
 
-    // Door (dark rectangle)
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 3), new THREE.MeshLambertMaterial({ color: 0x553311 }));
-    door.position.set(0, 1.5, -3.01);
-    house.add(door);
+    /* --- WALLS (thicker with slight texture via multiple layers) --- */
+    // Front wall
+    const wallFront = new THREE.Mesh(new THREE.BoxGeometry(10.5, 5.5, 0.4), wallMat);
+    wallFront.position.set(0, 3.25, -3.3); wallFront.castShadow = true; house.add(wallFront);
+    // Back wall
+    const wallBack = new THREE.Mesh(new THREE.BoxGeometry(10.5, 5.5, 0.4), wallMat);
+    wallBack.position.set(0, 3.25, 3.3); wallBack.castShadow = true; house.add(wallBack);
+    // Left wall
+    const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.5, 6.6), wallMat);
+    wallLeft.position.set(-5.25, 3.25, 0); wallLeft.castShadow = true; house.add(wallLeft);
+    // Right wall
+    const wallRight = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.5, 6.6), wallMat);
+    wallRight.position.set(5.25, 3.25, 0); wallRight.castShadow = true; house.add(wallRight);
 
-    // Windows (light blue)
-    const winMat = new THREE.MeshLambertMaterial({ color: 0xaaddff, emissive: 0x334455 });
-    const win1 = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.2), winMat);
-    win1.position.set(-3, 3.2, -3.01);
-    house.add(win1);
-    const win2 = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.2), winMat);
-    win2.position.set(3, 3.2, -3.01);
-    house.add(win2);
+    /* --- ROOF (proper triangular prism shape) --- */
+    // Roof slopes
+    const roofOverhang = 0.8;
+    const roofL = new THREE.Mesh(new THREE.PlaneGeometry(7, 12), roofMat);
+    roofL.position.set(-2.8, 7, 0); roofL.rotation.z = 0.55; roofL.castShadow = true;
+    house.add(roofL);
+    const roofR = new THREE.Mesh(new THREE.PlaneGeometry(7, 12), roofMat);
+    roofR.position.set(2.8, 7, 0); roofR.rotation.z = -0.55; roofR.castShadow = true;
+    house.add(roofR);
+    // Roof ridge (top beam)
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 12), roofMat);
+    ridge.position.set(0, 8.5, 0); house.add(ridge);
+    // Gable triangles (front & back)
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(-5.5, 0); gableShape.lineTo(0, 3); gableShape.lineTo(5.5, 0); gableShape.lineTo(-5.5, 0);
+    const gableGeo = new THREE.ShapeGeometry(gableShape);
+    const gableFront = new THREE.Mesh(gableGeo, wallMat);
+    gableFront.position.set(0, 6, -3.5); house.add(gableFront);
+    const gableBack = new THREE.Mesh(gableGeo, wallMat);
+    gableBack.position.set(0, 6, 3.5); gableBack.rotation.y = Math.PI; house.add(gableBack);
 
-    // Cat flap at the bottom of the door
-    const flap = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.4), new THREE.MeshLambertMaterial({ color: 0x332211 }));
-    flap.position.set(0, 0.25, -3.02);
-    house.add(flap);
+    /* --- CHIMNEY --- */
+    const chimney = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.5, 1.0), brickMat);
+    chimney.position.set(3.5, 8, 1.5); chimney.castShadow = true; house.add(chimney);
+    // Chimney top rim
+    const chimTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.3), brickMat);
+    chimTop.position.set(3.5, 9.8, 1.5); house.add(chimTop);
+    // Chimney cap
+    const chimCap = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 1.4), concreteMat);
+    chimCap.position.set(3.5, 10, 1.5); house.add(chimCap);
 
-    // Garden (lighter green ground)
-    const garden = new THREE.Mesh(
-      new THREE.CircleGeometry(8, 16),
+    /* --- DOOR (detailed with frame, handle, panels) --- */
+    // Door frame
+    const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.5, 0.1), trimMat);
+    doorFrame.position.set(0, 2.3, -3.52); house.add(doorFrame);
+    // Door panel
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.2, 0.12), doorMat);
+    door.position.set(0, 2.15, -3.55); house.add(door);
+    // Door panels (decorative insets)
+    const panelMat = new THREE.MeshPhongMaterial({ color: 0x4a2a12, shininess: 15 });
+    [[-0, 3.2], [0, 1.5]].forEach(([x, y]) => {
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 0.02), panelMat);
+      panel.position.set(x, y, -3.62); house.add(panel);
+    });
+    // Door handle (brass knob)
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6),
+      new THREE.MeshPhongMaterial({ color: 0xddaa44, shininess: 80 }));
+    knob.position.set(0.55, 2.2, -3.65); house.add(knob);
+    // Door step
+    const step = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.15, 0.8), concreteMat);
+    step.position.set(0, 0.55, -3.7); house.add(step);
+    // Cat flap
+    const flapFrame = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.05), trimMat);
+    flapFrame.position.set(0, 0.8, -3.63); house.add(flapFrame);
+    const flap = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.03),
+      new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 30 }));
+    flap.position.set(0, 0.75, -3.66); house.add(flap);
+
+    /* --- WINDOWS (with frames, sills, crossbars, shutters) --- */
+    function makeWindow (x, y, z) {
+      // Outer frame
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.6, 0.08), winFrameMat);
+      frame.position.set(x, y, z - 0.01); house.add(frame);
+      // Glass
+      const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.3), winGlassMat);
+      glass.position.set(x, y, z - 0.05); house.add(glass);
+      // Crossbars (window panes - 2x2 grid)
+      const barMat = winFrameMat;
+      const hBar = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.04), barMat);
+      hBar.position.set(x, y, z - 0.06); house.add(hBar);
+      const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.3, 0.04), barMat);
+      vBar.position.set(x, y, z - 0.06); house.add(vBar);
+      // Window sill
+      const sill = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.12, 0.4), trimMat);
+      sill.position.set(x, y - 0.82, z - 0.15); house.add(sill);
+      // Shutters (one on each side)
+      const shutterMat = new THREE.MeshPhongMaterial({ color: 0x446633, shininess: 8 });
+      const shutL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.5, 0.06), shutterMat);
+      shutL.position.set(x - 1.15, y, z - 0.02); house.add(shutL);
+      const shutR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.5, 0.06), shutterMat);
+      shutR.position.set(x + 1.15, y, z - 0.02); house.add(shutR);
+      // Shutter slats (horizontal lines)
+      for (let s = -0.5; s <= 0.5; s += 0.25) {
+        const slat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.02),
+          new THREE.MeshPhongMaterial({ color: 0x335522 }));
+        slat.position.set(x - 1.15, y + s, z - 0.06); house.add(slat);
+        const slat2 = slat.clone();
+        slat2.position.set(x + 1.15, y + s, z - 0.06); house.add(slat2);
+      }
+    }
+    // Front windows (two on ground floor, one on upper/gable)
+    makeWindow(-3.2, 3.5, -3.5);
+    makeWindow(3.2, 3.5, -3.5);
+    // Upper gable window (smaller, round)
+    const ovalWin = new THREE.Mesh(new THREE.CircleGeometry(0.5, 12), winGlassMat);
+    ovalWin.position.set(0, 6.8, -3.52); house.add(ovalWin);
+    const ovalFrame = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.08, 8, 12), winFrameMat);
+    ovalFrame.position.set(0, 6.8, -3.51); house.add(ovalFrame);
+    // Side windows
+    makeWindow(0, 3.5, -0.01); // left wall reuse
+    // Actually place on side walls using rotated approach:
+    const sideWinGlass = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.2), winGlassMat);
+    sideWinGlass.position.set(-5.47, 3.5, -1); sideWinGlass.rotation.y = Math.PI / 2; house.add(sideWinGlass);
+    const sideWinFrame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 1.8), winFrameMat);
+    sideWinFrame.position.set(-5.45, 3.5, -1); house.add(sideWinFrame);
+
+    /* --- PORCH / AWNING over door --- */
+    const awningMat = new THREE.MeshPhongMaterial({ color: 0x6a3015, shininess: 10 });
+    const awning = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1.5), awningMat);
+    awning.position.set(0, 4.2, -4); awning.rotation.x = 0.15; house.add(awning);
+    // Porch supports
+    const supportMat = new THREE.MeshPhongMaterial({ color: 0xf0e8d8, shininess: 10 });
+    [[-1.3, -4.4], [1.3, -4.4]].forEach(([x, z]) => {
+      const sup = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.7, 8), supportMat);
+      sup.position.set(x, 2.35, z); house.add(sup);
+    });
+    // Porch step
+    const porchStep = new THREE.Mesh(new THREE.BoxGeometry(3, 0.12, 1.2), concreteMat);
+    porchStep.position.set(0, 0.56, -4.2); house.add(porchStep);
+
+    /* --- GARDEN --- */
+    // Lawn
+    const lawn = new THREE.Mesh(
+      new THREE.PlaneGeometry(16, 10),
       new THREE.MeshLambertMaterial({ color: 0x55aa44 })
     );
-    garden.rotation.x = -Math.PI / 2; garden.position.set(0, 0.01, -5);
-    house.add(garden);
+    lawn.rotation.x = -Math.PI / 2; lawn.position.set(0, 0.01, -6);
+    house.add(lawn);
+    // Garden path (stepping stones to door)
+    const stoneMat = new THREE.MeshPhongMaterial({ color: 0xaaa899, shininess: 5 });
+    for (let i = 0; i < 5; i++) {
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 0.06, 8), stoneMat);
+      stone.position.set(Math.sin(i * 0.3) * 0.3, 0.04, -4.5 - i * 1.4);
+      house.add(stone);
+    }
 
-    // Cat bed (cozy circle)
-    const bed = new THREE.Mesh(
-      new THREE.TorusGeometry(0.5, 0.2, 8, 12),
-      new THREE.MeshLambertMaterial({ color: 0xcc4444 })
-    );
-    bed.rotation.x = -Math.PI / 2; bed.position.set(2, 0.1, -2);
-    house.add(bed);
-    // bed cushion
-    const cushion = new THREE.Mesh(
-      new THREE.CircleGeometry(0.4, 8),
-      new THREE.MeshLambertMaterial({ color: 0xddaa88 })
-    );
-    cushion.rotation.x = -Math.PI / 2; cushion.position.set(2, 0.12, -2);
-    house.add(cushion);
+    /* --- FLOWER BEDS along front wall --- */
+    const flowerColors = [0xff4466, 0xffdd44, 0xff88cc, 0xaa44ff, 0xff6633, 0xffaacc];
+    const stemMat = new THREE.MeshLambertMaterial({ color: 0x338822 });
+    [[-4.5, -3.8], [-3.5, -3.8], [-2.5, -3.8], [2.5, -3.8], [3.5, -3.8], [4.5, -3.8]].forEach(([fx, fz], i) => {
+      // Stem
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.6, 4), stemMat);
+      stem.position.set(fx + (Math.random() - 0.5) * 0.3, 0.8, fz); house.add(stem);
+      // Flower head
+      const flowerMat = new THREE.MeshPhongMaterial({ color: flowerColors[i % flowerColors.length], shininess: 15 });
+      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), flowerMat);
+      flower.position.set(fx + (Math.random() - 0.5) * 0.3, 1.15, fz); house.add(flower);
+      // Leaves
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 4), stemMat);
+      leaf.position.set(fx + 0.1, 0.75, fz); leaf.scale.set(1, 0.5, 1.5); house.add(leaf);
+    });
+    // Flower box under windows
+    const boxMat = new THREE.MeshPhongMaterial({ color: 0x664422, shininess: 8 });
+    [-3.2, 3.2].forEach(wx => {
+      const box = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.3, 0.4), boxMat);
+      box.position.set(wx, 2.55, -3.6); house.add(box);
+      // Flowers in the box
+      for (let f = -0.7; f <= 0.7; f += 0.35) {
+        const fc = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+        const fl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 4),
+          new THREE.MeshPhongMaterial({ color: fc }));
+        fl.position.set(wx + f, 2.85, -3.65); house.add(fl);
+        const lf = new THREE.Mesh(new THREE.SphereGeometry(0.06, 4, 3), stemMat);
+        lf.position.set(wx + f, 2.72, -3.6); lf.scale.set(1, 0.6, 1.3); house.add(lf);
+      }
+    });
 
+    /* --- CAT BED (plush, detailed) --- */
+    const bedRim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.55, 0.22, 10, 16),
+      new THREE.MeshPhongMaterial({ color: 0xcc3333, shininess: 10 })
+    );
+    bedRim.rotation.x = -Math.PI / 2; bedRim.position.set(3, 0.2, -2);
+    house.add(bedRim);
+    const bedCushion = new THREE.Mesh(
+      new THREE.CircleGeometry(0.45, 12),
+      new THREE.MeshPhongMaterial({ color: 0xeebb88, shininess: 8 })
+    );
+    bedCushion.rotation.x = -Math.PI / 2; bedCushion.position.set(3, 0.22, -2);
+    house.add(bedCushion);
+
+    /* --- FOOD & WATER BOWLS --- */
     // Food bowl
-    const bowl = new THREE.Mesh(
-      new THREE.TorusGeometry(0.25, 0.08, 8, 10),
-      new THREE.MeshLambertMaterial({ color: 0x4488cc })
-    );
-    bowl.rotation.x = -Math.PI / 2; bowl.position.set(-2, 0.08, -1);
-    house.add(bowl);
+    const bowlMat = new THREE.MeshPhongMaterial({ color: 0x4488cc, shininess: 40 });
+    const foodBowl = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.1, 10, 14), bowlMat);
+    foodBowl.rotation.x = -Math.PI / 2; foodBowl.position.set(-3, 0.1, -2);
+    house.add(foodBowl);
+    // Food inside
+    const food = new THREE.Mesh(new THREE.CircleGeometry(0.2, 8),
+      new THREE.MeshPhongMaterial({ color: 0x886644 }));
+    food.rotation.x = -Math.PI / 2; food.position.set(-3, 0.13, -2);
+    house.add(food);
+    // Water bowl
+    const waterBowl = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.08, 10, 14), bowlMat);
+    waterBowl.rotation.x = -Math.PI / 2; waterBowl.position.set(-3.8, 0.08, -2);
+    house.add(waterBowl);
+    const water = new THREE.Mesh(new THREE.CircleGeometry(0.18, 8),
+      new THREE.MeshPhongMaterial({ color: 0x77bbdd, transparent: true, opacity: 0.7 }));
+    water.rotation.x = -Math.PI / 2; water.position.set(-3.8, 0.11, -2);
+    house.add(water);
+
+    /* --- MAILBOX --- */
+    const mailPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6),
+      new THREE.MeshPhongMaterial({ color: 0x666666 }));
+    mailPost.position.set(5.5, 0.6, -8); house.add(mailPost);
+    const mailBox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.6),
+      new THREE.MeshPhongMaterial({ color: 0xcc2222, shininess: 30 }));
+    mailBox.position.set(5.5, 1.35, -8); house.add(mailBox);
+    // Mail flag
+    const mailFlag = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.3, 0.15),
+      new THREE.MeshPhongMaterial({ color: 0xcc2222 }));
+    mailFlag.position.set(5.72, 1.45, -7.8); house.add(mailFlag);
+
+    /* --- OUTDOOR LIGHT by door --- */
+    const lightFixture = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 0.15),
+      new THREE.MeshPhongMaterial({ color: 0x444444, shininess: 20 }));
+    lightFixture.position.set(1.2, 3.8, -3.55); house.add(lightFixture);
+    const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6),
+      new THREE.MeshPhongMaterial({ color: 0xffffaa, emissive: 0xffdd66, emissiveIntensity: 0.5 }));
+    lightBulb.position.set(1.2, 3.6, -3.6); house.add(lightBulb);
+    // Warm glow from porch light
+    const porchLight = new THREE.PointLight(0xffdd88, 0.4, 8);
+    porchLight.position.set(1.2, 3.5, -4); house.add(porchLight);
+
+    /* --- GARDEN BUSH/HEDGE along sides --- */
+    const bushMat = new THREE.MeshLambertMaterial({ color: 0x2d6b1e });
+    [[-6, -3], [-6, 0], [-6, 2], [6, -3], [6, 0], [6, 2]].forEach(([bx, bz]) => {
+      const bush = new THREE.Mesh(new THREE.SphereGeometry(0.8 + Math.random() * 0.3, 8, 6), bushMat);
+      bush.position.set(bx, 0.6, bz); bush.scale.set(1, 0.7, 1);
+      bush.castShadow = true; house.add(bush);
+    });
 
     // Label
     const hLabel = makeNameLabel('Twoleg House', 6.5);
