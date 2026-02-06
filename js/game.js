@@ -68,6 +68,7 @@ window.onerror = function(msg, url, line, col, err) {
   let catGroup;
   let highrock;
   let npcCats = [];             // { group, name, data, label, known }
+  let scentMarkerZones = [];    // { x, z, radius, clan } — yellow scent markers at borders
   let trees = [], rocks = [];
   let treeObjects = [], rockObjects = [];
 
@@ -139,8 +140,12 @@ window.onerror = function(msg, url, line, col, err) {
     'Princess':    { base: 500, end: 420, dur: 0.32, type: 'sine',     vol: 0.11, vibrato: 4 },   // gentle, sweet she-cat
     'Longtail':    { base: 280, end: 200, dur: 0.40, type: 'sawtooth', vol: 0.11, vibrato: 3 },   // young warrior, sneering, mid-low
     'ShadowClan Warrior': { base: 180, end: 130, dur: 0.50, type: 'sawtooth', vol: 0.11, vibrato: 2 }, // deep, menacing
+    'ShadowClan Patrol':  { base: 190, end: 140, dur: 0.48, type: 'sawtooth', vol: 0.11, vibrato: 2 }, // deep, menacing
     'RiverClan Warrior':  { base: 250, end: 190, dur: 0.40, type: 'triangle', vol: 0.10, vibrato: 3 }, // smooth, strong
+    'RiverClan Patrol':   { base: 240, end: 180, dur: 0.42, type: 'triangle', vol: 0.10, vibrato: 3 }, // smooth, strong
     'WindClan Warrior':   { base: 350, end: 280, dur: 0.30, type: 'sine',     vol: 0.11, vibrato: 5 }, // quick, sharp
+    'WindClan Patrol':    { base: 340, end: 270, dur: 0.32, type: 'sine',     vol: 0.11, vibrato: 5 }, // quick, sharp
+    'WindClan Runner':    { base: 360, end: 290, dur: 0.28, type: 'sine',     vol: 0.10, vibrato: 6 }, // very quick
     '???':         { base: 350, end: 280, dur: 0.30, type: 'triangle', vol: 0.10, vibrato: 3 },   // unknown cat
   };
 
@@ -1084,31 +1089,54 @@ window.onerror = function(msg, url, line, col, err) {
     wcLabel.position.set(0, 0, -75);
     scene.add(wcLabel);
 
-    /* --- BORDER SCENT MARKERS (small stones/sticks at territory edges) --- */
-    const markerMat = new THREE.MeshLambertMaterial({ color: 0x888866 });
-    // ShadowClan border markers (along x = -50)
-    for (let z = -80; z <= 80; z += 12) {
-      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.6, 5), markerMat);
-      marker.position.set(-50, 0.3, z); scene.add(marker);
-      const markerTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4),
+    /* --- SCENT MARKERS (bright yellow strips at borders — step on them and patrols spot you!) --- */
+    const scentMat = new THREE.MeshBasicMaterial({ color: 0xddcc00, transparent: true, opacity: 0.75 });
+    const scentGlowMat = new THREE.MeshBasicMaterial({ color: 0xffee44, transparent: true, opacity: 0.35 });
+    scentMarkerZones = []; // track zones for detection
+
+    // ShadowClan scent line (along x = -50, continuous yellow strip)
+    for (let z = -80; z <= 80; z += 5) {
+      // Bright yellow pad on the ground
+      const pad = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 4.5), scentMat);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(-50, 0.06, z);
+      scene.add(pad);
+      // Faint glow halo
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), scentGlowMat);
+      glow.rotation.x = -Math.PI / 2; glow.position.set(-50, 0.05, z);
+      scene.add(glow);
+      // Small upright marker stone
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 5),
         new THREE.MeshLambertMaterial({ color: 0xaaaa44 }));
-      markerTop.position.set(-50, 0.65, z); scene.add(markerTop);
+      stone.position.set(-50, 0.25, z); scene.add(stone);
+      scentMarkerZones.push({ x: -50, z: z, radius: 2.5, clan: 'ShadowClan' });
     }
-    // RiverClan border markers (along x = 70)
-    for (let z = -80; z <= 80; z += 12) {
-      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.6, 5), markerMat);
-      marker.position.set(70, 0.3, z); scene.add(marker);
-      const markerTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4),
+
+    // RiverClan scent line (along x = 70)
+    for (let z = -80; z <= 80; z += 5) {
+      const pad = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 4.5), scentMat);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(70, 0.06, z);
+      scene.add(pad);
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), scentGlowMat);
+      glow.rotation.x = -Math.PI / 2; glow.position.set(70, 0.05, z);
+      scene.add(glow);
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 5),
         new THREE.MeshLambertMaterial({ color: 0x44aaaa }));
-      markerTop.position.set(70, 0.65, z); scene.add(markerTop);
+      stone.position.set(70, 0.25, z); scene.add(stone);
+      scentMarkerZones.push({ x: 70, z: z, radius: 2.5, clan: 'RiverClan' });
     }
-    // WindClan border markers (along z = -55)
-    for (let x = -50; x <= 70; x += 12) {
-      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.6, 5), markerMat);
-      marker.position.set(x, 0.3, -55); scene.add(marker);
-      const markerTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4),
+
+    // WindClan scent line (along z = -55)
+    for (let x = -50; x <= 70; x += 5) {
+      const pad = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 2.5), scentMat);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.06, -55);
+      scene.add(pad);
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(6, 4), scentGlowMat);
+      glow.rotation.x = -Math.PI / 2; glow.position.set(x, 0.05, -55);
+      scene.add(glow);
+      const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 5),
         new THREE.MeshLambertMaterial({ color: 0xaa8844 }));
-      markerTop.position.set(x, 0.65, -55); scene.add(markerTop);
+      stone.position.set(x, 0.25, -55); scene.add(stone);
+      scentMarkerZones.push({ x: x, z: -55, radius: 2.5, clan: 'WindClan' });
     }
 
     // Border labels
@@ -1794,6 +1822,71 @@ window.onerror = function(msg, url, line, col, err) {
         size: 0.82, whiteChest: true, whitePaws: true, longFur: false
       }, -3, 84),
     ];
+
+    // --- BORDER PATROL CATS (visible in enemy territories, walk along borders) ---
+    createBorderPatrols();
+  }
+
+  /* Border patrol cats that walk along the edge of their territory */
+  let borderPatrols = []; // { group, name, clan, patrolPath, pathIdx, speed, label }
+
+  function createBorderPatrols () {
+    borderPatrols = [];
+
+    const patrols = [
+      // ShadowClan patrols (along x ~ -65, varying z)
+      { clan: 'ShadowClan', name: 'ShadowClan Patrol', fur: 0x333333, belly: 0x444444,
+        eyeColor: 0xffcc00, stripes: 0, size: 1.1,
+        path: [{ x: -66, z: -40 }, { x: -66, z: -10 }, { x: -66, z: 20 }, { x: -66, z: 40 }, { x: -66, z: 20 }, { x: -66, z: -10 }] },
+      { clan: 'ShadowClan', name: 'ShadowClan Warrior', fur: 0x2a2a2a, belly: 0x3a3a3a,
+        eyeColor: 0xee9900, stripes: 3, stripeColor: 0x111111, size: 1.05,
+        path: [{ x: -70, z: 30 }, { x: -70, z: 10 }, { x: -70, z: -20 }, { x: -70, z: -40 }, { x: -70, z: -20 }, { x: -70, z: 10 }] },
+
+      // RiverClan patrols (along x ~ 82, varying z)
+      { clan: 'RiverClan', name: 'RiverClan Patrol', fur: 0x6688aa, belly: 0x88aacc,
+        eyeColor: 0x44cccc, stripes: 0, size: 1.0,
+        path: [{ x: 82, z: -30 }, { x: 82, z: 0 }, { x: 82, z: 25 }, { x: 82, z: 40 }, { x: 82, z: 25 }, { x: 82, z: 0 }] },
+      { clan: 'RiverClan', name: 'RiverClan Warrior', fur: 0x5577aa, belly: 0x7799bb,
+        eyeColor: 0x33bbbb, stripes: 2, stripeColor: 0x334455, size: 1.1,
+        path: [{ x: 85, z: 20 }, { x: 85, z: -5 }, { x: 85, z: -30 }, { x: 85, z: -5 }] },
+
+      // WindClan patrols (along z ~ -65, varying x)
+      { clan: 'WindClan', name: 'WindClan Patrol', fur: 0xbbaa77, belly: 0xddcc99,
+        eyeColor: 0xddbb33, stripes: 2, stripeColor: 0x887744, size: 0.9,
+        path: [{ x: -30, z: -65 }, { x: -5, z: -65 }, { x: 20, z: -65 }, { x: 45, z: -65 }, { x: 20, z: -65 }, { x: -5, z: -65 }] },
+      { clan: 'WindClan', name: 'WindClan Runner', fur: 0xaa9966, belly: 0xccbb88,
+        eyeColor: 0xccaa22, stripes: 0, size: 0.85,
+        path: [{ x: 40, z: -68 }, { x: 15, z: -68 }, { x: -10, z: -68 }, { x: -35, z: -68 }, { x: -10, z: -68 }, { x: 15, z: -68 }] },
+    ];
+
+    patrols.forEach(p => {
+      const catData = {
+        name: p.name, fur: p.fur, belly: p.belly,
+        eyeColor: p.eyeColor, earInner: 0xcc8888, noseColor: 0x886666,
+        size: p.size, whiteChest: false, whitePaws: false, longFur: false
+      };
+      if (p.stripes) { catData.stripes = p.stripes; catData.stripeColor = p.stripeColor || 0x333322; }
+      else { catData.stripes = 0; }
+
+      const catObj = makeBookCat(catData, p.path[0].x, p.path[0].z);
+      // Don't add to npcCats (those are ThunderClan cats with AI)
+      // Instead track separately as border patrols
+      catObj.group.visible = true;
+
+      borderPatrols.push({
+        group: catObj.group,
+        name: p.name,
+        clan: p.clan,
+        patrolPath: p.path,
+        pathIdx: 0,
+        speed: p.clan === 'WindClan' ? 3.5 : 2.5, // WindClan is faster
+        label: catObj.label,
+        _walkCycle: 0,
+        _walking: true,
+        spotted: false,      // has this patrol spotted the player?
+        spotCooldown: 0,     // cooldown to prevent respotting
+      });
+    });
   }
 
   /* ====================================================
@@ -2295,6 +2388,7 @@ window.onerror = function(msg, url, line, col, err) {
       redtailEventTriggered = data.redtailEventTriggered !== false;
       mothermouthTriggered = data.mothermouthTriggered || false;
       mothermouthTimer = data.mothermouthTimer || 0;
+      scentMarkerWarned = data.scentMarkerWarned || {};
       playingTimer = data.playingTimer || 0;
       gameTime = data.gameTime || 0;
       // Restore known cats
@@ -2577,17 +2671,143 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     TERRITORY TRESPASSING SYSTEM
+     BORDER PATROL AI (enemy cats patrolling their borders)
+     ==================================================== */
+  function updateBorderPatrols (dt) {
+    if (!borderPatrols || borderPatrols.length === 0) return;
+
+    borderPatrols.forEach(bp => {
+      if (bp.spotCooldown > 0) bp.spotCooldown -= dt;
+
+      // Walk along patrol path
+      const target = bp.patrolPath[bp.pathIdx];
+      const gx = bp.group.position.x;
+      const gz = bp.group.position.z;
+      const dx = target.x - gx;
+      const dz = target.z - gz;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < 1.5) {
+        // Reached waypoint, move to next
+        bp.pathIdx = (bp.pathIdx + 1) % bp.patrolPath.length;
+      } else {
+        // Walk toward waypoint
+        const speed = bp.speed * dt;
+        bp.group.position.x += (dx / dist) * speed;
+        bp.group.position.z += (dz / dist) * speed;
+        // Face direction of travel
+        bp.group.lookAt(target.x, 0, target.z);
+        bp._walking = true;
+      }
+
+      // Animate legs
+      if (bp._walking && bp.group.legs) {
+        bp._walkCycle += dt * bp.speed * 2;
+        const sw = Math.sin(bp._walkCycle) * 0.4;
+        bp.group.legs[0].rotation.x = sw;  bp.group.legs[1].rotation.x = -sw;
+        bp.group.legs[2].rotation.x = -sw; bp.group.legs[3].rotation.x = sw;
+      }
+
+      // Check if this patrol spots the player (only during free play, NOT training)
+      if (storyPhase !== 'playing' || gameState !== 'playing') return;
+      if (bp.spotCooldown > 0 || bp.spotted) return;
+
+      const px = player.position.x;
+      const pz = player.position.z;
+      const pdx = px - bp.group.position.x;
+      const pdz = pz - bp.group.position.z;
+      const playerDist = Math.sqrt(pdx * pdx + pdz * pdz);
+
+      // Patrol spots you if you're close to them (within 15 units)
+      if (playerDist < 15) {
+        bp.spotted = true;
+        // Chase toward player, then trigger encounter
+        triggerPatrolSpotted(bp);
+      }
+    });
+  }
+
+  /** A border patrol has spotted the player! */
+  function triggerPatrolSpotted (bp) {
+    gameState = 'cutscene';
+    playSound('danger');
+
+    const scenes = [
+      { narration: true, text: 'A ' + bp.clan + ' patrol has spotted you! The warrior\'s fur bristles as they race toward you!' },
+      { speaker: bp.name, text: '"' + (bp.clan === 'ShadowClan'
+          ? 'A ThunderClan intruder! You dare set paw on ShadowClan territory?!'
+          : bp.clan === 'RiverClan'
+          ? 'ThunderClan! This is our territory! You have no right to be here!'
+          : 'ThunderClan cat on the moor?! You\'re trespassing! Prepare to be taught a lesson!') + '"' },
+    ];
+
+    startCutscene(scenes, () => {
+      // Battle the patrol cat
+      const lvl = player.level || 1;
+      const clanStats = {
+        'ShadowClan': { hp: 70 + lvl * 10, atk: 12 + lvl * 2, def: 5 + lvl, fur: 0x333333, eye: 0xffcc00 },
+        'RiverClan':  { hp: 65 + lvl * 10, atk: 10 + lvl * 2, def: 6 + lvl, fur: 0x6688aa, eye: 0x44cccc },
+        'WindClan':   { hp: 55 + lvl * 10, atk: 14 + lvl * 2, def: 3 + lvl, fur: 0xbbaa77, eye: 0xddbb33 },
+      };
+      const st = clanStats[bp.clan] || clanStats['ShadowClan'];
+
+      startBattle({
+        enemyName: bp.name,
+        enemyHP: st.hp,
+        enemyMaxHP: st.hp,
+        enemyAttack: st.atk,
+        enemyDefense: st.def,
+        enemyFurColor: st.fur,
+        enemyEyeColor: st.eye,
+        enemyStripes: bp.clan === 'WindClan',
+        enemyStripeColor: 0x444433,
+        playerMinHP: 5,
+        expReward: 50 + lvl * 10,
+        onWin: function () {
+          const s2 = [
+            { narration: true, text: 'The ' + bp.clan + ' warrior stumbles back, defeated!' },
+            { speaker: bp.name, text: '"This isn\'t over, ThunderClan! Next time more of us will come!"' },
+            { narration: true, text: 'You should head back to ThunderClan land before another patrol arrives.' },
+          ];
+          startCutscene(s2, () => {
+            gameState = 'playing';
+            bp.spotted = false;
+            bp.spotCooldown = 30; // 30 seconds before this patrol can spot again
+          });
+        },
+        onLose: function () {
+          const s2 = [
+            { narration: true, text: 'The ' + bp.clan + ' warriors overpower you and chase you back to the border!' },
+            { speaker: bp.name, text: '"And STAY OUT! Next time you won\'t get off so easy!"' },
+          ];
+          player.position = { x: 0, y: 0, z: 0 };
+          catGroup.position.set(0, 0, 0);
+          player.health = Math.max(15, Math.floor(player.maxHealth * 0.3));
+          startCutscene(s2, () => {
+            gameState = 'playing';
+            bp.spotted = false;
+            bp.spotCooldown = 30;
+            queueMessage('Narrator', 'You wake up back at ThunderClan camp, bruised but alive. Stay away from enemy borders!');
+          });
+        },
+      });
+    });
+  }
+
+  /* ====================================================
+     TERRITORY TRESPASSING SYSTEM (scent marker detection)
      ==================================================== */
   let trespassCooldown = 0; // prevent spamming
-  let trespassWarned = false; // first time just a warning
   let lastTerritory = 'ThunderClan';
+  let scentMarkerWarned = {}; // track per-clan warnings
 
   function checkTerritoryTrespass () {
     if (!player || gameState !== 'playing') return;
-    if (trespassCooldown > 0) { trespassCooldown--; return; }
+    if (trespassCooldown > 0) { trespassCooldown -= 1; return; }
 
     const territory = GameLogic.getTerritory(player.position);
+    const px = player.position.x;
+    const pz = player.position.z;
 
     // Thunderpath - danger warning
     if (territory === 'Thunderpath' && lastTerritory !== 'Thunderpath') {
@@ -2598,125 +2818,51 @@ window.onerror = function(msg, url, line, col, err) {
       return;
     }
 
-    // Entering enemy territory
-    if (territory !== 'ThunderClan' && territory !== 'Thunderpath' && territory !== 'neutral') {
-      if (lastTerritory === 'ThunderClan' || lastTerritory === 'Thunderpath' || lastTerritory === 'neutral') {
-        lastTerritory = territory;
-        trespassCooldown = 600; // ~10 seconds
+    // Check if player is standing on a yellow scent marker
+    for (let i = 0; i < scentMarkerZones.length; i++) {
+      const sm = scentMarkerZones[i];
+      const dx = px - sm.x;
+      const dz = pz - sm.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < sm.radius) {
+        // Player is on a scent marker!
+        trespassCooldown = 600; // 10 second cooldown
 
-        if (!trespassWarned) {
-          // First time: just a warning
-          trespassWarned = true;
-          queueMessage('Narrator', 'WARNING! You have crossed into ' + territory + ' territory! Their warriors will not be happy about this.', () => {
-            queueMessage('Narrator', 'You can still explore, but be ready to fight or run!');
+        if (!scentMarkerWarned[sm.clan]) {
+          // First time stepping on this clan's markers: warning
+          scentMarkerWarned[sm.clan] = true;
+          queueMessage('Narrator', 'You\'ve stepped on ' + sm.clan + '\'s scent markers! You can smell their border markings strongly here.', () => {
+            queueMessage('Narrator', 'If their patrol cats see you here, they WILL attack! Turn back or be ready to fight!');
           });
+          playSound('danger');
+          // Alert nearby border patrols
+          alertNearbyPatrols(sm.clan, px, pz);
         } else {
-          // Subsequent times: hostile patrol encounter
-          triggerTrespassEncounter(territory);
+          // Subsequent times - patrols rush to investigate
+          queueMessage('Narrator', 'You\'re on ' + sm.clan + ' scent markers again! Their patrol is heading your way!');
+          playSound('danger');
+          alertNearbyPatrols(sm.clan, px, pz);
         }
+        return;
       }
     }
 
     if (territory === 'ThunderClan' || territory === 'neutral') {
       lastTerritory = territory;
+    } else if (territory !== 'Thunderpath') {
+      lastTerritory = territory;
     }
   }
 
-  function triggerTrespassEncounter (clanName) {
-    gameState = 'cutscene';
-
-    const clanData = {
-      'ShadowClan': {
-        warrior: 'ShadowClan Warrior',
-        furColor: 0x333333, eyeColor: 0xffcc00, stripes: false,
-        hp: 70 + player.level * 10,
-        attack: 12 + player.level * 2,
-        defense: 5 + player.level,
-        exp: 50 + player.level * 10,
-        dialogue: [
-          '"What is a ThunderClan cat doing on ShadowClan territory?!"',
-          '"You dare trespass here? I\'ll shred your ears, kittypet!"',
-          '"ShadowClan will teach you a lesson you\'ll never forget!"',
-        ],
-      },
-      'RiverClan': {
-        warrior: 'RiverClan Warrior',
-        furColor: 0x6688aa, eyeColor: 0x44cccc, stripes: false,
-        hp: 65 + player.level * 10,
-        attack: 10 + player.level * 2,
-        defense: 6 + player.level,
-        exp: 50 + player.level * 10,
-        dialogue: [
-          '"A ThunderClan cat?! This is RiverClan territory! Get out!"',
-          '"You smell like the forest. You don\'t belong near our river!"',
-          '"I\'ll drag you back across the border myself!"',
-        ],
-      },
-      'WindClan': {
-        warrior: 'WindClan Warrior',
-        furColor: 0xbbaa77, eyeColor: 0xddbb33, stripes: true,
-        hp: 55 + player.level * 10,
-        attack: 14 + player.level * 2,
-        defense: 3 + player.level,
-        exp: 50 + player.level * 10,
-        dialogue: [
-          '"ThunderClan! What are you doing on our moor?!"',
-          '"You\'re trespassing! WindClan doesn\'t tolerate intruders!"',
-          '"Turn back now, or face the consequences!"',
-        ],
-      },
-    };
-
-    const data = clanData[clanName] || clanData['ShadowClan'];
-    const line = data.dialogue[Math.floor(Math.random() * data.dialogue.length)];
-
-    const scenes = [
-      { narration: true, text: 'A patrol of ' + clanName + ' warriors appears! They look furious that you\'re on their territory!' },
-      { speaker: data.warrior, text: line },
-    ];
-
-    startCutscene(scenes, () => {
-      // Start the battle!
-      startBattle({
-        enemyName: data.warrior,
-        enemyHP: data.hp,
-        enemyMaxHP: data.hp,
-        enemyAttack: data.attack,
-        enemyDefense: data.defense,
-        enemyFurColor: data.furColor,
-        enemyEyeColor: data.eyeColor,
-        enemyStripes: data.stripes,
-        enemyStripeColor: 0x444433,
-        playerMinHP: 5,
-        expReward: data.exp,
-        onWin: function () {
-          const scenes2 = [
-            { narration: true, text: 'The ' + clanName + ' warrior staggers back, defeated.' },
-            { speaker: data.warrior, text: '"This isn\'t over, ThunderClan! Next time there will be more of us!"' },
-            { narration: true, text: 'The warrior retreats into their territory. You should head back to ThunderClan land before more arrive.' },
-          ];
-          startCutscene(scenes2, () => {
-            gameState = 'playing';
-            // Push player back toward ThunderClan territory
-            queueMessage('Narrator', 'You won the fight! But you should return to ThunderClan territory before another patrol comes.');
-          });
-        },
-        onLose: function () {
-          // Player gets chased back
-          const scenes2 = [
-            { narration: true, text: 'The ' + clanName + ' warrior overpowers you and chases you back to the border!' },
-            { speaker: data.warrior, text: '"And STAY OUT! Next time, I won\'t be so merciful!"' },
-          ];
-          // Teleport player back to safety
-          player.position = { x: 0, y: 0, z: 0 };
-          catGroup.position.set(0, 0, 0);
-          player.health = Math.max(15, Math.floor(player.maxHealth * 0.3));
-          startCutscene(scenes2, () => {
-            gameState = 'playing';
-            queueMessage('Narrator', 'You wake up back at ThunderClan camp, bruised but alive. Don\'t trespass without being prepared!');
-          });
-        },
-      });
+  /** Alert border patrols of a specific clan — make them rush toward the player */
+  function alertNearbyPatrols (clan, px, pz) {
+    borderPatrols.forEach(bp => {
+      if (bp.clan === clan && !bp.spotted && bp.spotCooldown <= 0) {
+        // Redirect patrol to rush toward the player's position
+        // Insert a waypoint toward the player
+        bp.patrolPath.splice(bp.pathIdx + 1, 0, { x: px, z: pz });
+        bp.speed = bp.clan === 'WindClan' ? 6 : 4.5; // Speed up!
+      }
     });
   }
 
@@ -3973,6 +4119,7 @@ window.onerror = function(msg, url, line, col, err) {
       bluestarEncounterTriggered: bluestarEncounterTriggered,
       mothermouthTriggered: mothermouthTriggered,
       mothermouthTimer: mothermouthTimer,
+      scentMarkerWarned: scentMarkerWarned,
       playingTimer: playingTimer,
       gameTime: gameTime,
       savedAt: Date.now(),
@@ -4360,6 +4507,7 @@ window.onerror = function(msg, url, line, col, err) {
       updateCamera();
       updateHUD();
       updateNPCAI(dt);
+      updateBorderPatrols(dt);
       checkStoryTriggers();
       checkTrainingProximity();
       updateFollowers(dt);
