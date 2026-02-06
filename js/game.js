@@ -1990,23 +1990,96 @@ window.onerror = function(msg, url, line, col, err) {
      OPENING CUTSCENE  (Into the Wild intro)
      ==================================================== */
   function startOpeningCutscene () {
-    // The intro: Rusty dreams about the forest, wakes up at home
+    // Position NPC cats for the prologue scene
+    // Place Tigerclaw, Bluestar, Spottedleaf in camp for the prologue shots
+    const tc = npcCats.find(c => c.name === 'Tigerclaw');
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    const sl = npcCats.find(c => c.name === 'Spottedleaf');
+    const lh = npcCats.find(c => c.name === 'Lionheart');
+    const wh = npcCats.find(c => c.name === 'Whitestorm');
+
+    // Make them visible for the cutscene
+    if (tc) { tc.group.visible = true; tc.group.position.set(30, 0, -30); }
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); } // on Highrock
+    if (sl) { sl.group.visible = true; sl.group.position.set(-10, 0, 3); }
+    if (lh) { lh.group.visible = true; lh.group.position.set(2, 0, -2); }
+    if (wh) { wh.group.visible = true; wh.group.position.set(4, 0, -1); }
+
+    // Hide the player cat during the prologue
+    catGroup.visible = false;
+
     const scenes = [
-      { narration: true, text: '<strong>WARRIOR CATS: INTO THE WILD</strong>',
-        camPos: { x: 0, y: 12, z: 90 }, camLook: { x: 0, y: 2, z: 60 } },
-      { narration: true, text: 'The forest stretches beyond the garden fence, dark and full of mystery...',
-        camPos: { x: 0, y: 6, z: 85 }, camLook: { x: 0, y: 2, z: 40 } },
-      { narration: true, text: 'You are <strong>Rusty</strong>, a young ginger house cat who lives with your Twolegs. But every night you dream of something more...',
+      // --- PROLOGUE: The Battle ---
+      { narration: true, text: '<strong>WARRIOR CATS: INTO THE WILD</strong><br><em>The Prophecy Begins...</em>',
+        camPos: { x: 0, y: 20, z: 50 }, camLook: { x: 0, y: 0, z: 0 } },
+
+      { narration: true, text: 'The forest is dark. Moonlight filters through the canopy as the sounds of battle echo through the trees...',
+        camPos: { x: 35, y: 3, z: -28 }, camLook: { x: 30, y: 1, z: -30 } },
+
+      { narration: true, text: 'A massive dark tabby tom slashes through the undergrowth, his claws gleaming in the moonlight. This is <strong>Tigerclaw</strong>, ThunderClan\'s most fearsome warrior.',
+        camPos: { x: 32, y: 2, z: -28 }, camLook: { x: 30, y: 1, z: -30 } },
+
+      { narration: true, text: 'RiverClan warriors have been driven back from Sunningrocks. Tigerclaw lets out a triumphant yowl. The battle is won... but at a terrible cost.',
+        camPos: { x: 28, y: 4, z: -32 }, camLook: { x: 30, y: 1, z: -30 } },
+
+      { narration: true, text: 'ThunderClan has lost another warrior. The Clan is weaker than it has been in many moons...',
+        camPos: { x: 0, y: 8, z: 10 }, camLook: { x: 0, y: 2, z: -4 } },
+
+      // --- PROLOGUE: Bluestar on Highrock ---
+      { narration: true, text: 'At ThunderClan camp, Bluestar stands atop the Highrock, her blue-gray fur silver in the moonlight. Her eyes are troubled.',
+        camPos: { x: 2, y: 4, z: 0 }, camLook: { x: -3, y: 3.5, z: -4 } },
+
+      { speaker: 'Bluestar', text: '"We cannot go on like this. ThunderClan grows weaker with each passing moon. We need more warriors."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
+
+      { speaker: 'Lionheart', text: '"ShadowClan senses our weakness, Bluestar. Brokenstar grows bolder every day."',
+        camPos: { x: 3, y: 2, z: -1 }, camLook: { x: 2, y: 1, z: -2 } },
+
+      { speaker: 'Bluestar', text: '"I know. And Tigerclaw... he fights well, but I worry about his ambition. I need cats I can trust."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
+
+      // --- PROLOGUE: Spottedleaf's Prophecy ---
+      { narration: true, text: 'Later that night, in the Medicine Den, Spottedleaf stares up at the stars of Silverpelt. Her eyes grow wide...',
+        camPos: { x: -8, y: 2, z: 5 }, camLook: { x: -10, y: 1, z: 3 } },
+
+      { speaker: 'Spottedleaf', text: '"Bluestar... StarClan has spoken to me. I have received a prophecy."',
+        camPos: { x: -7, y: 2, z: 4 }, camLook: { x: -10, y: 1, z: 3 } },
+
+      { speaker: 'Bluestar', text: '"A prophecy? What did they say, Spottedleaf?"',
+        camPos: { x: -5, y: 3, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Spottedleaf', text: '"<em><strong>Fire alone will save our Clan.</strong></em>"',
+        camPos: { x: -9, y: 2.5, z: 4 }, camLook: { x: -10, y: 1.2, z: 3 } },
+
+      { speaker: 'Bluestar', text: '"Fire? But fire is the enemy of every Clan... How can fire save us?"',
+        camPos: { x: -5, y: 3, z: 1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Spottedleaf', text: '"I do not know, Bluestar. But StarClan does not lie. We must trust in their wisdom and watch for the sign."',
+        camPos: { x: -8, y: 2, z: 5 }, camLook: { x: -10, y: 1, z: 3 } },
+
+      { narration: true, text: 'Bluestar gazes out toward the forest beyond the camp walls. Somewhere out there, the answer is waiting...',
+        camPos: { x: -2, y: 4, z: 3 }, camLook: { x: 0, y: 2, z: 60 } },
+
+      // --- TRANSITION: To Rusty ---
+      { narration: true, text: 'Meanwhile, beyond the forest... at the edge of the Twoleg neighborhood...',
+        camPos: { x: 0, y: 10, z: 70 }, camLook: { x: 0, y: 2, z: 82 } },
+
+      { narration: true, text: 'A young ginger cat sits on the windowsill of his Twoleg house, gazing at the dark forest. His name is <strong>Rusty</strong>.',
         camPos: { x: 3, y: 3, z: 84 }, camLook: { x: 0, y: 1, z: 82 } },
-      { narration: true, text: 'The rustling of leaves, the scent of prey on the wind... something in the forest is calling to you.',
-        camPos: { x: -5, y: 4, z: 75 }, camLook: { x: 0, y: 1, z: 50 } },
-      { narration: true, text: 'Tonight, you\'ve decided. You will leave the garden, cross the fence, and explore the wild forest beyond.',
+
+      { narration: true, text: 'Every night he dreams of hunting in the forest - the thrill of the chase, the wind in his fur. Something out there is calling to him...',
+        camPos: { x: -5, y: 4, z: 78 }, camLook: { x: 0, y: 1, z: 60 } },
+
+      { narration: true, text: 'Tonight, he has decided. He will leave the garden, cross the fence, and discover what lies beyond.',
         camPos: { x: 0, y: 3, z: 72 }, camLook: { x: 0, y: 1, z: 68 } },
-      { narration: true, text: '<em>Walk to the garden fence and cross into the forest...</em>',
+
+      { narration: true, text: '<em>Your adventure begins now. Walk to the garden fence and cross into the forest...</em>',
         camPos: { x: 2, y: 2, z: 82 }, camLook: { x: 0, y: 0.5, z: 80 } },
     ];
+
     startCutscene(scenes, () => {
-      // After intro cutscene → player starts at the Twoleg house, can walk around
+      // Hide all NPCs and start the exploring phase
+      npcCats.forEach(c => { c.group.visible = false; });
       startExploring();
     });
   }
