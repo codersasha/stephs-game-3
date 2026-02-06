@@ -69,6 +69,7 @@ window.onerror = function(msg, url, line, col, err) {
   let highrock;
   let npcCats = [];             // { group, name, data, label, known }
   let scentMarkerZones = [];    // { x, z, radius, clan } — yellow scent markers at borders
+  let gardenWalls = [];         // invisible collision boxes around the garden fence
   let trees = [], rocks = [];
   let treeObjects = [], rockObjects = [];
 
@@ -937,30 +938,60 @@ window.onerror = function(msg, url, line, col, err) {
     const fenceMat = new THREE.MeshLambertMaterial({ color: 0x997755 });
     const fenceGroup = new THREE.Group();
 
-    // Fence spans across at z~70, with a gap in the middle to walk through
-    for (let x = -20; x <= 20; x += 1.5) {
-      // Gap in the middle for the cat to walk through
-      if (Math.abs(x) < 2) continue;
-      // Fence post
+    // Helper: add a fence post + pointed top at (x, z)
+    function addPost (x, z) {
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.2, 0.15), fenceMat);
-      post.position.set(x, 0.6, 70);
+      post.position.set(x, 0.6, z);
       post.castShadow = true;
       fenceGroup.add(post);
-      // Pointed top
       const top = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 4), fenceMat);
-      top.position.set(x, 1.3, 70);
+      top.position.set(x, 1.3, z);
       fenceGroup.add(top);
     }
-    // Horizontal rails
-    [-0.3, 0.7].forEach(y => {
-      // Left section
-      const railL = new THREE.Mesh(new THREE.BoxGeometry(18, 0.08, 0.08), fenceMat);
-      railL.position.set(-11, y + 0.3, 70);
-      fenceGroup.add(railL);
-      // Right section
-      const railR = new THREE.Mesh(new THREE.BoxGeometry(18, 0.08, 0.08), fenceMat);
-      railR.position.set(11, y + 0.3, 70);
-      fenceGroup.add(railR);
+
+    // Helper: add a horizontal rail between two points
+    function addRail (x1, z1, x2, z2, y) {
+      const dx = x2 - x1, dz = z2 - z1;
+      const len = Math.sqrt(dx * dx + dz * dz);
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 0.08, 0.08), fenceMat);
+      rail.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+      rail.rotation.y = Math.atan2(dx, dz) + Math.PI / 2;
+      fenceGroup.add(rail);
+    }
+
+    // === FRONT FENCE (z = 70, gap in center for the opening) ===
+    for (let x = -20; x <= 20; x += 1.5) {
+      if (Math.abs(x) < 2) continue; // Gap in the middle to walk through
+      addPost(x, 70);
+    }
+    // Front horizontal rails (left and right of gap)
+    [0.3, 1.0].forEach(y => {
+      addRail(-20, 70, -2, 70, y);  // Left section
+      addRail(2, 70, 20, 70, y);    // Right section
+    });
+
+    // === LEFT SIDE FENCE (x = -20, from z=70 back to z=95) ===
+    for (let z = 70; z <= 95; z += 1.5) {
+      addPost(-20, z);
+    }
+    [0.3, 1.0].forEach(y => {
+      addRail(-20, 70, -20, 95, y);
+    });
+
+    // === RIGHT SIDE FENCE (x = 20, from z=70 back to z=95) ===
+    for (let z = 70; z <= 95; z += 1.5) {
+      addPost(20, z);
+    }
+    [0.3, 1.0].forEach(y => {
+      addRail(20, 70, 20, 95, y);
+    });
+
+    // === BACK FENCE (z = 95, fully closed behind the house) ===
+    for (let x = -20; x <= 20; x += 1.5) {
+      addPost(x, 95);
+    }
+    [0.3, 1.0].forEach(y => {
+      addRail(-20, 95, 20, 95, y);
     });
 
     const fLabel = makeNameLabel('Garden Fence', 2.0);
@@ -968,6 +999,27 @@ window.onerror = function(msg, url, line, col, err) {
     scene.add(fLabel);
 
     scene.add(fenceGroup);
+
+    // === COLLISION WALLS (invisible) to block player from going through/around fence ===
+    const wallMat = new THREE.MeshBasicMaterial({ visible: false });
+    // Front fence left wall
+    const wFL = new THREE.Mesh(new THREE.BoxGeometry(18, 2, 0.5), wallMat);
+    wFL.position.set(-11, 1, 70); scene.add(wFL);
+    // Front fence right wall
+    const wFR = new THREE.Mesh(new THREE.BoxGeometry(18, 2, 0.5), wallMat);
+    wFR.position.set(11, 1, 70); scene.add(wFR);
+    // Left side wall
+    const wL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2, 26), wallMat);
+    wL.position.set(-20, 1, 82.5); scene.add(wL);
+    // Right side wall
+    const wR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2, 26), wallMat);
+    wR.position.set(20, 1, 82.5); scene.add(wR);
+    // Back wall
+    const wB = new THREE.Mesh(new THREE.BoxGeometry(41, 2, 0.5), wallMat);
+    wB.position.set(0, 1, 95); scene.add(wB);
+
+    // Store walls for collision detection
+    gardenWalls = [wFL, wFR, wL, wR, wB];
   }
 
   /* ====================================================
@@ -4532,6 +4584,26 @@ window.onerror = function(msg, url, line, col, err) {
     renderer.render(scene, camera);
   }
 
+  /** Check if position collides with garden fence walls (AABB box check) */
+  function checkWallCollision (pos) {
+    const px = pos.x, pz = pos.z;
+    const r = 0.4; // player radius
+    for (let i = 0; i < gardenWalls.length; i++) {
+      const w = gardenWalls[i];
+      if (!w) continue;
+      const wx = w.position.x, wz = w.position.z;
+      // Get half-extents from the box geometry
+      const g = w.geometry.parameters;
+      const hx = g.width / 2, hz = g.depth / 2;
+      // AABB overlap check
+      if (px + r > wx - hx && px - r < wx + hx &&
+          pz + r > wz - hz && pz - r < wz + hz) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /* ====================================================
      PLAYER UPDATE
      ==================================================== */
@@ -4558,7 +4630,7 @@ window.onerror = function(msg, url, line, col, err) {
       }
       const np = GameLogic.calculateMovement(player.position, dir, spd, dt);
       const cp = GameLogic.clampPosition(np, GameLogic.getForestBounds());
-      if (!GameLogic.checkCollisions(cp, trees, 1.2)) {
+      if (!GameLogic.checkCollisions(cp, trees, 1.2) && !checkWallCollision(cp)) {
         player.position = cp;
         const tr = Math.atan2(dir.x, dir.z);
         catGroup.rotation.y = lerpAngle(catGroup.rotation.y, tr, 0.15);
