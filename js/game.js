@@ -3860,16 +3860,25 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      NAMING CEREMONY (Clan Meeting at Highrock)
      ==================================================== */
-  function startNamingCeremony () {
-    // Show NPC cats sitting around Highrock
-    npcCats.forEach(c => { c.group.visible = true; });
-    // Position Bluestar on Highrock
-    npcCats[0].group.position.set(-3, 3.3, -4); // on top of highrock
+  const KITTYPET_NAMES = ['Smudge', 'Princess'];
 
-    // Arrange other cats in a semicircle facing highrock
-    const others = npcCats.slice(1);
-    others.forEach((c, i) => {
-      const angle = -0.8 + (i / (others.length - 1)) * 1.6;
+  function startNamingCeremony () {
+    // Show ThunderClan cats sitting around Highrock (NOT kittypets!)
+    npcCats.forEach(c => {
+      if (KITTYPET_NAMES.includes(c.name)) {
+        c.group.visible = false; // kittypets stay at the house, not in camp
+      } else {
+        c.group.visible = true;
+      }
+    });
+    // Position Bluestar on Highrock
+    const bluestarCat = npcCats.find(c => c.name === 'Bluestar');
+    if (bluestarCat) bluestarCat.group.position.set(-3, 3.3, -4);
+
+    // Arrange clan cats in a semicircle facing highrock
+    const clanCats = npcCats.filter(c => !KITTYPET_NAMES.includes(c.name) && c.name !== 'Bluestar');
+    clanCats.forEach((c, i) => {
+      const angle = -0.8 + (i / (clanCats.length - 1)) * 1.6;
       const dist = 5 + Math.random();
       c.group.position.set(-3 + Math.sin(angle) * dist, 0, -4 + Math.cos(angle) * dist);
       c.group.lookAt(-3, 1, -4);
@@ -3895,7 +3904,8 @@ window.onerror = function(msg, url, line, col, err) {
     playSound('ceremony');
     startCutscene(scenes, () => {
       // After ceremony → start training with Lionheart!
-      npcCats.forEach(c => { c.group.visible = true; });
+      // Show clan cats but keep kittypets hidden (they're at the house)
+      npcCats.forEach(c => { c.group.visible = !KITTYPET_NAMES.includes(c.name); });
       saveGame();
       startTraining();
     });
@@ -4132,9 +4142,9 @@ window.onerror = function(msg, url, line, col, err) {
           'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
           'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Yellowfang'
         ]);
-        npcCats.forEach(c => { c.group.visible = true; });
+        npcCats.forEach(c => { c.group.visible = true; }); // all visible, placeCatsInCamp will position kittypets at house
         placeCatsInCamp();
-        initNPCAI(); // cats start living their lives
+        initNPCAI(); // cats start living their lives (kittypets stay at house)
 
         queueMessage('Lionheart', 'Your training tour is complete, ' + pName + '! You are now free to explore the territory on your own.', () => {
           queueMessage('Graypaw', 'Hey ' + pName + '! Want to go explore? There\'s so much to see!', () => {
@@ -4255,8 +4265,14 @@ window.onerror = function(msg, url, line, col, err) {
       'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Yellowfang'
     ]);
 
-    // show NPC cats in camp
-    npcCats.forEach(c => { c.group.visible = true; });
+    // show ThunderClan NPC cats in camp (NOT kittypets — they stay at the house)
+    npcCats.forEach(c => {
+      if (KITTYPET_NAMES.includes(c.name)) {
+        c.group.visible = true; // visible but positioned at the house by placeCatsInCamp
+      } else {
+        c.group.visible = true;
+      }
+    });
     placeCatsInCamp();
 
     // Start NPC AI - cats walk around, hunt, drink, rest
@@ -4492,8 +4508,11 @@ window.onerror = function(msg, url, line, col, err) {
     'Elders': { x: -6, z: -7 },
   };
 
-  // Assign rank-based dens
+  // Assign rank-based dens (kittypets get the Twoleg house as their "den")
+  const TWOLEG_HOUSE_SPOT = { x: 0, z: 83 };
+
   function getDenForCat (name) {
+    if (KITTYPET_NAMES.includes(name)) return TWOLEG_HOUSE_SPOT;
     const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'];
     if (apprentices.includes(name)) return DEN_SPOTS['Apprentices'];
     if (name === 'Bluestar') return DEN_SPOTS['Leader'];
