@@ -1955,8 +1955,11 @@ window.onerror = function(msg, url, line, col, err) {
     ],
     'Ravenpaw': [
       '"H-hey... can I tell you something? I... never mind."',
-      '"I saw something terrible... but I can\'t talk about it here."',
+      '"I saw something terrible at Sunningrocks... but I can\'t talk about it here. Tigerclaw might hear."',
       '"Tigerclaw scares me... don\'t tell anyone I said that!"',
+      '"It wasn\'t Oakheart who killed Redtail... I saw... I saw what really happened. But please, don\'t tell Tigerclaw I told you!"',
+      '"I have to get away from here. Tigerclaw knows I saw everything. I\'m not safe..."',
+      '"Please... you have to believe me. Tigerclaw is not what he seems."',
     ],
     'Darkstripe': [
       '"What do you want, kittypet?"',
@@ -2114,6 +2117,7 @@ window.onerror = function(msg, url, line, col, err) {
         storyPhase = 'playing';
         graypawEncounterTriggered = true;
         bluestarEncounterTriggered = true;
+        redtailEventTriggered = true;
         startPlaying();
         return;
       }
@@ -2274,9 +2278,11 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      EXPLORING PHASE (Rusty leaves the house)
      ==================================================== */
-  let storyPhase = 'house'; // house | forest | met_graypaw | fought_graypaw | met_bluestar | named | playing
+  let storyPhase = 'house'; // house | forest | met_graypaw | fought_graypaw | met_bluestar | named | training | playing
   let graypawEncounterTriggered = false;
   let bluestarEncounterTriggered = false;
+  let redtailEventTriggered = false;
+  let playingTimer = 0; // counts frames since free-roam started
 
   function startExploring () {
     gameState = 'playing';
@@ -2327,6 +2333,17 @@ window.onerror = function(msg, url, line, col, err) {
     // TRIGGER: Territory trespassing (only when free-roaming, not training)
     if (storyPhase === 'playing') {
       checkTerritoryTrespass();
+    }
+
+    // TRIGGER 3: Ravenpaw returns with news of Redtail's death
+    // Fires after the player has been in free-roam and is near camp
+    if (storyPhase === 'playing' && !redtailEventTriggered) {
+      playingTimer++;
+      // Trigger after ~30 seconds of playing (1800 frames at 60fps) AND player is near camp
+      if (playingTimer > 1800 && dist < 20) {
+        redtailEventTriggered = true;
+        triggerRedtailEvent();
+      }
     }
   }
 
@@ -2471,6 +2488,138 @@ window.onerror = function(msg, url, line, col, err) {
           });
         },
       });
+    });
+  }
+
+  /* ====================================================
+     RAVENPAW RETURNS - REDTAIL'S DEATH
+     ==================================================== */
+  function triggerRedtailEvent () {
+    gameState = 'cutscene';
+
+    // Position cats for the scene
+    const rp = npcCats.find(c => c.name === 'Ravenpaw');
+    const tc = npcCats.find(c => c.name === 'Tigerclaw');
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    const lh = npcCats.find(c => c.name === 'Lionheart');
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+    const ds = npcCats.find(c => c.name === 'Dustpaw');
+    const wh = npcCats.find(c => c.name === 'Whitestorm');
+
+    // Ravenpaw staggers in from the forest entrance (south)
+    if (rp) { rp.group.visible = true; rp.group.position.set(0, 0, 25); }
+    // Bluestar on Highrock
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+    // Others gathered in camp
+    if (lh) { lh.group.visible = true; lh.group.position.set(-1, 0, 1); }
+    if (tc) { tc.group.visible = true; tc.group.position.set(3, 0, 20); } // behind Ravenpaw
+    if (gp) { gp.group.visible = true; gp.group.position.set(player.position.x + 2, 0, player.position.z); }
+    if (ds) { ds.group.visible = true; ds.group.position.set(4, 0, 3); }
+    if (wh) { wh.group.visible = true; wh.group.position.set(5, 0, -1); }
+
+    // Make all other cats visible and face the entrance
+    npcCats.forEach(c => {
+      if (c.group.visible) c.group.lookAt(0, 0, 20);
+    });
+
+    const pName = player.name || 'apprentice';
+
+    const scenes = [
+      // Ravenpaw staggers in
+      { narration: true, text: 'A yowl echoes through the camp. Cats look up, alarmed. A small black shape staggers through the camp entrance...',
+        camPos: { x: 5, y: 3, z: 28 }, camLook: { x: 0, y: 1, z: 22 } },
+
+      { narration: true, text: 'It\'s <strong>Ravenpaw</strong>! His black pelt is torn and streaked with blood. He collapses in the clearing, gasping for breath.',
+        camPos: { x: 3, y: 2, z: 24 }, camLook: { x: 0, y: 0.5, z: 25 } },
+
+      { speaker: 'Ravenpaw', text: '"B-Bluestar...! Redtail... Redtail is... dead!"',
+        camPos: { x: 2, y: 1.5, z: 23 }, camLook: { x: 0, y: 0.8, z: 25 } },
+
+      { narration: true, text: 'A shocked silence falls over the camp. Cats stare in disbelief. Redtail - the deputy - dead?',
+        camPos: { x: -2, y: 4, z: 5 }, camLook: { x: 0, y: 1, z: 15 } },
+
+      { speaker: 'Bluestar', text: '"Redtail?! What happened, Ravenpaw? Tell me everything!"',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Ravenpaw', text: '"The battle... at Sunningrocks... RiverClan attacked... Oakheart... Redtail fought Oakheart..."',
+        camPos: { x: 1, y: 1.5, z: 23 }, camLook: { x: 0, y: 0.5, z: 25 } },
+
+      // Tigerclaw enters carrying Redtail's body
+      { narration: true, text: 'Heavy pawsteps. <strong>Tigerclaw</strong> pushes through the gorse tunnel, dragging the limp body of a small tortoiseshell tom.',
+        camPos: { x: 5, y: 2.5, z: 22 }, camLook: { x: 3, y: 0.5, z: 20 } },
+
+      { narration: true, text: 'It is Redtail. His ginger-and-black dappled fur is matted with blood. His eyes are closed forever.',
+        camPos: { x: 4, y: 1.5, z: 19 }, camLook: { x: 3, y: 0.3, z: 20 } },
+
+      { speaker: 'Tigerclaw', text: '"Redtail is dead. I avenged his death. Oakheart of RiverClan will trouble us no more — I killed him myself."',
+        camPos: { x: 5, y: 2, z: 18 }, camLook: { x: 3, y: 1, z: 20 } },
+
+      { narration: true, text: 'Tigerclaw stands tall over Redtail\'s body, his amber eyes gleaming. He looks almost... proud.',
+        camPos: { x: 4, y: 2, z: 19 }, camLook: { x: 3, y: 1.2, z: 20 } },
+
+      // Ravenpaw looks terrified
+      { narration: true, text: 'You notice Ravenpaw staring at Tigerclaw with wide, terrified eyes. His whole body is trembling. Something about his expression seems... wrong.',
+        camPos: { x: 1, y: 1.5, z: 24 }, camLook: { x: 0, y: 0.8, z: 25 } },
+
+      // Bluestar mourns
+      { speaker: 'Bluestar', text: '"Redtail..."',
+        camPos: { x: -2, y: 3, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { narration: true, text: 'Bluestar leaps down from Highrock and presses her nose to Redtail\'s cold fur. The whole Clan watches in grief.',
+        camPos: { x: 0, y: 3, z: 8 }, camLook: { x: 1, y: 1, z: 15 } },
+
+      { speaker: 'Bluestar', text: '"Redtail was a brave warrior. He served ThunderClan with loyalty and courage. We will sit vigil for him tonight."',
+        camPos: { x: -1, y: 2, z: 10 }, camLook: { x: -3, y: 1.5, z: -2 } },
+
+      // Dustpaw mourns his mentor
+      { speaker: 'Dustpaw', text: '"Redtail... he was my mentor... He can\'t be dead..."',
+        camPos: { x: 5, y: 1.5, z: 4 }, camLook: { x: 4, y: 0.8, z: 3 } },
+
+      // Graypaw whispers to you
+      { speaker: 'Graypaw', text: '"' + pName + '... this is terrible. Redtail was Bluestar\'s deputy. Did you see Ravenpaw\'s face? He looked so scared..."',
+        camPos: { x: player.position.x + 2, y: 2, z: player.position.z + 1 },
+        camLook: { x: player.position.x + 1, y: 1, z: player.position.z } },
+
+      // Bluestar names new deputy
+      { narration: true, text: 'The next day, Bluestar leaps atop the Highrock once more. Her voice rings through the camp.',
+        camPos: { x: 2, y: 4, z: 2 }, camLook: { x: -3, y: 3.5, z: -4 } },
+
+      { speaker: 'Bluestar', text: '"The time has come to appoint a new deputy. I say these words before the body of Redtail, so that his spirit may hear and approve my choice."',
+        camPos: { x: -1, y: 3.5, z: 0 }, camLook: { x: -3, y: 3.5, z: -4 } },
+
+      { speaker: 'Bluestar', text: '"<strong>Lionheart</strong> will be the new deputy of ThunderClan."',
+        camPos: { x: 0, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
+
+      { speaker: 'Lionheart', text: '"I am honored, Bluestar. I will serve ThunderClan with all my strength."',
+        camPos: { x: 0, y: 2, z: 2 }, camLook: { x: -1, y: 1, z: 1 } },
+
+      { narration: true, text: 'The Clan murmurs in approval. Lionheart touches noses with Bluestar.',
+        camPos: { x: 3, y: 3, z: 4 }, camLook: { x: -2, y: 2, z: -2 } },
+
+      // Tigerclaw's reaction
+      { narration: true, text: 'You catch Tigerclaw watching from the shadows. His eyes narrow as Lionheart is named deputy. For just a moment, you see a flash of something dark cross his face...',
+        camPos: { x: 5, y: 2, z: 15 }, camLook: { x: 3, y: 1.2, z: 20 } },
+
+      // Graypaw's final whisper
+      { speaker: 'Graypaw', text: '"Hey, ' + pName + '... did you notice Ravenpaw? He looked terrified of Tigerclaw. And why was Tigerclaw the only one who came back from the battle? Something doesn\'t add up..."',
+        camPos: { x: player.position.x + 2, y: 1.8, z: player.position.z + 1 },
+        camLook: { x: player.position.x, y: 1, z: player.position.z } },
+
+      { narration: true, text: '<em>Fire alone will save our Clan...</em> The prophecy echoes in your mind. What did Ravenpaw really see at Sunningrocks? What is Tigerclaw hiding?',
+        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      // Move Ravenpaw to medicine den (he's hurt)
+      if (rp) { rp.group.position.set(-9, 0, 4); }
+      // Tigerclaw goes to his spot
+      if (tc) { tc.group.position.set(6, 0, -4); }
+      // Bluestar back in camp
+      if (bs) { bs.group.position.set(-4, 0, -2); }
+      placeCatsInCamp();
+      saveGame();
+      queueMessage('Narrator', 'The Clan mourns Redtail. But you can\'t shake the feeling that something is wrong. Keep your eyes on Ravenpaw... and Tigerclaw.');
     });
   }
 
