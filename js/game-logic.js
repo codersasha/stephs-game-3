@@ -21,7 +21,7 @@ const GameLogic = {
       level: 1,
       experience: 0,
       experienceToNext: 100,
-      position: { x: 0, y: 0, z: 0 },
+      position: { x: 0, y: 0, z: 80 },  // Start at the Twoleg house
       rotation: 0,
       speed: 5,
       sprintSpeed: 9,
@@ -532,6 +532,9 @@ const GameLogic = {
   getLocationName(position) {
     const dist = Math.sqrt(position.x * position.x + position.z * position.z);
     
+    // Twoleg house area
+    if (position.z > 70 && Math.abs(position.x) < 15) return 'Twoleg House';
+    // ThunderClan camp
     if (dist < 15) return 'ThunderClan Camp';
     if (dist < 40) return 'ThunderClan Forest';
     if (position.x > 50) return 'Sunningrocks';

@@ -53,39 +53,266 @@
   let joystickInput = { x: 0, z: 0 };
   let isMobile = false;
 
+  /* ---------- helpers ---------- */
+  // CapsuleGeometry doesn't exist in Three.js r128, so we build one manually
+  function makeCapsuleMesh (radius, halfLength, radSeg, heightSeg, material) {
+    const g = new THREE.Group();
+    // cylinder for the middle
+    const cyl = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius, halfLength, radSeg),
+      material
+    );
+    cyl.castShadow = true;
+    g.add(cyl);
+    // hemisphere caps
+    const topCap = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, radSeg, Math.ceil(heightSeg / 2), 0, Math.PI * 2, 0, Math.PI / 2),
+      material
+    );
+    topCap.position.y = halfLength / 2;
+    topCap.castShadow = true;
+    g.add(topCap);
+    const botCap = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, radSeg, Math.ceil(heightSeg / 2), 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      material
+    );
+    botCap.position.y = -halfLength / 2;
+    botCap.castShadow = true;
+    g.add(botCap);
+    return g;
+  }
+
   /* ---------- audio ---------- */
   let audioCtx;
+  let ambientInterval = null;
+
   function initAudio () {
     if (audioCtx) return;
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* silent */ }
   }
+
+  /* --- Cat voice profiles (pitch, speed, vibrato per character) --- */
+  const catVoices = {
+    'Bluestar':    { base: 320, end: 240, dur: 0.45, type: 'sine',     vol: 0.12, vibrato: 3 },   // calm, deep, authoritative she-cat
+    'Lionheart':   { base: 200, end: 150, dur: 0.50, type: 'triangle', vol: 0.11, vibrato: 2 },   // deep, warm, strong tom
+    'Graypaw':     { base: 520, end: 400, dur: 0.30, type: 'sine',     vol: 0.13, vibrato: 6 },   // young, energetic, higher pitch
+    'Whitestorm':  { base: 230, end: 180, dur: 0.45, type: 'triangle', vol: 0.10, vibrato: 2 },   // big calm tom
+    'Tigerclaw':   { base: 160, end: 120, dur: 0.55, type: 'sawtooth', vol: 0.10, vibrato: 1.5 }, // deep, menacing growl
+    'Spottedleaf': { base: 420, end: 350, dur: 0.40, type: 'sine',     vol: 0.10, vibrato: 4 },   // gentle, soft she-cat
+    'Sandpaw':     { base: 480, end: 380, dur: 0.28, type: 'sine',     vol: 0.11, vibrato: 5 },   // young, sharp she-cat
+    'Dustpaw':     { base: 400, end: 320, dur: 0.30, type: 'triangle', vol: 0.11, vibrato: 4 },   // young tom, slightly hostile
+    'Ravenpaw':    { base: 460, end: 380, dur: 0.25, type: 'sine',     vol: 0.09, vibrato: 8 },   // nervous, shaky
+    'Darkstripe':  { base: 220, end: 170, dur: 0.45, type: 'sawtooth', vol: 0.09, vibrato: 2 },   // sly, low
+    'Mousefur':    { base: 380, end: 300, dur: 0.35, type: 'sine',     vol: 0.10, vibrato: 3 },   // small but fierce she-cat
+    'Yellowfang':  { base: 260, end: 200, dur: 0.50, type: 'triangle', vol: 0.11, vibrato: 3 },   // raspy, old she-cat
+    'ThunderClan': { base: 300, end: 250, dur: 0.60, type: 'sine',     vol: 0.14, vibrato: 2 },   // crowd cheer
+    'Narrator':    { base: 0, end: 0, dur: 0, type: 'sine', vol: 0, vibrato: 0 },                 // silent narrator
+  };
+
+  /** Play a cat "speaking" sound — unique voice per character */
+  function playCatVoice (speakerName) {
+    if (!audioCtx) return;
+    const voice = catVoices[speakerName];
+    if (!voice || voice.base === 0) return; // narrator = no sound
+    try {
+      const t = audioCtx.currentTime;
+
+      if (speakerName === 'ThunderClan') {
+        // Crowd cheer: several overlapping meows
+        for (let i = 0; i < 5; i++) {
+          const delay = i * 0.08;
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g); g.connect(audioCtx.destination);
+          o.type = 'sine';
+          const pitch = 280 + Math.random() * 300;
+          o.frequency.setValueAtTime(pitch, t + delay);
+          o.frequency.linearRampToValueAtTime(pitch * 0.7, t + delay + 0.35);
+          g.gain.setValueAtTime(0.06, t + delay);
+          g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.4);
+          o.start(t + delay); o.stop(t + delay + 0.45);
+        }
+        return;
+      }
+
+      // Main voice tone
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = voice.type;
+      osc.frequency.setValueAtTime(voice.base, t);
+      osc.frequency.linearRampToValueAtTime(voice.end, t + voice.dur * 0.7);
+      osc.frequency.linearRampToValueAtTime(voice.base * 0.9, t + voice.dur);
+      gain.gain.setValueAtTime(voice.vol, t);
+      gain.gain.setValueAtTime(voice.vol, t + voice.dur * 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + voice.dur);
+      osc.start(t); osc.stop(t + voice.dur + 0.05);
+
+      // Vibrato / warble (gives each voice character)
+      if (voice.vibrato > 0) {
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfo.frequency.value = voice.vibrato;
+        lfoGain.gain.value = voice.base * 0.04;
+        lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+        lfo.start(t); lfo.stop(t + voice.dur + 0.05);
+      }
+
+      // Second harmonic for richness
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.connect(gain2); gain2.connect(audioCtx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(voice.base * 1.5, t);
+      osc2.frequency.linearRampToValueAtTime(voice.end * 1.5, t + voice.dur);
+      gain2.gain.setValueAtTime(voice.vol * 0.25, t);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + voice.dur);
+      osc2.start(t); osc2.stop(t + voice.dur + 0.05);
+    } catch (e) { /* silent */ }
+  }
+
+  /** Bird tweet — short high chirpy sound */
+  function playBirdTweet () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      // 2-3 quick chirps
+      const chirps = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < chirps; i++) {
+        const delay = i * (0.1 + Math.random() * 0.08);
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine';
+        const pitch = 1800 + Math.random() * 1200;
+        o.frequency.setValueAtTime(pitch, t + delay);
+        o.frequency.linearRampToValueAtTime(pitch * (0.8 + Math.random() * 0.4), t + delay + 0.06);
+        o.frequency.linearRampToValueAtTime(pitch * 1.1, t + delay + 0.10);
+        g.gain.setValueAtTime(0.04 + Math.random() * 0.02, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+        o.start(t + delay); o.stop(t + delay + 0.15);
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  /** Wind rustling through trees — soft filtered noise */
+  function playWindRustle () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 2;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 400 + Math.random() * 200;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.025, t + 0.5);
+      g.gain.linearRampToValueAtTime(0.015, t + 1.5);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+      noise.start(t); noise.stop(t + 2.5);
+    } catch (e) { /* silent */ }
+  }
+
+  /** Cricket chirps — nighttime ambient */
+  function playCricket () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      for (let i = 0; i < 4; i++) {
+        const delay = i * 0.07;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'square';
+        o.frequency.value = 4200 + Math.random() * 800;
+        g.gain.setValueAtTime(0.012, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.04);
+        o.start(t + delay); o.stop(t + delay + 0.05);
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  /** Water / river flowing — gentle filtered noise */
+  function playRiverSound () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.5;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.015, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+      noise.start(t); noise.stop(t + 1.5);
+    } catch (e) { /* silent */ }
+  }
+
   function playSound (type) {
     if (!audioCtx) return;
     try {
+      const t = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
       switch (type) {
         case 'step':
           osc.frequency.value = 80 + Math.random() * 40; osc.type = 'triangle';
-          gain.gain.value = 0.05; gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.1); break;
+          gain.gain.value = 0.04; gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          osc.start(); osc.stop(t + 0.08); break;
         case 'meow':
-          osc.frequency.value = 600; osc.type = 'sine'; gain.gain.value = 0.15;
-          osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.3);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.4); break;
+          osc.frequency.setValueAtTime(650, t); osc.type = 'sine';
+          osc.frequency.linearRampToValueAtTime(500, t + 0.15);
+          osc.frequency.linearRampToValueAtTime(420, t + 0.35);
+          gain.gain.setValueAtTime(0.14, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+          osc.start(); osc.stop(t + 0.42); break;
         case 'ceremony':
-          osc.frequency.value = 440; osc.type = 'sine'; gain.gain.value = 0.12;
-          osc.frequency.linearRampToValueAtTime(660, audioCtx.currentTime + 0.3);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.8); break;
+          // Dramatic rising tone
+          osc.frequency.setValueAtTime(330, t); osc.type = 'sine';
+          osc.frequency.linearRampToValueAtTime(550, t + 0.4);
+          osc.frequency.linearRampToValueAtTime(660, t + 0.8);
+          gain.gain.setValueAtTime(0.10, t);
+          gain.gain.setValueAtTime(0.12, t + 0.4);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+          osc.start(); osc.stop(t + 1.0); break;
         case 'ambient':
-          osc.frequency.value = 120 + Math.random() * 60; osc.type = 'sine'; gain.gain.value = 0.02;
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
-          osc.start(); osc.stop(audioCtx.currentTime + 2); break;
+          // Randomly pick a forest ambient sound
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01); // dummy, we use the functions below
+          const r = Math.random();
+          if (r < 0.35)      playBirdTweet();
+          else if (r < 0.55) playWindRustle();
+          else if (r < 0.70) playCricket();
+          else if (r < 0.80) playRiverSound();
+          // else silence — natural pause
+          break;
+        default:
+          osc.frequency.value = 200; osc.type = 'sine'; gain.gain.value = 0.05;
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          osc.start(); osc.stop(t + 0.2);
       }
     } catch (e) { /* silent */ }
+  }
+
+  /** Play ambient forest sounds more frequently for immersion */
+  function startForestAmbience () {
+    if (ambientInterval) return;
+    ambientInterval = setInterval(() => {
+      if (gameState !== 'playing' || !audioCtx) return;
+      if (Math.random() < 0.4) playBirdTweet();
+      if (Math.random() < 0.15) playWindRustle();
+      if (Math.random() < 0.10) playCricket();
+    }, 3000);
   }
 
   /* ====================================================
@@ -213,6 +440,261 @@
     const river = new THREE.Mesh(riverGeo, riverMat);
     river.rotation.x = -Math.PI / 2; river.position.set(75, 0.05, 0);
     scene.add(river);
+
+    /* ---- DENS (ThunderClan Camp) ---- */
+    createDens();
+
+    /* ---- TWOLEG HOUSE ---- */
+    createTwolegHouse();
+
+    /* ---- GARDEN FENCE ---- */
+    createGardenFence();
+  }
+
+  /* ====================================================
+     CAMP DENS
+     ==================================================== */
+  function createDens () {
+    const denMat  = new THREE.MeshLambertMaterial({ color: 0x5c4a2e });
+    const leafMat = new THREE.MeshLambertMaterial({ color: 0x2e5c1e });
+    const mossMat = new THREE.MeshLambertMaterial({ color: 0x4a7a3a });
+    const brambleMat = new THREE.MeshLambertMaterial({ color: 0x6b5a3a });
+
+    // Helper: build a den (dome of branches + leaf cover + name label)
+    function makeDen (name, x, z, radius, height) {
+      const g = new THREE.Group();
+      // dome frame (half sphere of sticks)
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+        brambleMat
+      );
+      dome.position.y = 0; dome.castShadow = true;
+      g.add(dome);
+      // leaf/moss cover
+      const cover = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.05, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.48),
+        leafMat
+      );
+      cover.position.y = 0.05; cover.castShadow = true;
+      g.add(cover);
+      // entrance hole (dark opening)
+      const entrance = new THREE.Mesh(
+        new THREE.CircleGeometry(radius * 0.4, 8),
+        new THREE.MeshBasicMaterial({ color: 0x111111 })
+      );
+      entrance.position.set(0, radius * 0.35, radius * 0.92);
+      g.add(entrance);
+      // name label floating above
+      const label = makeNameLabel(name, height + 0.5);
+      g.add(label);
+      g.position.set(x, 0, z);
+      scene.add(g);
+      return g;
+    }
+
+    // Warriors' Den - large, on the east side of camp
+    makeDen("Warriors' Den", 8, -2, 2.8, 3.0);
+
+    // Apprentices' Den - smaller, near warriors
+    makeDen("Apprentices' Den", 6, 5, 2.0, 2.2);
+
+    // Leader's Den - below Highrock (Bluestar's den)
+    const leaderDen = new THREE.Group();
+    // cave-like overhang under highrock
+    const overhang = new THREE.Mesh(
+      new THREE.SphereGeometry(1.8, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshLambertMaterial({ color: 0x666666 })
+    );
+    overhang.position.y = 0;
+    leaderDen.add(overhang);
+    // lichen curtain (thin green strips)
+    for (let i = 0; i < 6; i++) {
+      const lichen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.15, 1.2),
+        new THREE.MeshLambertMaterial({ color: 0x4a8a3a, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+      );
+      lichen.position.set(-0.5 + i * 0.2, 0.8, 1.6);
+      leaderDen.add(lichen);
+    }
+    const lLabel = makeNameLabel("Leader's Den", 2.5);
+    leaderDen.add(lLabel);
+    leaderDen.position.set(-3, 0, -1.5);
+    scene.add(leaderDen);
+
+    // Medicine Cat Den - tucked into a rock on south side
+    const medDen = new THREE.Group();
+    const medRock = new THREE.Mesh(new THREE.DodecahedronGeometry(2.0, 1), new THREE.MeshLambertMaterial({ color: 0x777766 }));
+    medRock.scale.set(1.2, 0.8, 1); medRock.position.y = 0.8; medRock.castShadow = true;
+    medDen.add(medRock);
+    // cave opening
+    const medOpening = new THREE.Mesh(new THREE.CircleGeometry(0.8, 8), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    medOpening.position.set(0, 0.5, 1.8);
+    medDen.add(medOpening);
+    // herbs (small colored dots)
+    [0x66aa44, 0xaaaa22, 0x8844aa, 0x44aa88].forEach((c, i) => {
+      const herb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 4, 4), new THREE.MeshLambertMaterial({ color: c }));
+      herb.position.set(-0.6 + i * 0.4, 0.05, 2.3);
+      medDen.add(herb);
+    });
+    const mLabel = makeNameLabel("Medicine Den", 2.5);
+    medDen.add(mLabel);
+    medDen.position.set(-10, 0, 3);
+    scene.add(medDen);
+
+    // Nursery - warm and sheltered, west side
+    const nursery = makeDen("Nursery", -8, 5, 2.5, 2.8);
+    // Extra moss bedding visible inside
+    const moss = new THREE.Mesh(
+      new THREE.CircleGeometry(1.5, 8),
+      mossMat
+    );
+    moss.rotation.x = -Math.PI / 2; moss.position.set(-8, 0.02, 5);
+    scene.add(moss);
+
+    // Elders' Den - on the far side of camp
+    makeDen("Elders' Den", -6, -7, 2.2, 2.5);
+
+    // Fresh-kill pile (center of camp)
+    const killPile = new THREE.Group();
+    const pileMat = new THREE.MeshLambertMaterial({ color: 0x8a6a4a });
+    for (let i = 0; i < 5; i++) {
+      const prey = new THREE.Mesh(new THREE.SphereGeometry(0.15, 5, 4), pileMat);
+      prey.position.set((Math.random() - 0.5) * 0.8, 0.08 + i * 0.06, (Math.random() - 0.5) * 0.8);
+      prey.scale.set(1, 0.6, 1.5);
+      killPile.add(prey);
+    }
+    const pkLabel = makeNameLabel("Fresh-kill Pile", 1.0);
+    killPile.add(pkLabel);
+    killPile.position.set(2, 0, 0);
+    scene.add(killPile);
+  }
+
+  /* ====================================================
+     TWOLEG HOUSE (Rusty's home)
+     ==================================================== */
+  function createTwolegHouse () {
+    const house = new THREE.Group();
+
+    // Walls
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0xddccaa });
+    const wallFront = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 0.3), wallMat);
+    wallFront.position.set(0, 2.5, -3); wallFront.castShadow = true;
+    house.add(wallFront);
+    const wallBack = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 0.3), wallMat);
+    wallBack.position.set(0, 2.5, 3); wallBack.castShadow = true;
+    house.add(wallBack);
+    const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5, 6), wallMat);
+    wallLeft.position.set(-5, 2.5, 0); wallLeft.castShadow = true;
+    house.add(wallLeft);
+    const wallRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 5, 6), wallMat);
+    wallRight.position.set(5, 2.5, 0); wallRight.castShadow = true;
+    house.add(wallRight);
+
+    // Roof
+    const roofMat = new THREE.MeshLambertMaterial({ color: 0x884422 });
+    const roofLeft = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 11), roofMat);
+    roofLeft.position.set(-2.5, 6.2, 0); roofLeft.rotation.z = 0.6; roofLeft.castShadow = true;
+    house.add(roofLeft);
+    const roofRight = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 11), roofMat);
+    roofRight.position.set(2.5, 6.2, 0); roofRight.rotation.z = -0.6; roofRight.castShadow = true;
+    house.add(roofRight);
+
+    // Door (dark rectangle)
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 3), new THREE.MeshLambertMaterial({ color: 0x553311 }));
+    door.position.set(0, 1.5, -3.01);
+    house.add(door);
+
+    // Windows (light blue)
+    const winMat = new THREE.MeshLambertMaterial({ color: 0xaaddff, emissive: 0x334455 });
+    const win1 = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.2), winMat);
+    win1.position.set(-3, 3.2, -3.01);
+    house.add(win1);
+    const win2 = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.2), winMat);
+    win2.position.set(3, 3.2, -3.01);
+    house.add(win2);
+
+    // Cat flap at the bottom of the door
+    const flap = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.4), new THREE.MeshLambertMaterial({ color: 0x332211 }));
+    flap.position.set(0, 0.25, -3.02);
+    house.add(flap);
+
+    // Garden (lighter green ground)
+    const garden = new THREE.Mesh(
+      new THREE.CircleGeometry(8, 16),
+      new THREE.MeshLambertMaterial({ color: 0x55aa44 })
+    );
+    garden.rotation.x = -Math.PI / 2; garden.position.set(0, 0.01, -5);
+    house.add(garden);
+
+    // Cat bed (cozy circle)
+    const bed = new THREE.Mesh(
+      new THREE.TorusGeometry(0.5, 0.2, 8, 12),
+      new THREE.MeshLambertMaterial({ color: 0xcc4444 })
+    );
+    bed.rotation.x = -Math.PI / 2; bed.position.set(2, 0.1, -2);
+    house.add(bed);
+    // bed cushion
+    const cushion = new THREE.Mesh(
+      new THREE.CircleGeometry(0.4, 8),
+      new THREE.MeshLambertMaterial({ color: 0xddaa88 })
+    );
+    cushion.rotation.x = -Math.PI / 2; cushion.position.set(2, 0.12, -2);
+    house.add(cushion);
+
+    // Food bowl
+    const bowl = new THREE.Mesh(
+      new THREE.TorusGeometry(0.25, 0.08, 8, 10),
+      new THREE.MeshLambertMaterial({ color: 0x4488cc })
+    );
+    bowl.rotation.x = -Math.PI / 2; bowl.position.set(-2, 0.08, -1);
+    house.add(bowl);
+
+    // Label
+    const hLabel = makeNameLabel('Twoleg House', 6.5);
+    house.add(hLabel);
+
+    house.position.set(0, 0, 85);
+    scene.add(house);
+  }
+
+  /* ====================================================
+     GARDEN FENCE (between Twoleg house and forest)
+     ==================================================== */
+  function createGardenFence () {
+    const fenceMat = new THREE.MeshLambertMaterial({ color: 0x997755 });
+    const fenceGroup = new THREE.Group();
+
+    // Fence spans across at z~70, with a gap in the middle to walk through
+    for (let x = -20; x <= 20; x += 1.5) {
+      // Gap in the middle for the cat to walk through
+      if (Math.abs(x) < 2) continue;
+      // Fence post
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.2, 0.15), fenceMat);
+      post.position.set(x, 0.6, 70);
+      post.castShadow = true;
+      fenceGroup.add(post);
+      // Pointed top
+      const top = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 4), fenceMat);
+      top.position.set(x, 1.3, 70);
+      fenceGroup.add(top);
+    }
+    // Horizontal rails
+    [-0.3, 0.7].forEach(y => {
+      // Left section
+      const railL = new THREE.Mesh(new THREE.BoxGeometry(18, 0.08, 0.08), fenceMat);
+      railL.position.set(-11, y + 0.3, 70);
+      fenceGroup.add(railL);
+      // Right section
+      const railR = new THREE.Mesh(new THREE.BoxGeometry(18, 0.08, 0.08), fenceMat);
+      railR.position.set(11, y + 0.3, 70);
+      fenceGroup.add(railR);
+    });
+
+    const fLabel = makeNameLabel('Garden Fence', 2.0);
+    fLabel.position.set(0, 0, 70);
+    scene.add(fLabel);
+
+    scene.add(fenceGroup);
   }
 
   function makeOak (d) {
@@ -288,12 +770,12 @@
 
     /* --- body (two overlapping capsules for smooth shape) --- */
     const bodyMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 15 });
-    const bodyMain = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.85, 12, 16), bodyMat);
+    const bodyMain = makeCapsuleMesh(0.38, 0.85, 12, 16, bodyMat);
     bodyMain.rotation.z = Math.PI / 2; bodyMain.position.set(0, 0.65, 0); bodyMain.castShadow = true;
     catGroup.add(bodyMain);
     // belly (lighter, slightly below)
     const bellyMat = new THREE.MeshPhongMaterial({ color: cream, shininess: 10 });
-    const belly = new THREE.Mesh(new THREE.CapsuleGeometry(0.30, 0.6, 8, 12), bellyMat);
+    const belly = makeCapsuleMesh(0.30, 0.6, 8, 12, bellyMat);
     belly.rotation.z = Math.PI / 2; belly.position.set(0, 0.52, 0.05);
     catGroup.add(belly);
 
@@ -444,10 +926,20 @@
     canvas.width = 256; canvas.height = 64;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, 256, 64);
-    // background pill
+    // background pill (with fallback for older browsers)
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.beginPath();
-    ctx.roundRect(8, 8, 240, 48, 12);
+    if (ctx.roundRect) {
+      ctx.roundRect(8, 8, 240, 48, 12);
+    } else {
+      // manual rounded rect fallback
+      const x=8,y=8,w=240,h=48,r=12;
+      ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+      ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+      ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath();
+    }
     ctx.fill();
     // text
     ctx.font = 'bold 28px Georgia, serif';
@@ -487,11 +979,11 @@
 
     /* body */
     const bodyR = 0.34 * sz, bodyL = 0.7 * sz;
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(bodyR, bodyL, 10, 14), furMat);
+    const body = makeCapsuleMesh(bodyR, bodyL, 10, 14, furMat);
     body.rotation.z = Math.PI / 2; body.position.y = 0.58 * sz; body.castShadow = true;
     g.add(body);
     // belly
-    const bellyM = new THREE.Mesh(new THREE.CapsuleGeometry(bodyR * 0.78, bodyL * 0.65, 8, 10), bellyMat);
+    const bellyM = makeCapsuleMesh(bodyR * 0.78, bodyL * 0.65, 8, 10, bellyMat);
     bellyM.rotation.z = Math.PI / 2; bellyM.position.set(0, 0.48 * sz, 0.04);
     g.add(bellyM);
 
@@ -935,6 +1427,9 @@
       if (data) {
         player = data;
         saveScreen.classList.add('hidden');
+        storyPhase = 'playing';
+        graypawEncounterTriggered = true;
+        bluestarEncounterTriggered = true;
         startPlaying();
         return;
       }
@@ -975,6 +1470,13 @@
     if (slide.camLook) {
       camera.lookAt(new THREE.Vector3(slide.camLook.x, slide.camLook.y, slide.camLook.z));
     }
+    // Play cat voice for speaker
+    if (slide.speaker) {
+      playCatVoice(slide.speaker);
+    } else if (slide.narration) {
+      // Soft ambient sound for narration
+      playWindRustle();
+    }
   }
 
   function advanceCutscene () {
@@ -986,26 +1488,200 @@
      OPENING CUTSCENE  (Into the Wild intro)
      ==================================================== */
   function startOpeningCutscene () {
+    // The intro: Rusty dreams about the forest, wakes up at home
     const scenes = [
-      { narration: true, text: 'The forest stretches beyond the garden fence, dark and full of mystery. You are <strong>Rusty</strong>, a young ginger house cat who has always dreamed of something more...',
-        camPos: { x: 0, y: 4, z: 30 }, camLook: { x: 0, y: 2, z: 0 } },
-      { narration: true, text: 'Every night you sit on the fence watching the trees sway. The rustling of leaves, the scent of prey on the wind... something in the forest is calling to you.',
-        camPos: { x: -10, y: 6, z: 20 }, camLook: { x: 0, y: 1, z: 0 } },
-      { narration: true, text: 'Tonight, you make your choice. With a deep breath, you leap over the fence and into the wild. The forest is bigger and darker than you ever imagined.',
-        camPos: { x: 5, y: 3, z: 15 }, camLook: { x: 0, y: 1, z: 5 } },
-      { narration: true, text: 'Strange scents fill the air. Then - a rustle in the bushes! A gray cat leaps out!',
-        camPos: { x: 2, y: 2, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
-      { speaker: 'Graypaw', text: '"Hey! You\'re on ThunderClan territory, kittypet! What are you doing here?"' },
-      { narration: true, text: 'Before you can answer, two more cats emerge from the shadows - a large golden tabby and a blue-gray she-cat with piercing blue eyes.',
-        camPos: { x: -4, y: 3, z: 6 }, camLook: { x: -3, y: 1, z: -4 } },
-      { speaker: 'Bluestar', text: '"Wait, Lionheart. Look at this young cat. There is fire in his eyes... something the forest needs."' },
-      { speaker: 'Bluestar', text: '"Young cat, I am Bluestar, leader of ThunderClan. I see courage in you. I would like to offer you a place in our Clan."' },
-      { speaker: 'Lionheart', text: '"Are you sure, Bluestar? He\'s a kittypet..."' },
-      { speaker: 'Bluestar', text: '"I am sure. StarClan has shown me a prophecy: <em>Fire alone will save our Clan.</em> This cat may be the one."' },
-      { narration: true, text: 'Your heart pounds with excitement. A real warrior clan! This is what you\'ve always dreamed of. But first, every clan cat needs a warrior name...' },
+      { narration: true, text: '<strong>WARRIOR CATS: INTO THE WILD</strong>',
+        camPos: { x: 0, y: 12, z: 90 }, camLook: { x: 0, y: 2, z: 60 } },
+      { narration: true, text: 'The forest stretches beyond the garden fence, dark and full of mystery...',
+        camPos: { x: 0, y: 6, z: 85 }, camLook: { x: 0, y: 2, z: 40 } },
+      { narration: true, text: 'You are <strong>Rusty</strong>, a young ginger house cat who lives with your Twolegs. But every night you dream of something more...',
+        camPos: { x: 3, y: 3, z: 84 }, camLook: { x: 0, y: 1, z: 82 } },
+      { narration: true, text: 'The rustling of leaves, the scent of prey on the wind... something in the forest is calling to you.',
+        camPos: { x: -5, y: 4, z: 75 }, camLook: { x: 0, y: 1, z: 50 } },
+      { narration: true, text: 'Tonight, you\'ve decided. You will leave the garden, cross the fence, and explore the wild forest beyond.',
+        camPos: { x: 0, y: 3, z: 72 }, camLook: { x: 0, y: 1, z: 68 } },
+      { narration: true, text: '<em>Walk to the garden fence and cross into the forest...</em>',
+        camPos: { x: 2, y: 2, z: 82 }, camLook: { x: 0, y: 0.5, z: 80 } },
     ];
     startCutscene(scenes, () => {
-      // After cutscene → name picking
+      // After intro cutscene → player starts at the Twoleg house, can walk around
+      startExploring();
+    });
+  }
+
+  /* ====================================================
+     EXPLORING PHASE (Rusty leaves the house)
+     ==================================================== */
+  let storyPhase = 'house'; // house | forest | met_graypaw | fought_graypaw | met_bluestar | named | playing
+  let graypawEncounterTriggered = false;
+  let bluestarEncounterTriggered = false;
+
+  function startExploring () {
+    gameState = 'playing';
+    catGroup.visible = true;
+    // Place Rusty at the Twoleg house
+    player.position = { x: 0, y: 0, z: 82 };
+    catGroup.position.set(0, 0, 82);
+    storyPhase = 'house';
+    graypawEncounterTriggered = false;
+    bluestarEncounterTriggered = false;
+
+    // Hide all NPC cats initially
+    npcCats.forEach(c => { c.group.visible = false; });
+
+    gameHud.classList.add('visible');
+    playerNameEl.textContent = 'Rusty';
+
+    if (isMobile) mobileControls.classList.add('visible');
+
+    startForestAmbience();
+
+    queueMessage('Narrator',
+      'You are Rusty, a house cat. The forest beyond the fence calls to you. ' +
+      (isMobile ? 'Use the joystick to walk to the fence.' : 'Use WASD to walk toward the fence and explore the forest.'));
+  }
+
+  /* Check story triggers based on player position */
+  function checkStoryTriggers () {
+    if (!player || gameState !== 'playing') return;
+
+    const pz = player.position.z;
+    const px = player.position.x;
+    const dist = Math.sqrt(px * px + pz * pz); // dist from camp center (0,0)
+
+    // TRIGGER 1: Player crosses the fence (z < 68) → encounter Graypaw
+    if (storyPhase === 'house' && pz < 65 && !graypawEncounterTriggered) {
+      graypawEncounterTriggered = true;
+      storyPhase = 'forest';
+      triggerGraypawEncounter();
+    }
+
+    // TRIGGER 2: After fighting Graypaw, walk further (z < 45) → meet Bluestar
+    if (storyPhase === 'fought_graypaw' && pz < 45 && !bluestarEncounterTriggered) {
+      bluestarEncounterTriggered = true;
+      triggerBluestarEncounter();
+    }
+  }
+
+  /* ====================================================
+     GRAYPAW ENCOUNTER + FIGHT
+     ==================================================== */
+  function triggerGraypawEncounter () {
+    gameState = 'cutscene';
+
+    // Place Graypaw in front of the player
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+    if (gp) {
+      gp.group.position.set(player.position.x + 2, 0, player.position.z - 4);
+      gp.group.visible = true;
+      gp.group.lookAt(player.position.x, 0, player.position.z);
+    }
+
+    const scenes = [
+      { narration: true, text: 'You creep through the undergrowth. The forest is bigger and darker than you imagined. Suddenly - a rustle in the bushes!',
+        camPos: { x: player.position.x + 4, y: 3, z: player.position.z - 2 },
+        camLook: { x: player.position.x, y: 1, z: player.position.z - 3 } },
+      { narration: true, text: 'A gray cat leaps out of the ferns and lands right in front of you!',
+        camPos: { x: player.position.x + 3, y: 2, z: player.position.z - 3 },
+        camLook: { x: player.position.x + 1, y: 1, z: player.position.z - 4 } },
+      { speaker: 'Graypaw', text: '"Hey! What are you doing here, kittypet? This is ThunderClan territory!"' },
+      { speaker: 'Graypaw', text: '"You smell like Twoleg food! You don\'t belong here! Let\'s see if you can fight like a real cat!"' },
+    ];
+    startCutscene(scenes, () => {
+      // After dialogue → start the fight!
+      startGraypawFight();
+    });
+  }
+
+  function startGraypawFight () {
+    gameState = 'cutscene';
+    // Simple turn-based fight with Graypaw
+    let playerHP = player.health;
+    let grayHP = 60;
+    const maxGrayHP = 60;
+
+    function fightRound () {
+      // Player attacks
+      const pDmg = 10 + Math.floor(Math.random() * 10);
+      grayHP = Math.max(0, grayHP - pDmg);
+
+      const hitText = 'You swipe at Graypaw! (-' + pDmg + ' damage) Graypaw HP: ' + grayHP + '/' + maxGrayHP;
+
+      if (grayHP <= 20) {
+        // Graypaw gives up
+        const scenes = [
+          { narration: true, text: hitText },
+          { speaker: 'Graypaw', text: '"Okay, okay! You\'re pretty good for a kittypet! I give up!"' },
+          { speaker: 'Graypaw', text: '"I\'m Graypaw, by the way. You know, you fight pretty well. Most kittypets just run away screaming."' },
+          { narration: true, text: 'Graypaw sits up and shakes his thick gray fur, looking at you with new respect.' },
+          { speaker: 'Graypaw', text: '"Hey, do you want to see something cool? Follow me deeper into the forest - but be careful, there might be a patrol around."' },
+        ];
+        startCutscene(scenes, () => {
+          storyPhase = 'fought_graypaw';
+          gameState = 'playing';
+          // Graypaw follows nearby
+          const gp = npcCats.find(c => c.name === 'Graypaw');
+          if (gp) {
+            gp.group.position.set(player.position.x + 1.5, 0, player.position.z - 1);
+          }
+          queueMessage('Narrator', 'Graypaw seems friendly now. Keep walking deeper into the forest...');
+        });
+        return;
+      }
+
+      // Graypaw attacks back
+      const gDmg = 5 + Math.floor(Math.random() * 8);
+      playerHP = Math.max(10, playerHP - gDmg); // don't let player die in tutorial
+      player.health = playerHP;
+
+      const grayText = 'Graypaw swipes back! (-' + gDmg + ' damage) Your HP: ' + playerHP + '/' + player.maxHealth;
+
+      const scenes = [
+        { narration: true, text: hitText },
+        { narration: true, text: grayText },
+        { narration: true, text: '<em>Press Space/tap to attack again!</em>' },
+      ];
+      startCutscene(scenes, () => {
+        fightRound(); // next round
+      });
+    }
+
+    fightRound();
+  }
+
+  /* ====================================================
+     BLUESTAR ENCOUNTER
+     ==================================================== */
+  function triggerBluestarEncounter () {
+    gameState = 'cutscene';
+
+    // Place Bluestar and Lionheart
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    const lh = npcCats.find(c => c.name === 'Lionheart');
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+
+    if (bs) { bs.group.position.set(player.position.x - 3, 0, player.position.z - 5); bs.group.visible = true; }
+    if (lh) { lh.group.position.set(player.position.x - 1, 0, player.position.z - 6); lh.group.visible = true; }
+    if (gp) { gp.group.position.set(player.position.x + 2, 0, player.position.z - 2); }
+
+    const scenes = [
+      { narration: true, text: 'Two more cats emerge from the shadows - a large golden tabby and a blue-gray she-cat with piercing blue eyes.',
+        camPos: { x: player.position.x + 4, y: 3, z: player.position.z - 3 },
+        camLook: { x: player.position.x - 2, y: 1, z: player.position.z - 5 } },
+      { speaker: 'Lionheart', text: '"Graypaw! What is going on here? Who is this kittypet?"' },
+      { speaker: 'Graypaw', text: '"We were just... um... he\'s actually a pretty good fighter, Lionheart!"' },
+      { speaker: 'Bluestar', text: '"Wait, Lionheart. Look at this young cat. There is fire in his eyes... something the forest needs."',
+        camPos: { x: player.position.x - 1, y: 2.5, z: player.position.z - 2 },
+        camLook: { x: player.position.x - 3, y: 1.2, z: player.position.z - 5 } },
+      { speaker: 'Bluestar', text: '"I am Bluestar, leader of ThunderClan. I have been watching you. You showed courage coming into the forest, and skill in your fight."' },
+      { speaker: 'Bluestar', text: '"I would like to offer you a place in our Clan. Join us, and you will learn to be a true warrior."' },
+      { speaker: 'Lionheart', text: '"Are you sure, Bluestar? He\'s a kittypet..."' },
+      { speaker: 'Bluestar', text: '"I am sure. StarClan has shown me a prophecy: <em>Fire alone will save our Clan.</em> This cat may be the one."' },
+      { speaker: 'Graypaw', text: '"Wow! You\'re going to join ThunderClan? That\'s awesome!"' },
+      { narration: true, text: 'Your heart pounds with excitement. A real warrior clan! But first, every clan cat needs a warrior name...' },
+    ];
+    startCutscene(scenes, () => {
+      storyPhase = 'met_bluestar';
       showNameScreen();
     });
   }
@@ -1077,26 +1753,50 @@
   }
 
   /* ====================================================
-     START PLAYING
+     START PLAYING (after naming ceremony, in camp)
      ==================================================== */
   function startPlaying () {
     gameState = 'playing';
+    storyPhase = 'playing';
     catGroup.visible = true;
-    catGroup.position.set(player.position.x, 0, player.position.z);
+
+    // Place player in camp
+    player.position = { x: 2, y: 0, z: 3 };
+    catGroup.position.set(2, 0, 3);
 
     // show NPC cats in camp
     npcCats.forEach(c => { c.group.visible = true; });
-    // reset Bluestar to ground near highrock
-    npcCats[0].group.position.set(-4, 0, -2);
+    // Place cats around camp
+    const campPositions = [
+      { name: 'Bluestar', x: -4, z: -2 },
+      { name: 'Lionheart', x: -1, z: 1 },
+      { name: 'Graypaw', x: 5, z: 4 },
+      { name: 'Whitestorm', x: 7, z: -1 },
+      { name: 'Dustpaw', x: 5, z: 6 },
+      { name: 'Sandpaw', x: 4, z: 7 },
+      { name: 'Mousefur', x: 9, z: -3 },
+      { name: 'Darkstripe', x: -5, z: -6 },
+      { name: 'Ravenpaw', x: 3, z: 5 },
+      { name: 'Spottedleaf', x: -9, z: 4 },
+      { name: 'Tigerclaw', x: 6, z: -4 },
+      { name: 'Yellowfang', x: -7, z: 6 },
+    ];
+    campPositions.forEach(cp => {
+      const cat = npcCats.find(c => c.name === cp.name);
+      if (cat) { cat.group.position.set(cp.x, 0, cp.z); cat.group.visible = true; }
+    });
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
 
     if (isMobile) mobileControls.classList.add('visible');
 
+    // Start forest sounds
+    startForestAmbience();
+
     // Welcome message
     queueMessage('Narrator',
-      'Welcome to ThunderClan, ' + player.name + '! Explore the territory. ' +
+      'Welcome to ThunderClan, ' + player.name + '! You are now an apprentice. Explore the camp and territory! ' +
       (isMobile ? 'Use the joystick to move.' : 'Use WASD to move. Click to control camera. Hold SHIFT to sprint.'));
   }
 
@@ -1115,6 +1815,10 @@
     messageTextEl.textContent = m.text;
     messageCallback = m.callback || null;
     messageBox.classList.add('visible');
+    // Play cat voice for speaker
+    if (m.speaker && m.speaker !== 'Narrator') {
+      playCatVoice(m.speaker);
+    }
   }
 
   function advanceMessage () {
@@ -1184,6 +1888,25 @@
   }
 
   /* ====================================================
+     NPC FOLLOW (Graypaw follows during story)
+     ==================================================== */
+  function updateFollowers (dt) {
+    if (storyPhase !== 'fought_graypaw') return;
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+    if (!gp || !gp.group.visible) return;
+    const gpPos = gp.group.position;
+    const dx = player.position.x - gpPos.x;
+    const dz = player.position.z - gpPos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > 3) {
+      const spd = 4 * dt;
+      gpPos.x += (dx / dist) * spd;
+      gpPos.z += (dz / dist) * spd;
+      gp.group.lookAt(player.position.x, 0, player.position.z);
+    }
+  }
+
+  /* ====================================================
      MAIN LOOP
      ==================================================== */
   function animate () {
@@ -1198,17 +1921,20 @@
       animateFireflies(time);
       animateTail(time);
       animateNPCTails(time);
+      checkStoryTriggers();
+      updateFollowers(dt);
       gameTime += dt;
       // autosave every 15s
-      if (Math.floor(time * 10) % 150 === 0) saveGame();
-      if (Math.random() < 0.002) playSound('ambient');
+      if (Math.floor(time * 10) % 150 === 0 && storyPhase === 'playing') saveGame();
+      if (Math.random() < 0.004) playSound('ambient');
     }
 
     if (gameState === 'title' || gameState === 'saves') {
-      camera.position.x = Math.sin(time * 0.08) * 18;
-      camera.position.z = Math.cos(time * 0.08) * 18;
-      camera.position.y = 8;
-      camera.lookAt(0, 2, 0);
+      // Pan between the house and the forest for a nice title view
+      camera.position.x = Math.sin(time * 0.06) * 20;
+      camera.position.z = 50 + Math.cos(time * 0.06) * 30;
+      camera.position.y = 10;
+      camera.lookAt(0, 2, 60);
       animateFireflies(time);
     }
 
