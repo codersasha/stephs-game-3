@@ -288,12 +288,6 @@ window.onerror = function(msg, url, line, col, err) {
     'Smudge':      { base: 440, end: 360, dur: 0.35, type: 'sine',     vol: 0.12, vibrato: 5 },   // chubby friendly tom, medium pitch
     'Princess':    { base: 500, end: 420, dur: 0.32, type: 'sine',     vol: 0.11, vibrato: 4 },   // gentle, sweet she-cat
     'Longtail':    { base: 280, end: 200, dur: 0.40, type: 'sawtooth', vol: 0.11, vibrato: 3 },   // young warrior, sneering, mid-low
-    'Swiftpaw':    { base: 420, end: 340, dur: 0.30, type: 'triangle', vol: 0.12, vibrato: 5 },   // eager young apprentice
-    'Cloudpaw':    { base: 450, end: 370, dur: 0.28, type: 'sine',     vol: 0.12, vibrato: 5 },   // young apprentice, confident
-    'Cloudtail':   { base: 340, end: 270, dur: 0.35, type: 'triangle', vol: 0.12, vibrato: 4 },   // grown warrior, confident
-    'Brightpaw':   { base: 480, end: 400, dur: 0.28, type: 'sine',     vol: 0.11, vibrato: 5 },   // eager she-apprentice
-    'Lostface':    { base: 380, end: 300, dur: 0.38, type: 'sine',     vol: 0.09, vibrato: 3 },   // scarred, quieter
-    'Brightheart': { base: 400, end: 330, dur: 0.35, type: 'sine',     vol: 0.11, vibrato: 4 },   // healed, warm
     'ShadowClan Warrior': { base: 180, end: 130, dur: 0.50, type: 'sawtooth', vol: 0.11, vibrato: 2 }, // deep, menacing
     'ShadowClan Patrol':  { base: 190, end: 140, dur: 0.48, type: 'sawtooth', vol: 0.11, vibrato: 2 }, // deep, menacing
     'RiverClan Warrior':  { base: 250, end: 190, dur: 0.40, type: 'triangle', vol: 0.10, vibrato: 3 }, // smooth, strong
@@ -3945,37 +3939,6 @@ window.onerror = function(msg, url, line, col, err) {
     names.forEach(n => revealCatName(n));
   }
 
-  /** Rename an NPC cat (updates name, label, knownCats, and data structures) */
-  function renameCat (oldName, newName) {
-    const npc = npcCats.find(c => c.name === oldName);
-    if (!npc) return;
-    npc.name = newName;
-    // Update floating name label
-    if (npc.label) {
-      updateLabelText(npc.label, newName, '#ffe0a0');
-    }
-    // Update knownCats
-    if (knownCats.has(oldName)) {
-      knownCats.delete(oldName);
-      knownCats.add(newName);
-    }
-    // Migrate dialogue
-    if (catDialogue[oldName]) {
-      catDialogue[newName] = catDialogue[oldName];
-      delete catDialogue[oldName];
-    }
-    // Migrate voice profile
-    if (catVoiceProfiles[oldName]) {
-      catVoiceProfiles[newName] = catVoiceProfiles[oldName];
-      delete catVoiceProfiles[oldName];
-    }
-    // Migrate departed status
-    if (departedCats.has(oldName)) {
-      departedCats.delete(oldName);
-      departedCats.add(newName);
-    }
-  }
-
   /* ====================================================
      BOOK-ACCURATE NPC CATS
      ==================================================== */
@@ -4280,14 +4243,6 @@ window.onerror = function(msg, url, line, col, err) {
         eyeColor: 0x44cc44, earInner: 0xffbb99, noseColor: 0xbbaa88,
         size: 1.05, whiteChest: false, whitePaws: false, longFur: false
       }, -6, 1),
-
-      // Swiftpaw - black-and-white tom, Longtail's apprentice
-      makeBookCat({
-        name: 'Swiftpaw', fur: 0x222222, belly: 0xeeeeee,
-        eyeColor: 0xddbb33, earInner: 0xffaaaa, noseColor: 0x333333,
-        size: 0.85, whiteChest: true, whitePaws: true,
-        stripes: 0, longFur: false
-      }, -5, 2),
 
       // Smudge - plump black-and-white tom, Rusty's kittypet friend
       makeBookCat({
@@ -5162,12 +5117,6 @@ window.onerror = function(msg, url, line, col, err) {
       '"Bluestar made a mistake bringing you here."',
       '"Stay out of my way."',
     ],
-    'Swiftpaw': [
-      '"I\'m going to be the best warrior ThunderClan has ever seen!"',
-      '"Longtail says I\'m almost ready for my warrior name!"',
-      '"I can\'t wait to prove myself in battle!"',
-      '"Why does Bluestar keep ignoring us apprentices?"',
-    ],
     'Smudge': [
       '"Rusty! Why did you go into the forest? It\'s so scary out there!"',
       '"I miss you! Come home soon, okay?"',
@@ -5672,9 +5621,8 @@ window.onerror = function(msg, url, line, col, err) {
     'Bluestar':   '🐱', 'Lionheart':  '🦁', 'Tigerclaw':  '🐯',
     'Spottedleaf':'🌸', 'Whitestorm': '⚪', 'Graypaw':    '🐺',
     'Ravenpaw':   '🖤', 'Dustpaw':    '🟤', 'Sandpaw':    '🟡',
-    'Darkstripe': '🐱', 'Longtail':   '🐱', 'Swiftpaw':   '⚡', 'Yellowfang': '🟠',
-    'Smudge':     '🐱', 'Princess':   '👑', 'Cloudkit':   '☁️', 'Cloudtail':  '☁️',
-    'Brightpaw':  '✨', 'Lostface':   '💔', 'Brightheart':'💛', 'Narrator':   '📖',
+    'Darkstripe': '🐱', 'Longtail':   '🐱', 'Yellowfang': '🟠',
+    'Smudge':     '🐱', 'Princess':   '👑', 'Cloudkit':   '☁️', 'Narrator':   '📖',
   };
 
   function startCutscene (scenes, onDone) {
@@ -5981,6 +5929,139 @@ window.onerror = function(msg, url, line, col, err) {
   let redtailEventTriggered = false;
   let playingTimer = 0; // counts frames since free-roam started
 
+  /* ====================================================
+     DOG PACK — 3D models for the dog attack event
+     ==================================================== */
+  let dogModels = []; // active dog 3D groups in the scene
+
+  function makeDog (color, size, px, pz) {
+    const g = new THREE.Group();
+    const sz = size || 1.6;
+    const furMat = new THREE.MeshPhongMaterial({ color: color || 0x664422, shininess: 3 });
+    const bellyMat = new THREE.MeshPhongMaterial({ color: 0xaa8866, shininess: 5 });
+
+    // Body — larger and more muscular than a cat
+    var bodyR = 0.42 * sz, bodyL = 0.95 * sz;
+    var body = makeCapsuleMesh(bodyR, bodyL, 12, 16, furMat);
+    body.rotation.x = Math.PI / 2; body.position.y = 0.75 * sz; body.castShadow = true;
+    g.add(body);
+    // Belly
+    var bellyM = makeCapsuleMesh(bodyR * 0.72, bodyL * 0.60, 8, 12, bellyMat);
+    bellyM.rotation.x = Math.PI / 2; bellyM.position.set(0, 0.62 * sz, 0.03);
+    g.add(bellyM);
+
+    // Head — bigger, blockier snout
+    var headR = 0.32 * sz;
+    var head = new THREE.Mesh(new THREE.SphereGeometry(headR, 12, 10), furMat);
+    head.position.set(0, 0.95 * sz, 0.65 * sz); head.scale.set(1.1, 0.95, 1.1);
+    head.castShadow = true; g.add(head);
+
+    // Snout / muzzle — longer than a cat's
+    var snoutMat = new THREE.MeshPhongMaterial({ color: 0x886655, shininess: 3 });
+    var snout = new THREE.Mesh(new THREE.SphereGeometry(0.18 * sz, 10, 8), snoutMat);
+    snout.position.set(0, 0.88 * sz, 0.98 * sz); snout.scale.set(0.9, 0.65, 1.3);
+    g.add(snout);
+
+    // Nose
+    var nose = new THREE.Mesh(new THREE.SphereGeometry(0.06 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: 0x222222 }));
+    nose.position.set(0, 0.90 * sz, 1.12 * sz); g.add(nose);
+
+    // Eyes — angry, small
+    [[-1,1],[1,1]].forEach(function (pair) {
+      var s = pair[0];
+      var eye = new THREE.Mesh(new THREE.SphereGeometry(0.065 * sz, 10, 8), new THREE.MeshPhongMaterial({ color: 0xddaa33, shininess: 12 }));
+      eye.position.set(s * 0.14 * sz, 1.0 * sz, 0.88 * sz); eye.scale.set(1, 0.7, 0.5);
+      g.add(eye);
+      var pupil = new THREE.Mesh(new THREE.SphereGeometry(0.035 * sz, 8, 6), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+      pupil.position.set(s * 0.14 * sz, 1.0 * sz, 0.91 * sz); pupil.scale.set(0.6, 0.6, 0.4);
+      g.add(pupil);
+    });
+
+    // Ears — floppy/pointed depending on dog
+    [[-1,1],[1,1]].forEach(function (pair) {
+      var s = pair[0];
+      var ear = new THREE.Mesh(new THREE.ConeGeometry(0.12 * sz, 0.22 * sz, 4), furMat);
+      ear.position.set(s * 0.18 * sz, 1.18 * sz, 0.58 * sz);
+      ear.rotation.z = s * 0.4; ear.rotation.x = 0.3;
+      ear.castShadow = true; g.add(ear);
+    });
+
+    // Mouth — open, showing teeth
+    var jawMat = new THREE.MeshPhongMaterial({ color: 0x882222 });
+    var jaw = new THREE.Mesh(new THREE.SphereGeometry(0.1 * sz, 8, 6), jawMat);
+    jaw.position.set(0, 0.82 * sz, 1.02 * sz); jaw.scale.set(0.8, 0.3, 0.7);
+    g.add(jaw);
+    // Teeth
+    var toothMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 20 });
+    [[-0.04, 0.04], [0.04, 0.04]].forEach(function (off) {
+      var tooth = new THREE.Mesh(new THREE.ConeGeometry(0.02 * sz, 0.06 * sz, 4), toothMat);
+      tooth.position.set(off[0] * sz, 0.82 * sz, 1.08 * sz); tooth.rotation.x = Math.PI;
+      g.add(tooth);
+    });
+
+    // 4 legs — thicker than cat legs
+    var legMat = new THREE.MeshPhongMaterial({ color: color || 0x664422, shininess: 3 });
+    var legPositions = [
+      { x: -0.18 * sz, z: 0.35 * sz },
+      { x: 0.18 * sz, z: 0.35 * sz },
+      { x: -0.18 * sz, z: -0.35 * sz },
+      { x: 0.18 * sz, z: -0.35 * sz },
+    ];
+    g.legs = [];
+    legPositions.forEach(function (lp) {
+      var leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * sz, 0.07 * sz, 0.55 * sz, 8), legMat);
+      leg.position.set(lp.x, 0.28 * sz, lp.z); leg.castShadow = true;
+      g.add(leg); g.legs.push(leg);
+      // Paw
+      var paw = new THREE.Mesh(new THREE.SphereGeometry(0.09 * sz, 8, 6), legMat);
+      paw.position.set(lp.x, 0.04 * sz, lp.z); paw.scale.set(1, 0.5, 1.2);
+      g.add(paw);
+    });
+
+    // Tail — thick, slightly curved up
+    var tailMat = new THREE.MeshPhongMaterial({ color: color || 0x664422, shininess: 3 });
+    for (var ti = 0; ti < 4; ti++) {
+      var seg = new THREE.Mesh(new THREE.SphereGeometry((0.07 - ti * 0.01) * sz, 8, 6), tailMat);
+      seg.position.set(0, (0.80 + ti * 0.06) * sz, (-0.55 - ti * 0.12) * sz);
+      g.add(seg);
+    }
+
+    g.position.set(px || 0, 0, pz || 0);
+    scene.add(g);
+    return g;
+  }
+
+  function spawnDogPack (positions) {
+    removeDogPack(); // clear any existing dogs
+    var dogColors = [0x664422, 0x554433, 0x887755, 0x443322, 0x776644, 0x332211];
+    var dogSizes = [1.6, 1.8, 1.5, 1.7, 1.9, 1.6];
+    positions.forEach(function (pos, i) {
+      var dog = makeDog(dogColors[i % dogColors.length], dogSizes[i % dogSizes.length], pos.x, pos.z);
+      dogModels.push(dog);
+    });
+  }
+
+  function removeDogPack () {
+    dogModels.forEach(function (d) { scene.remove(d); });
+    dogModels = [];
+  }
+
+  function animateDogPack (dt) {
+    // Simple menacing animation — dogs shift and snarl
+    dogModels.forEach(function (dog, i) {
+      if (!dog.legs) return;
+      var t = (performance.now() / 1000) + i * 1.5;
+      // Leg movement — pacing/shifting
+      var swing = Math.sin(t * 4) * 0.2;
+      dog.legs[0].rotation.x = swing;
+      dog.legs[1].rotation.x = -swing;
+      dog.legs[2].rotation.x = -swing;
+      dog.legs[3].rotation.x = swing;
+      // Slight body bob
+      dog.children[0].position.y = 0.75 * 1.6 + Math.sin(t * 3) * 0.02;
+    });
+  }
+
   /* --- CHAPTER SYSTEM ---
      After training, the story is split into chapters. The player can explore
      freely, and when they're ready to continue the story they press the
@@ -6004,10 +6085,7 @@ window.onerror = function(msg, url, line, col, err) {
     { id: 13, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
     { id: 14, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
     { id: 15, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
-    { id: 16, name: 'RiverClan Conflict',            trigger: 'triggerRiverClanConflict' },
-    { id: 17, name: 'Cloudtail\'s Warrior Ceremony', trigger: 'triggerCloudtailCeremony' },
-    { id: 18, name: 'Swiftpaw & Brightpaw',          trigger: 'triggerSwiftpawBrightpaw' },
-    { id: 19, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
+    { id: 16, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
     { id: 17, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
     { id: 18, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
     { id: 19, name: 'Firestar\'s Leadership',       trigger: 'triggerFirestarLeadership' },
@@ -6049,11 +6127,9 @@ window.onerror = function(msg, url, line, col, err) {
     // Call the trigger function by name
     const triggerFn = {
       triggerRedtailEvent, triggerMothermouthJourney, triggerYellowfangEncounter,
-      triggerStolenKits, triggerDrivingOutBrokenstar, triggerSpottedleafWarning,
-      triggerRavenpawSecret, triggerRavenpawLeaves, triggerPrincessCloudkit,
-      triggerFireAndIce, triggerWindClanRescue, triggerRoguesAttack,
+      triggerDrivingOutBrokenstar, triggerSpottedleafWarning, triggerRavenpawSecret,
+      triggerRavenpawLeaves, triggerFireAndIce, triggerWindClanRescue,
       triggerTigerclawTreachery, triggerTigerclawExile, triggerWarriorCeremony,
-      triggerRiverClanConflict, triggerCloudtailCeremony, triggerSwiftpawBrightpaw,
       triggerDangerousPath, triggerDogPack, triggerBluestarLastLife,
       triggerFirestarLeadership, triggerTigerClanRises, triggerBloodClanArrives,
       triggerScourge,
@@ -6355,7 +6431,7 @@ window.onerror = function(msg, url, line, col, err) {
     intruderArea = { x: spawnArea.x, z: spawnArea.z };
 
     // Pick ThunderClan warriors and apprentices to help patrol
-    const patrolCandidates = ['Dustpaw', 'Sandpaw', 'Whitestorm', 'Mousefur', 'Darkstripe', 'Longtail', 'Lionheart', 'Tigerclaw', 'Swiftpaw'];
+    const patrolCandidates = ['Dustpaw', 'Sandpaw', 'Whitestorm', 'Mousefur', 'Darkstripe', 'Longtail', 'Lionheart', 'Tigerclaw'];
     const numHelpers = 2 + Math.floor(Math.random() * 2); // 2-3 helpers
     const shuffled = patrolCandidates.sort(() => Math.random() - 0.5);
     clanPatrollers = shuffled.slice(0, numHelpers);
@@ -8172,7 +8248,7 @@ window.onerror = function(msg, url, line, col, err) {
       var allThunderClanNames = [
         'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
         'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
-        'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Longtail', 'Swiftpaw',
+        'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Longtail',
         'Frostfur', 'Brindleface', 'Goldenflower',
         'Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit',
         'Cloudkit', 'Yellowfang', 'Smudge', 'Princess'
@@ -8186,211 +8262,27 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CHAPTER 16: RIVERCLAN CONFLICT
-     ==================================================== */
-  function triggerRiverClanConflict () {
-    gameState = 'cutscene';
-    var pName = player.name || 'warrior';
-    var scenes = [
-      { narration: true, text: 'Tensions with RiverClan have reached a breaking point. They have been stealing prey from ThunderClan territory and crossing the border freely.',
-        camPos: { x: 75, y: 5, z: 0 }, camLook: { x: 75, y: 1, z: -5 } },
-      { speaker: 'Bluestar', text: '"RiverClan has gone too far. They fish in our streams and hunt on our land. We will drive them back across the river!"',
-        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
-      { speaker: 'Bluestar', text: '"' + pName + ', lead a patrol to the Sunningrocks. Show RiverClan that ThunderClan will not be pushed around!"',
-        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: 0, y: 1.2, z: 2 } },
-      { narration: true, text: 'You lead a patrol of warriors to Sunningrocks — the great slabs of stone along the river that both Clans have fought over for generations.',
-        camPos: { x: 70, y: 4, z: -5 }, camLook: { x: 75, y: 1, z: 0 } },
-      { narration: true, text: 'A RiverClan patrol is waiting! Their warriors hiss and bristle, claws unsheathed. The battle begins!',
-        camPos: { x: 73, y: 2, z: -3 }, camLook: { x: 75, y: 0.5, z: -2 } },
-    ];
-    startCutscene(scenes, function () {
-      // Battle against RiverClan patrol
-      var lvl = player.level || 1;
-      startPatrolBattle({
-        clan: 'RiverClan',
-        enemies: [
-          { name: 'Leopardfur', hp: 55 + lvl * 4, maxHP: 55 + lvl * 4, atk: 10 + lvl * 2, def: 4 + lvl,
-            fur: 0xccaa44, eye: 0xddaa33, stripes: 3, stripeColor: 0x886622, defeated: false },
-          { name: 'Blackclaw', hp: 45 + lvl * 3, maxHP: 45 + lvl * 3, atk: 9 + lvl * 2, def: 3 + lvl,
-            fur: 0x222222, eye: 0xffcc33, stripes: 0, stripeColor: 0, defeated: false },
-        ],
-        expReward: 60 + lvl * 8,
-        retreatOnFirstWin: true,
-        onWin: function () {
-          var victoryScenes = [
-            { narration: true, text: 'RiverClan is defeated! Their warriors flee back across the river, tails between their legs!',
-              camPos: { x: 75, y: 4, z: 0 }, camLook: { x: 80, y: 1, z: -5 } },
-            { narration: true, text: 'Sunningrocks belongs to ThunderClan once more! You have proven yourself as a true warrior.',
-              camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
-          ];
-          startCutscene(victoryScenes, function () {
-            gameState = 'playing';
-            placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'RiverClan has been driven off! Sunningrocks is ThunderClan\'s territory again. But there are other challenges ahead...');
-            showNextChapterButton();
-          });
-        },
-        onLose: function () {
-          player.health = Math.floor(player.maxHealth * 0.5);
-          gameState = 'playing';
-          placeCatsInCamp(); saveGame();
-          queueMessage('Narrator', 'You fought bravely! Your Clanmates rallied and drove RiverClan off anyway. Sunningrocks is safe.');
-          showNextChapterButton();
-        },
-      });
-    });
-  }
-
-  /* ====================================================
-     CHAPTER 17: CLOUDTAIL'S WARRIOR CEREMONY
-     ==================================================== */
-  function triggerCloudtailCeremony () {
-    gameState = 'cutscene';
-    var pName = player.name || 'warrior';
-
-    // Age up Cloudkit → Cloudpaw → Cloudtail and Brightkit → Brightpaw
-    var cloudNpc = npcCats.find(function (c) { return c.name === 'Cloudkit' || c.name === 'Cloudpaw'; });
-    var brightNpc = npcCats.find(function (c) { return c.name === 'Brightkit' || c.name === 'Brightpaw'; });
-
-    // First rename Cloudkit to Cloudpaw (he's been training)
-    if (cloudNpc && cloudNpc.name === 'Cloudkit') {
-      renameCat('Cloudkit', 'Cloudpaw');
-    }
-    // Age up Brightkit to Brightpaw
-    if (brightNpc && brightNpc.name === 'Brightkit') {
-      renameCat('Brightkit', 'Brightpaw');
-    }
-
-    var bs = npcCats.find(function (c) { return c.name === 'Bluestar'; });
-    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
-
-    var scenes = [
-      { narration: true, text: 'Moons have passed. The kits have grown into apprentices. Cloudpaw has trained hard — despite some cats doubting his kittypet blood.',
-        camPos: { x: 0, y: 4, z: 3 }, camLook: { x: -3, y: 3.5, z: -4 } },
-      { narration: true, text: 'Bluestar calls a Clan meeting from the Highrock. She looks weary, but her voice is strong.',
-        camPos: { x: 1, y: 4, z: 4 }, camLook: { x: -3, y: 3.5, z: -4 } },
-      { speaker: 'Bluestar', text: '"I call upon my warrior ancestors to look down on this apprentice. Cloudpaw has trained hard to understand the ways of your noble code."',
-        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
-      { speaker: 'Bluestar', text: '"Cloudpaw, do you promise to uphold the warrior code and protect and defend this Clan, even at the cost of your life?"',
-        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: 0, y: 1.2, z: 2 } },
-      { speaker: 'Cloudpaw', text: '"I do!"',
-        camPos: { x: 1, y: 2, z: 3 }, camLook: { x: -3, y: 3.3, z: -4 } },
-      { speaker: 'Bluestar', text: '"Then by the powers of StarClan, I give you your warrior name. Cloudpaw, from this moment on you will be known as <strong>Cloudtail</strong>."',
-        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
-      { speaker: 'Bluestar', text: '"StarClan honors your bravery and your spirit, and we welcome you as a full warrior of ThunderClan."',
-        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.5, z: -4 } },
-      { narration: true, text: '"CLOUDTAIL! CLOUDTAIL!" The Clan chants his new name! Even the cats who doubted him cheer.',
-        camPos: { x: 0, y: 5, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
-      { speaker: pName, text: '"Congratulations, Cloudtail! Princess would be so proud of you!"',
-        camPos: { x: 2, y: 2, z: 3 }, camLook: { x: 0, y: 1, z: 1 } },
-    ];
-    playSound('ceremony');
-    startCutscene(scenes, function () {
-      gameState = 'playing';
-      // Rename Cloudpaw → Cloudtail
-      renameCat('Cloudpaw', 'Cloudtail');
-      // Update voice profile for Cloudtail (deeper now he's a warrior)
-      catVoiceProfiles['Cloudtail'] = { base: 340, end: 270, dur: 0.35, type: 'triangle', vol: 0.12, vibrato: 4 };
-      // Update dialogue
-      catDialogue['Cloudtail'] = [
-        '"I\'m a warrior now! Did you see the look on Darkstr— oh wait, he\'s gone."',
-        '"I don\'t care what anyone says about kittypet blood. I earned my name!"',
-        '"Brightpaw is still an apprentice though... I hope she gets her name soon."',
-        '"Have you visited Princess lately? Tell her I\'m doing great!"',
-      ];
-      revealCatNames(['Cloudtail', 'Brightpaw']);
-      placeCatsInCamp(); saveGame();
-      queueMessage('Narrator', 'Cloudtail is now a warrior! But some apprentices still wait for their chance to prove themselves...');
-      showNextChapterButton();
-    });
-  }
-
-  /* ====================================================
-     CHAPTER 18: SWIFTPAW & BRIGHTPAW
-     ==================================================== */
-  function triggerSwiftpawBrightpaw () {
-    gameState = 'cutscene';
-    var pName = player.name || 'warrior';
-    var sp = npcCats.find(function (c) { return c.name === 'Swiftpaw'; });
-    var bp = npcCats.find(function (c) { return c.name === 'Brightpaw'; });
-
-    var scenes = [
-      { narration: true, text: 'Bluestar has been growing more distant and paranoid. She refuses to make any more apprentices into warriors, convinced that StarClan has abandoned ThunderClan.',
-        camPos: { x: 0, y: 4, z: 3 }, camLook: { x: -3, y: 3.5, z: -4 } },
-      { speaker: 'Swiftpaw', text: '"I\'ve had ENOUGH! Bluestar won\'t give us our warrior names no matter what we do! We have to prove ourselves!"',
-        camPos: { x: DEN_SPOTS['Apprentices'].x, y: 2, z: DEN_SPOTS['Apprentices'].z + 2 },
-        camLook: { x: DEN_SPOTS['Apprentices'].x + 1, y: 1, z: DEN_SPOTS['Apprentices'].z } },
-      { speaker: 'Brightpaw', text: '"What are you planning, Swiftpaw?"',
-        camPos: { x: DEN_SPOTS['Apprentices'].x - 1, y: 1.5, z: DEN_SPOTS['Apprentices'].z + 1 },
-        camLook: { x: DEN_SPOTS['Apprentices'].x + 1, y: 0.8, z: DEN_SPOTS['Apprentices'].z } },
-      { speaker: 'Swiftpaw', text: '"There\'s something dangerous in Snakerocks — everyone talks about it but no one will face it. If WE defeat it, Bluestar will HAVE to make us warriors!"',
-        camPos: { x: DEN_SPOTS['Apprentices'].x + 1, y: 2, z: DEN_SPOTS['Apprentices'].z + 2 },
-        camLook: { x: DEN_SPOTS['Apprentices'].x, y: 1, z: DEN_SPOTS['Apprentices'].z } },
-      { speaker: 'Brightpaw', text: '"I... okay. Let\'s do it. Together."',
-        camPos: { x: DEN_SPOTS['Apprentices'].x - 1, y: 1.5, z: DEN_SPOTS['Apprentices'].z },
-        camLook: { x: DEN_SPOTS['Apprentices'].x + 1, y: 0.8, z: DEN_SPOTS['Apprentices'].z } },
-      { narration: true, text: 'That night, Swiftpaw and Brightpaw sneak out of camp together, heading for Snakerocks where the dog pack has been lurking...',
-        camPos: { x: 10, y: 4, z: 15 }, camLook: { x: 20, y: 1, z: 25 },
-        onShow: function () { setNightMode(); } },
-      { narration: true, text: '<em>The next morning, a patrol finds them.</em> The scene is terrible. Signs of a savage battle with the dogs are everywhere.',
-        camPos: { x: 25, y: 3, z: 20 }, camLook: { x: 28, y: 0.5, z: 22 } },
-      { narration: true, text: '<strong>Swiftpaw is dead.</strong> He fought bravely to the very end, but the dogs were too many and too powerful.',
-        camPos: { x: 27, y: 1.5, z: 21 }, camLook: { x: 28, y: 0.3, z: 22 } },
-      { narration: true, text: 'Brightpaw is alive — barely. She is terribly injured. Half her face is torn and scarred. But she survived because Swiftpaw protected her with his last breath.',
-        camPos: { x: 26, y: 1.5, z: 22 }, camLook: { x: 27, y: 0.5, z: 22 } },
-      { narration: true, text: 'The Clan carries Brightpaw back to camp. Yellowfang works through the night to save her life.',
-        camPos: { x: 0, y: 4, z: 5 }, camLook: { x: -10, y: 1, z: 3 },
-        onShow: function () { setDayMode(); } },
-      { speaker: 'Yellowfang', text: '"She will live. But her wounds... they will never fully heal. She has lost the sight in one eye."',
-        camPos: { x: -10, y: 2, z: 3 }, camLook: { x: -10, y: 1, z: 3 } },
-      { narration: true, text: 'Bluestar visits Brightpaw\'s side. Her eyes are hollow, haunted. She stares at the wounded apprentice as if seeing a ghost.',
-        camPos: { x: -10, y: 2, z: 4 }, camLook: { x: -10, y: 1, z: 3 } },
-      { speaker: 'Bluestar', text: '"This apprentice... she was mauled by the pack. Very well. I shall give her a warrior name that she has earned."',
-        camPos: { x: -11, y: 2.5, z: 3 }, camLook: { x: -10, y: 1, z: 3 } },
-      { speaker: 'Bluestar', text: '"From this moment on, she shall be known as... <strong>Lostface</strong>. So that every cat may remember what happens when StarClan turns its back on us."',
-        camPos: { x: -11, y: 3, z: 2 }, camLook: { x: -10, y: 1, z: 3 } },
-      { narration: true, text: 'The Clan gasps in horror. Lostface — what a cruel name! Cloudtail rushes to her side, his eyes blazing with fury.',
-        camPos: { x: 0, y: 3, z: 4 }, camLook: { x: -10, y: 1, z: 3 } },
-      { speaker: 'Cloudtail', text: '"That\'s NOT her name! She\'s brave and beautiful and she fought the dogs! How dare you give her that name, Bluestar?!"',
-        camPos: { x: -9, y: 1.5, z: 4 }, camLook: { x: -10, y: 0.8, z: 3 } },
-      { narration: true, text: '<em>Swiftpaw is gone. Brightpaw — now cruelly named Lostface — bears terrible scars. But Cloudtail vows to stand by her side, no matter what.</em>',
-        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
-    ];
-    startCutscene(scenes, function () {
-      gameState = 'playing';
-      // Swiftpaw has died
-      departedCats.add('Swiftpaw');
-      if (sp) { sp.group.visible = false; }
-      // Rename Brightpaw → Lostface
-      renameCat('Brightpaw', 'Lostface');
-      // Update voice for Lostface (quieter, sadder)
-      catVoiceProfiles['Lostface'] = { base: 380, end: 300, dur: 0.38, type: 'sine', vol: 0.09, vibrato: 3 };
-      catDialogue['Lostface'] = [
-        '"Cloudtail says I\'m beautiful. He doesn\'t care about the scars."',
-        '"I miss Swiftpaw every day. He was so brave..."',
-        '"Bluestar gave me this name... but it won\'t be my name forever. I know it."',
-        '"The dogs... I can still hear them sometimes. But I won\'t let fear control me."',
-      ];
-      revealCatNames(['Lostface']);
-      placeCatsInCamp(); saveGame();
-      queueMessage('Narrator', 'Swiftpaw is dead and Brightpaw has been cruelly renamed Lostface by Bluestar. The dog pack is still out there, and Tigerclaw is behind it all...');
-      showNextChapterButton();
-    });
-  }
-
-  /* ====================================================
-     CHAPTER 19: A DANGEROUS PATH
+     CHAPTER 13: A DANGEROUS PATH
      ==================================================== */
   function triggerDangerousPath () {
     gameState = 'cutscene';
     const pName = player.name || 'warrior';
+
+    // Spawn the dog pack at the camp entrance so they are VISIBLE
+    spawnDogPack([
+      { x: 8, z: 18 }, { x: 12, z: 20 }, { x: 5, z: 22 },
+      { x: 15, z: 17 }, { x: 10, z: 24 }, { x: 3, z: 19 }
+    ]);
+
     const scenes = [
       { narration: true, text: 'Dark times fall upon the forest. A pack of savage dogs has been sighted in ThunderClan territory — huge, vicious beasts that kill without mercy.',
-        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 0, y: 1, z: -5 } },
+        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 10, y: 1, z: 20 } },
+      { narration: true, text: 'You hear them before you see them — deep, guttural growling coming from the undergrowth. Then you spot them: SIX enormous dogs, their teeth bared and eyes wild!',
+        camPos: { x: 8, y: 3, z: 15 }, camLook: { x: 10, y: 1, z: 20 } },
       { narration: true, text: 'Worse still, you discover a trail of dead rabbits leading from ShadowClan territory straight to the ThunderClan camp — someone is LURING the dogs here!',
         camPos: { x: 15, y: 3, z: 20 }, camLook: { x: 10, y: 0.5, z: 15 } },
       { narration: true, text: '<em>Tigerclaw.</em> Even in exile, he plots to destroy ThunderClan. He is leading the dog pack right to your camp!',
-        camPos: { x: 30, y: 4, z: -25 }, camLook: { x: 25, y: 1, z: -30 } },
+        camPos: { x: 12, y: 4, z: 22 }, camLook: { x: 10, y: 1, z: 20 } },
       { speaker: 'Bluestar', text: '"We must lead the dogs away from camp. ' + pName + ', organize a relay of cats to lure them toward the gorge!"',
         camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
       { narration: true, text: '<em>You must save the Clan from Tigerclaw\'s terrible plan. The dog pack must be stopped!</em>',
@@ -8398,7 +8290,7 @@ window.onerror = function(msg, url, line, col, err) {
     ];
     startCutscene(scenes, () => {
       gameState = 'playing'; placeCatsInCamp(); saveGame();
-      queueMessage('Narrator', 'Tigerclaw is luring a dog pack to ThunderClan\'s camp! You must organize a plan to lead them away. The Clan\'s survival depends on it.');
+      queueMessage('Narrator', 'Tigerclaw is luring a dog pack to ThunderClan\'s camp! You can see the dogs prowling near the entrance! Organize a plan to lead them toward the gorge!');
       showNextChapterButton();
     });
   }
@@ -8409,23 +8301,63 @@ window.onerror = function(msg, url, line, col, err) {
   function triggerDogPack () {
     gameState = 'cutscene';
     const pName = player.name || 'warrior';
+
+    // Move dogs along the chase path during cutscene
+    // If dogs aren't spawned yet, spawn them at forest edge
+    if (dogModels.length === 0) {
+      spawnDogPack([
+        { x: 8, z: 18 }, { x: 12, z: 20 }, { x: 5, z: 22 },
+        { x: 15, z: 17 }, { x: 10, z: 24 }, { x: 3, z: 19 }
+      ]);
+    }
+
     const scenes = [
       { narration: true, text: 'The plan is set! A relay of ThunderClan\'s fastest cats will lure the dog pack along a trail, one by one, leading them toward the river gorge!',
-        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 20, y: 1, z: 30 } },
-      { narration: true, text: 'The howling of dogs echoes through the forest! The pack charges toward camp — but the relay cats spring into action!',
-        camPos: { x: 15, y: 4, z: 20 }, camLook: { x: 20, y: 1, z: 25 } },
+        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 10, y: 1, z: 20 } },
+      { narration: true, text: 'The howling of dogs echoes through the forest! The pack charges toward camp — six massive beasts with drool flying from their jaws!',
+        camPos: { x: 10, y: 4, z: 18 }, camLook: { x: 12, y: 1, z: 20 },
+        onShow: function () {
+          // Move dogs toward the forest trail
+          dogModels.forEach(function (d, i) {
+            d.position.set(15 + i * 3, 0, 20 + i * 2);
+            d.rotation.y = -Math.PI * 0.3;
+          });
+        } },
       { narration: true, text: 'One by one, each cat runs as fast as they can before the next takes over. The dogs follow, snarling and snapping at every tail!',
-        camPos: { x: 30, y: 5, z: 10 }, camLook: { x: 40, y: 1, z: 5 } },
+        camPos: { x: 30, y: 5, z: 10 }, camLook: { x: 40, y: 1, z: 5 },
+        onShow: function () {
+          dogModels.forEach(function (d, i) {
+            d.position.set(35 + i * 3, 0, 8 + i * 2);
+            d.rotation.y = -Math.PI * 0.1;
+          });
+        } },
       { narration: true, text: 'You are the last cat in the relay — the anchor! The dogs barrel toward you, their eyes wild with bloodlust!',
-        camPos: { x: 60, y: 3, z: -5 }, camLook: { x: 65, y: 1, z: -8 } },
+        camPos: { x: 60, y: 3, z: -5 }, camLook: { x: 55, y: 1, z: -3 },
+        onShow: function () {
+          dogModels.forEach(function (d, i) {
+            d.position.set(55 + i * 2, 0, -3 + i);
+            d.rotation.y = Math.PI * 0.5;
+          });
+        } },
       { narration: true, text: 'You run with everything you have! The gorge is just ahead — you can hear the river roaring below!',
-        camPos: { x: 68, y: 3, z: -10 }, camLook: { x: 72, y: 1, z: -12 } },
+        camPos: { x: 68, y: 3, z: -10 }, camLook: { x: 72, y: 1, z: -12 },
+        onShow: function () {
+          dogModels.forEach(function (d, i) {
+            d.position.set(65 + i * 2, 0, -8 - i);
+            d.rotation.y = 0;
+          });
+        } },
       { narration: true, text: 'At the very last moment, you leap aside! The lead dog tries to stop — but the pack behind pushes them over the edge! The dogs tumble into the gorge!',
-        camPos: { x: 73, y: 5, z: -10 }, camLook: { x: 75, y: -2, z: -12 } },
+        camPos: { x: 73, y: 5, z: -10 }, camLook: { x: 75, y: -2, z: -12 },
+        onShow: function () {
+          // Dogs fall off — hide them!
+          removeDogPack();
+        } },
       { narration: true, text: 'The dog pack is gone! But as you catch your breath, you see Bluestar standing at the edge of the gorge — she pushed the last dog off, but she\'s slipping!',
         camPos: { x: 74, y: 3, z: -11 }, camLook: { x: 75, y: 0, z: -12 } },
     ];
     startCutscene(scenes, () => {
+      removeDogPack(); // make sure dogs are cleaned up
       gameState = 'playing'; placeCatsInCamp(); saveGame();
       queueMessage('Narrator', 'The dog pack has been defeated! But Bluestar is in danger at the gorge edge...');
       showNextChapterButton();
@@ -8504,43 +8436,9 @@ window.onerror = function(msg, url, line, col, err) {
       playerNameEl.textContent = leaderName;
       player.level = (player.level || 1) + 3;
       player.maxHealth = 200; player.health = 200;
-
-      // As leader, rename Lostface → Brightheart
-      var lf = npcCats.find(function (c) { return c.name === 'Lostface'; });
-      if (lf) {
-        // Show a special renaming scene
-        var renameScenes = [
-          { narration: true, text: 'As your first act as leader, there is something you must set right. You call the scarred warrior forward.',
-            camPos: { x: 0, y: 3.5, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
-          { speaker: leaderName, text: '"Lostface, I want to give you back the name you deserve. Bluestar was wrong to name you as she did."',
-            camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: 0, y: 1, z: 2 } },
-          { speaker: leaderName, text: '"From this moment on, you will be known as <strong>Brightheart</strong>. Because your heart has always been the brightest in all of ThunderClan."',
-            camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: 0, y: 1.2, z: 2 } },
-          { narration: true, text: '"BRIGHTHEART! BRIGHTHEART!" The Clan cheers louder than ever. Cloudtail\'s eyes shine with joy as he presses his muzzle against hers.',
-            camPos: { x: 0, y: 5, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
-          { speaker: 'Brightheart', text: '"Thank you, ' + leaderName + '. Thank you... I finally feel like myself again."',
-            camPos: { x: 1, y: 2, z: 3 }, camLook: { x: 0, y: 1, z: 2 } },
-        ];
-        startCutscene(renameScenes, function () {
-          renameCat('Lostface', 'Brightheart');
-          catVoiceProfiles['Brightheart'] = { base: 400, end: 330, dur: 0.35, type: 'sine', vol: 0.11, vibrato: 4 };
-          catDialogue['Brightheart'] = [
-            '"Brightheart... I love my new name. Thank you, ' + leaderName + '!"',
-            '"Cloudtail and I are going to be the best warriors ThunderClan has ever seen."',
-            '"I carry Swiftpaw\'s memory with me always. He was so brave."',
-            '"These scars remind me that I survived. I am stronger than ever."',
-          ];
-          revealCatNames(['Brightheart']);
-          gameState = 'playing';
-          placeCatsInCamp(); saveGame();
-          queueMessage('Narrator', 'You are ' + leaderName + ', leader of ThunderClan! You renamed Lostface to Brightheart — her true name. But Tigerclaw — now called Tigerstar — is building an army...');
-          showNextChapterButton();
-        });
-      } else {
-        placeCatsInCamp(); saveGame();
-        queueMessage('Narrator', 'You are ' + leaderName + ', leader of ThunderClan with nine lives! But Tigerclaw — now called Tigerstar — is building an army...');
-        showNextChapterButton();
-      }
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'You are ' + leaderName + ', leader of ThunderClan with nine lives! But Tigerclaw — now called Tigerstar — is building an army...');
+      showNextChapterButton();
     });
   }
 
@@ -9737,7 +9635,7 @@ window.onerror = function(msg, url, line, col, err) {
         revealCatNames([
           'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
           'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
-          'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Swiftpaw',
+          'Ravenpaw', 'Spottedleaf', 'Tigerclaw',
           'Frostfur', 'Brindleface', 'Goldenflower',
           'Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit'
         ]);
@@ -9956,7 +9854,6 @@ window.onerror = function(msg, url, line, col, err) {
       { name: 'Tigerclaw', x: DEN_SPOTS['Warriors'].x + 2, z: DEN_SPOTS['Warriors'].z },
       // Yellowfang NOT placed — she's ShadowClan and hasn't been found yet
       { name: 'Longtail', x: DEN_SPOTS['Warriors'].x - 2, z: DEN_SPOTS['Warriors'].z + 1 },
-      { name: 'Swiftpaw', x: DEN_SPOTS['Apprentices'].x + 3, z: DEN_SPOTS['Apprentices'].z },
       // Queens in the Nursery
       { name: 'Frostfur', x: DEN_SPOTS['Nursery'].x, z: DEN_SPOTS['Nursery'].z },
       { name: 'Brindleface', x: DEN_SPOTS['Nursery'].x - 1, z: DEN_SPOTS['Nursery'].z + 0.5 },
@@ -9996,6 +9893,7 @@ window.onerror = function(msg, url, line, col, err) {
     gameState = 'playing';
     storyPhase = storyPhase || 'playing';
     catGroup.visible = true;
+    removeDogPack(); // clear any leftover dog models
 
     // Restore saved position or default to camp
     const px = (player.position && player.position.x) || 2;
@@ -10361,10 +10259,7 @@ window.onerror = function(msg, url, line, col, err) {
     'Whitestorm': '#cccccc', 'Dustpaw': '#7a5533', 'Sandpaw': '#ddbb88',
     'Mousefur': '#8b6b4a', 'Darkstripe': '#555566', 'Ravenpaw': '#2a2a2a',
     'Spottedleaf': '#aa6633', 'Tigerclaw': '#5a3a1a', 'Yellowfang': '#555555',
-    'Longtail': '#ccbb99', 'Swiftpaw': '#333333',
-    'Smudge': '#333333', 'Princess': '#ccaa77',
-    'Cloudkit': '#ffffff', 'Cloudpaw': '#ffffff', 'Cloudtail': '#ffffff',
-    'Brightpaw': '#dddddd', 'Lostface': '#dddddd', 'Brightheart': '#dddddd',
+    'Longtail': '#ccbb99', 'Smudge': '#333333', 'Princess': '#ccaa77', 'Cloudkit': '#ffffff',
     // Queens
     'Frostfur': '#dddddd', 'Brindleface': '#999999', 'Goldenflower': '#ddaa55',
     // Kits
@@ -10515,7 +10410,7 @@ window.onerror = function(msg, url, line, col, err) {
 
   function getDenForCat (name) {
     if (KITTYPET_NAMES.includes(name)) return TWOLEG_HOUSE_SPOT;
-    const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw', 'Swiftpaw', 'Cloudpaw', 'Brightpaw'];
+    const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'];
     if (apprentices.includes(name)) return DEN_SPOTS['Apprentices'];
     if (name === 'Bluestar') return DEN_SPOTS['Leader'];
     if (name === 'Spottedleaf') return DEN_SPOTS['Medicine'];
@@ -10540,10 +10435,10 @@ window.onerror = function(msg, url, line, col, err) {
     if (name === 'Spottedleaf') return 'medicine';
     if (name === 'Yellowfang') return 'elder';
     if (name === 'Smudge' || name === 'Princess') return 'kittypet';
-    if (['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw', 'Swiftpaw', 'Cloudpaw', 'Brightpaw'].includes(name)) return 'apprentice';
+    if (['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'].includes(name)) return 'apprentice';
     if (QUEEN_NAMES.includes(name)) return 'queen';
     if (KIT_NAMES.includes(name)) return 'kit';
-    return 'warrior'; // Lionheart, Whitestorm, Tigerclaw, Mousefur, Darkstripe, Longtail, Cloudtail
+    return 'warrior'; // Lionheart, Whitestorm, Tigerclaw, Mousefur, Darkstripe, Longtail
   }
 
   function initNPCAI () {
@@ -11025,12 +10920,13 @@ window.onerror = function(msg, url, line, col, err) {
     const dt = Math.min(clock.getDelta(), 0.1);
     const time = clock.getElapsedTime();
 
-    // Always animate tails, legs, fireflies, water regardless of state
+    // Always animate tails, legs, fireflies, water, dogs regardless of state
     animateFireflies(time);
     animateTail(time);
     animateNPCTails(time);
     animateNPCLegs(dt);
     animateWater(time);
+    if (dogModels.length > 0) animateDogPack(dt);
 
     if (gameState === 'playing') {
       updatePlayer(dt);
@@ -11843,7 +11739,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     // --- CLAN CATS (blue dots) ---
     const thunderClanNames = ['Bluestar','Lionheart','Graypaw','Whitestorm','Dustpaw','Sandpaw',
-      'Mousefur','Darkstripe','Ravenpaw','Spottedleaf','Tigerclaw','Yellowfang','Longtail','Swiftpaw'];
+      'Mousefur','Darkstripe','Ravenpaw','Spottedleaf','Tigerclaw','Yellowfang','Longtail'];
     npcCats.forEach(npc => {
       if (!npc.group.visible) return;
       const p = toMap(npc.group.position.x, npc.group.position.z);
