@@ -691,6 +691,69 @@ html, body {
   display: none;
 }
 
+/* Delete confirmation dialog */
+#delete-confirm {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 600;
+}
+#delete-confirm.hidden { display: none; }
+
+.delete-confirm-box {
+  background: linear-gradient(135deg, rgba(50, 30, 20, 0.95), rgba(30, 15, 10, 0.98));
+  border: 2px solid rgba(255, 100, 80, 0.5);
+  border-radius: 16px;
+  padding: 30px 40px;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+.delete-confirm-box p {
+  color: #ffddcc;
+  font-size: 1.2rem;
+  margin: 0 0 20px 0;
+  font-family: 'Georgia', serif;
+}
+.delete-confirm-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.delete-confirm-btn {
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: 2px solid;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+.delete-yes {
+  background: rgba(180, 40, 40, 0.6);
+  border-color: rgba(255, 80, 80, 0.5);
+  color: #ff9999;
+}
+.delete-yes:hover {
+  background: rgba(220, 50, 50, 0.8);
+  border-color: #ff6666;
+  transform: scale(1.05);
+}
+.delete-no {
+  background: rgba(40, 80, 40, 0.6);
+  border-color: rgba(80, 180, 80, 0.5);
+  color: #aaddaa;
+}
+.delete-no:hover {
+  background: rgba(50, 120, 50, 0.8);
+  border-color: #66cc66;
+  transform: scale(1.05);
+}
+
 .save-back-btn {
   display: block;
   margin: 20px auto 0;

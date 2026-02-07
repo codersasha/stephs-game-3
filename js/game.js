@@ -4842,15 +4842,25 @@ window.onerror = function(msg, url, line, col, err) {
     document.querySelectorAll('.save-slot-content').forEach(el => {
       el.addEventListener('click', () => { pickSaveSlot(parseInt(el.id.split('-')[2])); });
     });
+    let pendingDeleteSlot = null;
     document.querySelectorAll('.save-delete-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        const slot = parseInt(btn.dataset.slot);
-        if (confirm('Delete this save?')) {
-          localStorage.removeItem('warriors-save-' + slot);
-          refreshSaveSlots();
-        }
+        pendingDeleteSlot = parseInt(btn.dataset.slot);
+        $('delete-confirm').classList.remove('hidden');
       });
+    });
+    $('delete-confirm-no').addEventListener('click', () => {
+      pendingDeleteSlot = null;
+      $('delete-confirm').classList.add('hidden');
+    });
+    $('delete-confirm-yes').addEventListener('click', () => {
+      if (pendingDeleteSlot) {
+        localStorage.removeItem('warriors-save-' + pendingDeleteSlot);
+        refreshSaveSlots();
+      }
+      pendingDeleteSlot = null;
+      $('delete-confirm').classList.add('hidden');
     });
 
     // Forest choice buttons (Smudge & Princess warning)
@@ -8546,13 +8556,24 @@ window.onerror = function(msg, url, line, col, err) {
               camPos: { x: 0, y: 15, z: 20 }, camLook: { x: 0, y: 2, z: 0 } },
             { narration: true, text: '<span class="prophecy">"Fire alone will save our Clan."</span><br><br>And you did.',
               camPos: { x: 0, y: 25, z: 40 }, camLook: { x: 0, y: 5, z: 0 } },
-            { narration: true, text: '<strong>CONGRATULATIONS!</strong><br><br><em>You have completed Warrior Cats: Into the Wild — The Prophecy Begins!</em><br><br>Thank you for playing!',
+            { narration: true, text: '<strong>CONGRATULATIONS!</strong><br><br><em>You have completed Warrior Cats: Into the Wild — The Prophecy Begins!</em>',
               camPos: { x: 0, y: 30, z: 55 }, camLook: { x: 0, y: 0, z: 0 } },
+            { narration: true, text: '<div style="text-align:center;font-size:1.3em;line-height:2.2"><strong style="font-size:1.5em">This game was made by</strong><br><br><strong style="font-size:1.8em;color:#ffcc44">Stephanie Morrissey</strong><br><br><em>All by herself!</em></div>',
+              camPos: { x: 0, y: 35, z: 60 }, camLook: { x: 0, y: 0, z: 0 } },
+            { narration: true, text: '<div style="text-align:center;font-size:1.2em;line-height:2">I hope you enjoyed this game!<br><br>Sorry, but you have lost your save game.<br>You\'ll have to start again!<br><br><strong>Thank you for playing!</strong></div>',
+              camPos: { x: 0, y: 40, z: 65 }, camLook: { x: 0, y: 0, z: 0 } },
           ];
           startCutscene(finalScenes, () => {
-            gameState = 'playing';
-            placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'Congratulations! You have defeated Scourge and saved the forest! The prophecy is fulfilled. You can continue to explore and enjoy the territory as ' + pName + ', leader of ThunderClan!');
+            // Delete this save slot — the game is over!
+            if (activeSaveSlot) {
+              localStorage.removeItem('warriors-save-' + activeSaveSlot);
+              activeSaveSlot = null;
+            }
+            // Go back to the title screen
+            gameState = 'title';
+            gameHud.classList.remove('visible');
+            var titleScreen = $('title-screen');
+            if (titleScreen) titleScreen.classList.remove('hidden');
           });
         },
         onLose: function () {
