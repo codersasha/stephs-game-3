@@ -253,10 +253,18 @@
     <div class="message-continue">Tap or press Space to continue</div>
   </div>
 
-  <!-- Three.js from CDN -->
+  <!-- Three.js from CDN (with fallback) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="js/game-logic.js"></script>
-  <script src="js/game.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.body.innerHTML = '<div style="color:#ff8c00;padding:40px;font-size:18px;background:#111;min-height:100vh;font-family:Georgia,serif">' +
+        '<h1>Could not load the game</h1>' +
+        '<p>Three.js failed to load. Please check your internet connection and refresh the page.</p>' +
+        '<button onclick="location.reload()" style="padding:12px 24px;font-size:16px;cursor:pointer;background:#ff8c00;border:none;color:#111;border-radius:8px;margin-top:20px">Retry</button></div>';
+    }
+  </script>
+  <script src="js/game-logic.js?v=14"></script>
+  <script src="js/game.js?v=14"></script>
 
 </body>
 </html>

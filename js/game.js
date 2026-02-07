@@ -3667,9 +3667,24 @@ window.onerror = function(msg, url, line, col, err) {
       return;
     }
     activeSaveSlot = slot;
-    const data = loadGame(slot);
+    let data;
+    try {
+      data = loadGame(slot);
+    } catch (e) {
+      console.error('Failed to load save slot', slot, e);
+      localStorage.removeItem('warriors-save-' + slot);
+      data = null;
+    }
     if (data && data.player) {
       player = data.player;
+      // Ensure player has required fields (backward compatibility)
+      if (!player.speed) player.speed = 5;
+      if (!player.sprintSpeed) player.sprintSpeed = 9;
+      if (!player.health) player.health = 100;
+      if (!player.maxHealth) player.maxHealth = 100;
+      if (!player.energy) player.energy = 100;
+      if (!player.maxEnergy) player.maxEnergy = 100;
+      if (!player.position) player.position = { x: 0, z: 0 };
       storyPhase = data.storyPhase || 'playing';
       fenceWarningTriggered = data.fenceWarningTriggered || false;
       graypawEncounterTriggered = data.graypawEncounterTriggered !== false;
