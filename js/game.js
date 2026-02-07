@@ -4882,63 +4882,53 @@ window.onerror = function(msg, url, line, col, err) {
     const role = ai.role;
     const roll = Math.random();
 
-    // --- LEADER (Bluestar): mostly in den or walking around camp ---
+    // --- LEADER (Bluestar): ALWAYS stays in camp — never leaves! ---
     if (role === 'leader') {
-      if (roll < 0.35) {
+      if (roll < 0.40) {
         // Rest in Leader's Den
         ai.task = 'rest';
         ai.target = { x: DEN_SPOTS['Leader'].x + (Math.random()-0.5)*1.5, z: DEN_SPOTS['Leader'].z + (Math.random()-0.5)*1.5 };
-        ai.timer = 15 + Math.random() * 15;
-      } else if (roll < 0.65) {
-        // Walk around camp (talk to cats)
+        ai.timer = 15 + Math.random() * 20;
+      } else if (roll < 0.70) {
+        // Walk around camp (talk to cats) — ONLY within camp clearing
         ai.task = 'patrol';
         const angle = Math.random() * Math.PI * 2;
-        const dist = 3 + Math.random() * 8; // stays within camp
+        const dist = 2 + Math.random() * 6; // max 8 units from center — stays inside camp
         ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
         ai.timer = 10 + Math.random() * 10;
-      } else if (roll < 0.80) {
+      } else if (roll < 0.85) {
         // Stand on Highrock
         ai.task = 'patrol';
         ai.target = { x: -3, z: -3.5 };
         ai.timer = 8 + Math.random() * 8;
-      } else if (roll < 0.90) {
-        // Eat at fresh-kill pile
+      } else {
+        // Eat at fresh-kill pile (in camp — no drinking at the stream)
         ai.task = 'eat';
         ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
         ai.timer = 8;
-      } else {
-        // Drink
-        ai.task = 'drink';
-        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
-        ai.timer = 15;
       }
       return;
     }
 
-    // --- MEDICINE CAT (Spottedleaf): mostly in medicine den, sometimes walks camp ---
+    // --- MEDICINE CAT (Spottedleaf): ALWAYS stays in camp — mostly in medicine den ---
     if (role === 'medicine') {
-      if (roll < 0.50) {
-        // Stay in Medicine Den
+      if (roll < 0.55) {
+        // Stay in Medicine Den (her main spot)
         ai.task = 'rest';
         ai.target = { x: DEN_SPOTS['Medicine'].x + (Math.random()-0.5)*2, z: DEN_SPOTS['Medicine'].z + (Math.random()-0.5)*2 };
-        ai.timer = 15 + Math.random() * 20;
+        ai.timer = 20 + Math.random() * 25;
       } else if (roll < 0.80) {
-        // Walk around camp (checking on cats)
+        // Walk around camp (checking on cats) — ONLY within camp clearing
         ai.task = 'patrol';
         const angle = Math.random() * Math.PI * 2;
-        const dist = 3 + Math.random() * 8;
+        const dist = 2 + Math.random() * 5; // max 7 units — stays inside camp
         ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
         ai.timer = 8 + Math.random() * 8;
-      } else if (roll < 0.92) {
-        // Eat
+      } else {
+        // Eat at fresh-kill pile (no drinking at the stream — stays in camp)
         ai.task = 'eat';
         ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
         ai.timer = 8;
-      } else {
-        // Drink
-        ai.task = 'drink';
-        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
-        ai.timer = 15;
       }
       return;
     }
