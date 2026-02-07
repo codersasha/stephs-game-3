@@ -80,7 +80,6 @@ window.onerror = function(msg, url, line, col, err) {
 
   /* ---------- input ---------- */
   const keys = {};
-  let isPointerLocked = false;
   let cameraAngleY = 0, cameraAngleX = 0; // 0 = level, negative = look up, positive = look down
   let joystickInput = { x: 0, z: 0 };
   let isMobile = false;
@@ -2057,19 +2056,24 @@ window.onerror = function(msg, url, line, col, err) {
     });
     window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
 
+    // Left click: talk to cats (no pointer lock — cursor is always visible)
     renderer.domElement.addEventListener('click', (e) => {
       if (gameState === 'playing' && !isMobile) {
-        if (!isPointerLocked) {
-          // First click: try talking to a cat, if not, lock pointer
-          if (!tryTalkByRaycast(e.clientX, e.clientY)) {
-            renderer.domElement.requestPointerLock();
-          }
-        }
+        tryTalkByRaycast(e.clientX, e.clientY);
       }
     });
-    document.addEventListener('pointerlockchange', () => { isPointerLocked = document.pointerLockElement === renderer.domElement; });
+
+    // Right-click drag: look around (camera control without hiding cursor)
+    let isRightDragging = false;
+    renderer.domElement.addEventListener('mousedown', (e) => {
+      if (e.button === 2 && gameState === 'playing') { isRightDragging = true; }
+    });
+    document.addEventListener('mouseup', (e) => {
+      if (e.button === 2) { isRightDragging = false; }
+    });
+    renderer.domElement.addEventListener('contextmenu', (e) => { e.preventDefault(); }); // prevent right-click menu
     document.addEventListener('mousemove', e => {
-      if (isPointerLocked) {
+      if (isRightDragging) {
         cameraAngleY -= e.movementX * 0.003;
         cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + e.movementY * 0.003));
       }
@@ -2126,6 +2130,28 @@ window.onerror = function(msg, url, line, col, err) {
     });
     $('confirm-go-forest').addEventListener('click', () => { playerChoseForest(); });
     $('confirm-stay-home').addEventListener('click', () => { playerStayedHome(); });
+
+    // HUD Save button — save game immediately
+    $('hud-save-btn').addEventListener('click', () => {
+      if (gameState === 'playing' || gameState === 'cutscene') {
+        saveGame();
+        queueMessage('Narrator', 'Game saved!');
+      }
+    });
+
+    // HUD Saves button — open save management screen mid-game
+    $('hud-saves-btn').addEventListener('click', () => {
+      if (gameState === 'playing') {
+        openSaveManager();
+      }
+    });
+
+    // Save screen back button — return to game
+    $('save-back-btn').addEventListener('click', () => {
+      if (saveManagerMode) {
+        closeSaveManager();
+      }
+    });
 
     // mobile
     setupMobileControls();
@@ -2446,11 +2472,36 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      SAVE SLOTS
      ==================================================== */
+  let saveManagerMode = false; // true when viewing saves mid-game (not from title screen)
+  let savedGameState = null;   // preserve game state when opening save manager
+
   function goToSaveScreen () {
     gameState = 'saves';
+    saveManagerMode = false;
     titleScreen.classList.add('hidden');
     saveScreen.classList.remove('hidden');
+    $('save-screen-title').textContent = 'Choose a Save';
+    $('save-back-btn').classList.add('hidden');
     refreshSaveSlots();
+  }
+
+  /** Open save manager mid-game — view and delete saves without leaving the game */
+  function openSaveManager () {
+    savedGameState = gameState;
+    gameState = 'saves';
+    saveManagerMode = true;
+    saveScreen.classList.remove('hidden');
+    $('save-screen-title').textContent = 'Your Saves';
+    $('save-back-btn').classList.remove('hidden');
+    refreshSaveSlots();
+  }
+
+  /** Close save manager and return to game */
+  function closeSaveManager () {
+    saveScreen.classList.add('hidden');
+    gameState = savedGameState || 'playing';
+    saveManagerMode = false;
+    savedGameState = null;
   }
 
   function refreshSaveSlots () {
@@ -2492,6 +2543,11 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   function pickSaveSlot (slot) {
+    // If we're just viewing saves mid-game, don't load — just close the manager
+    if (saveManagerMode) {
+      closeSaveManager();
+      return;
+    }
     activeSaveSlot = slot;
     const data = loadGame(slot);
     if (data && data.player) {

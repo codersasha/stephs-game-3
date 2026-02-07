@@ -563,6 +563,31 @@ html, body {
   display: none;
 }
 
+.save-back-btn {
+  display: block;
+  margin: 20px auto 0;
+  background: linear-gradient(135deg, rgba(40, 60, 30, 0.85), rgba(20, 35, 15, 0.9));
+  border: 2px solid rgba(100, 160, 80, 0.5);
+  color: #ccddaa;
+  padding: 12px 30px;
+  border-radius: 10px;
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-back-btn:hover {
+  background: linear-gradient(135deg, rgba(60, 90, 40, 0.9), rgba(35, 55, 20, 0.95));
+  border-color: rgba(150, 220, 100, 0.7);
+  transform: scale(1.05);
+  color: #eeffcc;
+}
+
+.save-back-btn.hidden {
+  display: none;
+}
+
 /* ========================================
    Game HUD
    ======================================== */
@@ -626,6 +651,37 @@ html, body {
   color: #a0c0a0;
   font-style: italic;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.hud-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.hud-btn {
+  background: linear-gradient(135deg, rgba(40, 60, 30, 0.85), rgba(20, 35, 15, 0.9));
+  border: 2px solid rgba(100, 160, 80, 0.5);
+  color: #ccddaa;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: clamp(0.75rem, 2vw, 0.95rem);
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+
+.hud-btn:hover {
+  background: linear-gradient(135deg, rgba(60, 90, 40, 0.9), rgba(35, 55, 20, 0.95));
+  border-color: rgba(150, 220, 100, 0.7);
+  transform: scale(1.05);
+  color: #eeffcc;
+}
+
+.hud-btn:active {
+  transform: scale(0.95);
 }
 
 /* ========================================

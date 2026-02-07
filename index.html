@@ -38,30 +38,31 @@
   <!-- Save Slots Screen -->
   <div id="save-screen" class="hidden">
     <div class="save-screen-inner">
-      <div class="save-title">Choose a Save</div>
+      <div class="save-title" id="save-screen-title">Choose a Save</div>
       <div class="save-slots" id="save-slots">
         <div class="save-slot" data-slot="1">
           <div class="save-slot-content" id="save-slot-1">
             <div class="save-slot-label">Save 1</div>
             <div class="save-slot-info">- Empty -</div>
           </div>
-          <button class="save-delete-btn hidden" data-slot="1">X</button>
+          <button class="save-delete-btn hidden" data-slot="1">&#10060;</button>
         </div>
         <div class="save-slot" data-slot="2">
           <div class="save-slot-content" id="save-slot-2">
             <div class="save-slot-label">Save 2</div>
             <div class="save-slot-info">- Empty -</div>
           </div>
-          <button class="save-delete-btn hidden" data-slot="2">X</button>
+          <button class="save-delete-btn hidden" data-slot="2">&#10060;</button>
         </div>
         <div class="save-slot" data-slot="3">
           <div class="save-slot-content" id="save-slot-3">
             <div class="save-slot-label">Save 3</div>
             <div class="save-slot-info">- Empty -</div>
           </div>
-          <button class="save-delete-btn hidden" data-slot="3">X</button>
+          <button class="save-delete-btn hidden" data-slot="3">&#10060;</button>
         </div>
       </div>
+      <button class="save-back-btn hidden" id="save-back-btn">&#8592; Back to Game</button>
     </div>
   </div>
 
@@ -142,6 +143,10 @@
     </div>
     <div class="hud-right">
       <div class="hud-stat" id="player-name">Firepaw</div>
+      <div class="hud-buttons">
+        <button class="hud-btn" id="hud-save-btn" title="Save Game">&#128190; Save</button>
+        <button class="hud-btn" id="hud-saves-btn" title="View Saves">&#128193; Saves</button>
+      </div>
     </div>
     <div id="save-indicator" class="hidden">Saved!</div>
   </div>
