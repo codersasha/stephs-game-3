@@ -761,12 +761,20 @@ window.onerror = function(msg, url, line, col, err) {
     // Door step
     const step = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.15, 0.8), concreteMat);
     step.position.set(0, 0.55, -3.7); house.add(step);
-    // Cat flap
-    const flapFrame = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.05), trimMat);
-    flapFrame.position.set(0, 0.8, -3.63); house.add(flapFrame);
-    const flap = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.03),
+    // Cat flap (bigger and more visible so player can find it)
+    const flapFrame = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.08), trimMat);
+    flapFrame.position.set(0, 0.7, -3.63); house.add(flapFrame);
+    const flap = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.75, 0.03),
       new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 30 }));
-    flap.position.set(0, 0.75, -3.66); house.add(flap);
+    flap.position.set(0, 0.65, -3.66); house.add(flap);
+    // Glowing indicator around cat flap so player can see it
+    const flapGlow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.1, 0.02),
+      new THREE.MeshPhongMaterial({ color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 0.4, transparent: true, opacity: 0.5 }));
+    flapGlow.position.set(0, 0.7, -3.68); house.add(flapGlow);
+    // Label so player can see where the entrance is
+    const flapLabel = makeNameLabel('Cat Flap (Enter Here)', 1.5);
+    flapLabel.position.set(0, 2, -3.7);
+    house.add(flapLabel);
 
     /* --- WINDOWS (with frames, sills, crossbars, shutters) --- */
     function makeWindow (x, y, z) {
@@ -1563,12 +1571,13 @@ window.onerror = function(msg, url, line, col, err) {
     const wB = new THREE.Mesh(new THREE.BoxGeometry(41, 2, 0.5), wallMat);
     wB.position.set(0, 1, 95); scene.add(wB);
 
-    // House walls — with a gap for the cat flap (centered at x=0)
+    // House walls — with a wider gap for the cat flap (centered at x=0)
+    // Gap = 2.0 units wide (x = -1.0 to 1.0) so player (radius 0.4) can pass through
     // Left of cat flap
-    const wHouseL = new THREE.Mesh(new THREE.BoxGeometry(5.5, 2, 0.5), wallMat);
+    const wHouseL = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2, 0.5), wallMat);
     wHouseL.position.set(-3.25, 1, 81.7); scene.add(wHouseL);
     // Right of cat flap
-    const wHouseR = new THREE.Mesh(new THREE.BoxGeometry(5.5, 2, 0.5), wallMat);
+    const wHouseR = new THREE.Mesh(new THREE.BoxGeometry(4.5, 2, 0.5), wallMat);
     wHouseR.position.set(3.25, 1, 81.7); scene.add(wHouseR);
     // Left side of house
     const wHouseSL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2, 7), wallMat);
@@ -3621,9 +3630,9 @@ window.onerror = function(msg, url, line, col, err) {
   function startExploring () {
     gameState = 'playing';
     catGroup.visible = true;
-    // Place Rusty at the Twoleg house
-    player.position = { x: 0, y: 0, z: 82 };
-    catGroup.position.set(0, 0, 82);
+    // Place Rusty in the garden, in front of the cat flap so they can enter or leave
+    player.position = { x: 0, y: 0, z: 79 };
+    catGroup.position.set(0, 0, 79);
     storyPhase = 'house';
     graypawEncounterTriggered = false;
     bluestarEncounterTriggered = false;
@@ -4604,10 +4613,10 @@ window.onerror = function(msg, url, line, col, err) {
     if (smudge) { smudge.group.position.set(3, 0, 83); }
     if (princess) { princess.group.position.set(-3, 0, 84); }
 
-    // Put player back near the house — no cutscene needed, just go
+    // Put player back in the garden near the cat flap — no cutscene needed, just go
     gameState = 'playing';
-    player.position = { x: 0, y: 0, z: 80 };
-    catGroup.position.set(0, 0, 80);
+    player.position = { x: 0, y: 0, z: 79 };
+    catGroup.position.set(0, 0, 79);
     fenceWarningTriggered = false; // allow re-triggering when they approach again
     queueMessage('Narrator', 'You went back... but the forest still calls. Walk to the fence again when you\'re ready.');
   }
