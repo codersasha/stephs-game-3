@@ -398,6 +398,7 @@ window.onerror = function(msg, url, line, col, err) {
   function init () {
     try {
       isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      if (isMobile) document.body.classList.add('touch-device');
       initThreeJS();
       createForest();
       createHighrock();
@@ -2170,34 +2171,49 @@ window.onerror = function(msg, url, line, col, err) {
     // mobile
     setupMobileControls();
 
-    // touch camera
+    // Touch camera — drag anywhere on the right side of the screen to look around
+    // Uses right 60% of screen so tablets have plenty of room
     let touchCamId = null, ltx = 0, lty = 0;
+    const camSensitivity = 0.004;
+
     renderer.domElement.addEventListener('touchstart', e => {
       if (gameState !== 'playing') return;
       for (const t of e.changedTouches) {
-        // Try to talk to cat by tapping on them
+        // Try to talk to a cat by tapping on them
         if (tryTalkByRaycast(t.clientX, t.clientY)) return;
-        // Otherwise use right half for camera
-        if (t.clientX > window.innerWidth * 0.5) { touchCamId = t.identifier; ltx = t.clientX; lty = t.clientY; }
+        // Right 60% of screen = camera drag zone (more room on tablet)
+        if (t.clientX > window.innerWidth * 0.4) {
+          touchCamId = t.identifier;
+          ltx = t.clientX;
+          lty = t.clientY;
+        }
       }
     });
     renderer.domElement.addEventListener('touchmove', e => {
       e.preventDefault();
       for (const t of e.changedTouches) {
         if (t.identifier === touchCamId) {
-          cameraAngleY -= (t.clientX - ltx) * 0.005;
-          cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + (t.clientY - lty) * 0.005));
-          ltx = t.clientX; lty = t.clientY;
+          cameraAngleY -= (t.clientX - ltx) * camSensitivity;
+          cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + (t.clientY - lty) * camSensitivity));
+          ltx = t.clientX;
+          lty = t.clientY;
         }
       }
     });
-    renderer.domElement.addEventListener('touchend', e => { for (const t of e.changedTouches) if (t.identifier === touchCamId) touchCamId = null; });
+    renderer.domElement.addEventListener('touchend', e => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === touchCamId) touchCamId = null;
+      }
+    });
   }
 
   function setupMobileControls () {
     const jArea = $('joystick-area'), jStick = $('joystick-stick');
     const bSprint = $('btn-sprint'), bAction = $('btn-action');
     let jTid = null, jCenter = { x: 0, y: 0 };
+    // Bigger max joystick distance on tablets
+    const joyMax = (window.innerWidth > 768) ? 60 : 40;
+
     jArea.addEventListener('touchstart', e => {
       e.preventDefault(); const t = e.changedTouches[0]; jTid = t.identifier;
       const r = jArea.getBoundingClientRect(); jCenter = { x: r.left+r.width/2, y: r.top+r.height/2 };
@@ -2207,7 +2223,7 @@ window.onerror = function(msg, url, line, col, err) {
       for (const t of e.changedTouches) {
         if (t.identifier === jTid) {
           let dx = t.clientX - jCenter.x, dy = t.clientY - jCenter.y;
-          const d = Math.sqrt(dx*dx+dy*dy), mx = 40;
+          const d = Math.sqrt(dx*dx+dy*dy), mx = joyMax;
           if (d > mx) { dx = dx/d*mx; dy = dy/d*mx; }
           jStick.style.transform = `translate(${dx}px,${dy}px)`;
           joystickInput.x = dx/mx; joystickInput.z = dy/mx;

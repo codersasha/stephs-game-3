@@ -19,6 +19,9 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  overscroll-behavior: none;            /* prevent pull-to-refresh on mobile */
+  -webkit-overflow-scrolling: touch;
+  position: fixed;                       /* prevent iOS address bar bounce */
 }
 
 /* Three.js Canvas */
@@ -1189,19 +1192,21 @@ html, body {
 /* ========================================
    Responsive Adjustments
    ======================================== */
+
+/* Touch device controls: shown via JS class, not screen width */
+/* (iPads/tablets are wide but still need touch controls) */
+body.touch-device #mobile-controls.visible {
+  display: flex !important;
+}
+
+/* Hide touch controls on non-touch devices regardless of width */
+body:not(.touch-device) #mobile-controls {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .title-game-label {
     letter-spacing: 0.2em;
-  }
-  
-  #mobile-controls {
-    display: flex;
-  }
-}
-
-@media (min-width: 769px) {
-  #mobile-controls {
-    display: none !important;
   }
 }
 
@@ -1216,5 +1221,115 @@ html, body {
   
   .name-story {
     display: none;
+  }
+}
+
+/* ========================================
+   Tablet / iPad Enhancements (touch + wider screen)
+   ======================================== */
+@media (min-width: 769px) and (pointer: coarse) {
+  /* Bigger joystick for tablet-sized screens */
+  .joystick-area {
+    width: 200px;
+    height: 200px;
+  }
+
+  .joystick-base {
+    width: 170px;
+    height: 170px;
+    border: 3px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .joystick-stick {
+    width: 70px;
+    height: 70px;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  /* Bigger action buttons for easier tapping */
+  .action-btn {
+    width: 80px;
+    height: 80px;
+    font-size: 1rem;
+    border: 3px solid rgba(255, 255, 255, 0.45);
+  }
+
+  .action-buttons {
+    gap: 14px;
+  }
+
+  /* Bigger HUD buttons */
+  .hud-btn {
+    padding: 10px 20px;
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  }
+
+  /* Bigger battle buttons */
+  .battle-btn {
+    padding: 14px 28px;
+    font-size: clamp(1rem, 3vw, 1.3rem);
+  }
+
+  /* Bigger save slots for easier tapping */
+  .save-slot-content {
+    padding: 20px;
+  }
+
+  .save-delete-btn {
+    width: 54px;
+    font-size: 1.2rem;
+  }
+
+  /* Bigger choice buttons */
+  .choice-btn {
+    padding: 16px 32px;
+    font-size: clamp(1rem, 3vw, 1.3rem);
+  }
+
+  /* Bigger message box tap target */
+  #message-box {
+    padding: 20px 28px;
+  }
+
+  /* Bigger interact hint */
+  #interact-hint {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    padding: 12px 24px;
+  }
+}
+
+/* Small phone optimizations */
+@media (max-width: 480px) {
+  .joystick-area {
+    width: 120px;
+    height: 120px;
+  }
+
+  .joystick-base {
+    width: 100px;
+    height: 100px;
+  }
+
+  .joystick-stick {
+    width: 42px;
+    height: 42px;
+  }
+
+  .action-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 0.7rem;
+  }
+
+  .hud-btn {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+
+  #mobile-controls {
+    padding: 0 10px;
+    bottom: 10px;
   }
 }
