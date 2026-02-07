@@ -72,6 +72,7 @@ window.onerror = function(msg, url, line, col, err) {
   let npcCats = [];             // { group, name, data, label, known }
   let scentMarkerZones = [];    // { x, z, radius, clan } — yellow scent markers at borders
   let gardenWalls = [];         // invisible collision boxes around the garden fence
+  let houseWalls = [];          // invisible collision boxes for house walls (always block)
   let trees = [], rocks = [];
   let treeObjects = [], rockObjects = [];
 
@@ -363,6 +364,15 @@ window.onerror = function(msg, url, line, col, err) {
           gain.gain.setValueAtTime(0.08, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
           osc.start(); osc.stop(t + 0.5); break;
+        case 'eat':
+          // Happy munching sound
+          osc.frequency.setValueAtTime(300, t); osc.type = 'triangle';
+          osc.frequency.linearRampToValueAtTime(450, t + 0.1);
+          osc.frequency.linearRampToValueAtTime(350, t + 0.2);
+          osc.frequency.linearRampToValueAtTime(500, t + 0.3);
+          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          osc.start(); osc.stop(t + 0.35); break;
         case 'ambient':
           // Randomly pick a forest ambient sound
           gain.gain.value = 0; osc.start(); osc.stop(t + 0.01); // dummy, we use the functions below
@@ -925,12 +935,337 @@ window.onerror = function(msg, url, line, col, err) {
       bush.castShadow = true; house.add(bush);
     });
 
+    /* --- HOUSE INTERIOR (visible through the cat flap!) --- */
+    const floorMat = new THREE.MeshPhongMaterial({ color: 0xc4a87a, shininess: 15 });
+    const interiorWallMat = new THREE.MeshPhongMaterial({ color: 0xf5efe0, shininess: 5 });
+    const carpetMat = new THREE.MeshPhongMaterial({ color: 0x884444, shininess: 3 });
+
+    // Floor (wooden)
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 6.5), floorMat);
+    floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0.51, 0); house.add(floor);
+
+    // Carpet rug
+    const carpet = new THREE.Mesh(new THREE.PlaneGeometry(5, 3.5), carpetMat);
+    carpet.rotation.x = -Math.PI / 2; carpet.position.set(1, 0.52, 0.5); house.add(carpet);
+
+    // Interior walls (back side of exterior walls, lighter color)
+    const intWallF = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), interiorWallMat);
+    intWallF.position.set(0, 3, -3.1); house.add(intWallF);
+    const intWallB = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), interiorWallMat);
+    intWallB.position.set(0, 3, 3.1); intWallB.rotation.y = Math.PI; house.add(intWallB);
+    const intWallL = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 5), interiorWallMat);
+    intWallL.position.set(-5.05, 3, 0); intWallL.rotation.y = Math.PI / 2; house.add(intWallL);
+    const intWallR = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 5), interiorWallMat);
+    intWallR.position.set(5.05, 3, 0); intWallR.rotation.y = -Math.PI / 2; house.add(intWallR);
+
+    // Ceiling
+    const ceilingMat = new THREE.MeshPhongMaterial({ color: 0xfaf5ee, shininess: 3 });
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(10, 6.5), ceilingMat);
+    ceiling.rotation.x = Math.PI / 2; ceiling.position.set(0, 5.5, 0); house.add(ceiling);
+
+    // --- KITCHEN AREA (left side) ---
+    // Kitchen counter
+    const counterMat = new THREE.MeshPhongMaterial({ color: 0x8B7355, shininess: 20 });
+    const counterTopMat = new THREE.MeshPhongMaterial({ color: 0xd4d0c8, shininess: 40 });
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 0.8), counterMat);
+    counter.position.set(-3.5, 1.25, 2.5); counter.castShadow = true; house.add(counter);
+    const counterTop = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.08, 0.9), counterTopMat);
+    counterTop.position.set(-3.5, 2.04, 2.5); house.add(counterTop);
+
+    // Kitchen sink
+    const sinkMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 60 });
+    const sink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.15, 0.5), sinkMat);
+    sink.position.set(-3.5, 2.08, 2.5); house.add(sink);
+    // Faucet
+    const faucetMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, shininess: 80 });
+    const faucetBase = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.4, 6), faucetMat);
+    faucetBase.position.set(-3.5, 2.28, 2.2); house.add(faucetBase);
+    const faucetSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.25, 4), faucetMat);
+    faucetSpout.position.set(-3.5, 2.48, 2.35); faucetSpout.rotation.z = Math.PI / 2; house.add(faucetSpout);
+
+    // Fridge (tall white box)
+    const fridgeMat = new THREE.MeshPhongMaterial({ color: 0xf0f0f0, shininess: 30 });
+    const fridge = new THREE.Mesh(new THREE.BoxGeometry(1.0, 3, 0.8), fridgeMat);
+    fridge.position.set(-4.5, 2, 2.5); fridge.castShadow = true; house.add(fridge);
+    const fridgeHandle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.06), sinkMat);
+    fridgeHandle.position.set(-4.1, 2.5, 2.1); house.add(fridgeHandle);
+
+    // Kitchen cabinets on wall
+    const cabinetMat = new THREE.MeshPhongMaterial({ color: 0x9B8465, shininess: 10 });
+    const cabinet1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.4), cabinetMat);
+    cabinet1.position.set(-3, 4, 2.9); house.add(cabinet1);
+    const cabinet2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.4), cabinetMat);
+    cabinet2.position.set(-4.2, 4, 2.9); house.add(cabinet2);
+
+    // --- LIVING ROOM (right side) ---
+    // Sofa / couch
+    const sofaMat = new THREE.MeshPhongMaterial({ color: 0x5566aa, shininess: 8 });
+    const sofaBase = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.6, 1.0), sofaMat);
+    sofaBase.position.set(3.5, 0.8, 2); sofaBase.castShadow = true; house.add(sofaBase);
+    const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 0.25), sofaMat);
+    sofaBack.position.set(3.5, 1.5, 2.5); house.add(sofaBack);
+    // Sofa cushions
+    const cushionMat = new THREE.MeshPhongMaterial({ color: 0x6677bb, shininess: 5 });
+    const cushion1 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.15, 0.8), cushionMat);
+    cushion1.position.set(3, 1.18, 2); house.add(cushion1);
+    const cushion2 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.15, 0.8), cushionMat);
+    cushion2.position.set(4, 1.18, 2); house.add(cushion2);
+    // Sofa arm rests
+    const sofaArmL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 1.0), sofaMat);
+    sofaArmL.position.set(2.3, 1.05, 2); house.add(sofaArmL);
+    const sofaArmR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 1.0), sofaMat);
+    sofaArmR.position.set(4.7, 1.05, 2); house.add(sofaArmR);
+
+    // Coffee table
+    const tableMat = new THREE.MeshPhongMaterial({ color: 0x6b4226, shininess: 15 });
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.8), tableMat);
+    tableTop.position.set(3.5, 0.75, 0.8); house.add(tableTop);
+    // Table legs
+    for (const [tx, tz] of [[-0.6, -0.3], [0.6, -0.3], [-0.6, 0.3], [0.6, 0.3]]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 4), tableMat);
+      leg.position.set(3.5 + tx, 0.4, 0.8 + tz); house.add(leg);
+    }
+
+    // TV / screen on front wall
+    const tvMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 50 });
+    const tv = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, 0.08), tvMat);
+    tv.position.set(3, 3.2, -3.0); house.add(tv);
+    // TV screen glow
+    const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.85),
+      new THREE.MeshPhongMaterial({ color: 0x223355, emissive: 0x112233, emissiveIntensity: 0.4 }));
+    tvScreen.position.set(3, 3.2, -2.95); house.add(tvScreen);
+
+    // Bookshelf on left interior wall
+    const shelfMat = new THREE.MeshPhongMaterial({ color: 0x7a5a38, shininess: 10 });
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.5, 1.5), shelfMat);
+    shelf.position.set(-4.8, 1.75, -1); house.add(shelf);
+    // Books
+    const bookColors = [0xcc3333, 0x3333cc, 0x33aa33, 0xcccc33, 0x9933cc, 0xcc6633];
+    for (let b = 0; b < 6; b++) {
+      const book = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.3 + Math.random() * 0.15, 0.2),
+        new THREE.MeshPhongMaterial({ color: bookColors[b] }));
+      book.position.set(-4.7, 1 + b * 0.4, -1 + (Math.random() - 0.5) * 0.8); house.add(book);
+    }
+
+    // Dining table with chairs (center-back area)
+    const diningTop = new THREE.Mesh(new THREE.BoxGeometry(2, 0.06, 1.2), tableMat);
+    diningTop.position.set(-1.5, 1.3, -1.5); house.add(diningTop);
+    for (const [tx, tz] of [[-0.8, -0.5], [0.8, -0.5], [-0.8, 0.5], [0.8, 0.5]]) {
+      const dLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 4), tableMat);
+      dLeg.position.set(-1.5 + tx, 0.7, -1.5 + tz); house.add(dLeg);
+    }
+    // Chairs
+    const chairMat = new THREE.MeshPhongMaterial({ color: 0x7a5a38, shininess: 8 });
+    [-2.3, -0.7].forEach(cx => {
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.5), chairMat);
+      seat.position.set(cx, 0.85, -1.5); house.add(seat);
+      const chairBack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.06), chairMat);
+      chairBack.position.set(cx, 1.2, -1.75); house.add(chairBack);
+      for (const [lx, lz] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]]) {
+        const cLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.8, 4), chairMat);
+        cLeg.position.set(cx + lx, 0.45, -1.5 + lz); house.add(cLeg);
+      }
+    });
+
+    // Interior warm light
+    const interiorLight = new THREE.PointLight(0xffeecc, 0.6, 12);
+    interiorLight.position.set(0, 4.5, 0); house.add(interiorLight);
+
+    // Cat food bowl area inside (near front wall, by cat flap)
+    const indoorFoodBowl = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.08, 8, 12),
+      new THREE.MeshPhongMaterial({ color: 0xee5533, shininess: 30 }));
+    indoorFoodBowl.rotation.x = -Math.PI / 2; indoorFoodBowl.position.set(-1, 0.58, -2.5); house.add(indoorFoodBowl);
+    const indoorFood = new THREE.Mesh(new THREE.CircleGeometry(0.18, 8),
+      new THREE.MeshPhongMaterial({ color: 0x886644 }));
+    indoorFood.rotation.x = -Math.PI / 2; indoorFood.position.set(-1, 0.6, -2.5); house.add(indoorFood);
+
     // Label
     const hLabel = makeNameLabel('Twoleg House', 6.5);
     house.add(hLabel);
 
     house.position.set(0, 0, 85);
     scene.add(house);
+
+    /* --- TWOLEGS (humans that walk around inside the house) --- */
+    createTwolegs();
+  }
+
+  /* ====================================================
+     TWOLEGS (humans in the house)
+     ==================================================== */
+  let twolegs = [];
+
+  function createTwolegModel (color, height) {
+    const group = new THREE.Group();
+    const skinMat = new THREE.MeshPhongMaterial({ color: 0xffcc99, shininess: 10 });
+    const clothMat = new THREE.MeshPhongMaterial({ color: color, shininess: 8 });
+    const hairMat = new THREE.MeshPhongMaterial({ color: 0x553322, shininess: 5 });
+
+    // Body (torso)
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.35), clothMat);
+    torso.position.set(0, height * 0.55, 0); torso.castShadow = true; group.add(torso);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), skinMat);
+    head.position.set(0, height * 0.78, 0); head.castShadow = true; group.add(head);
+
+    // Hair
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), hairMat);
+    hair.position.set(0, height * 0.82, -0.02); hair.scale.set(1, 0.7, 1); group.add(hair);
+
+    // Eyes
+    const eyeMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), eyeMat);
+    eyeL.position.set(-0.08, height * 0.79, 0.18); group.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), eyeMat);
+    eyeR.position.set(0.08, height * 0.79, 0.18); group.add(eyeR);
+
+    // Smile
+    const smile = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.01),
+      new THREE.MeshPhongMaterial({ color: 0xcc6666 }));
+    smile.position.set(0, height * 0.73, 0.2); group.add(smile);
+
+    // Arms
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.15), clothMat);
+    armL.position.set(-0.38, height * 0.45, 0); group.add(armL);
+    group.armL = armL;
+    const armR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.15), clothMat);
+    armR.position.set(0.38, height * 0.45, 0); group.add(armR);
+    group.armR = armR;
+
+    // Legs
+    const legMat = new THREE.MeshPhongMaterial({ color: 0x334466, shininess: 8 });
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), legMat);
+    legL.position.set(-0.15, height * 0.17, 0); group.add(legL);
+    group.legL = legL;
+    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), legMat);
+    legR.position.set(0.15, height * 0.17, 0); group.add(legR);
+    group.legR = legR;
+
+    // Shoes
+    const shoeMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 15 });
+    const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.28), shoeMat);
+    shoeL.position.set(-0.15, 0.05, 0.04); group.add(shoeL);
+    const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.28), shoeMat);
+    shoeR.position.set(0.15, 0.05, 0.04); group.add(shoeR);
+
+    return group;
+  }
+
+  function createTwolegs () {
+    // Two Twolegs that live in the house — they walk around inside
+    const twoleg1 = createTwolegModel(0x5577aa, 2.8); // blue shirt
+    twoleg1.position.set(-2, 0, 85.5); // inside house (world coords)
+    scene.add(twoleg1);
+
+    const twoleg2 = createTwolegModel(0xcc6688, 2.5); // pink shirt (slightly shorter)
+    twoleg2.position.set(2, 0, 86.5);
+    scene.add(twoleg2);
+
+    twolegs = [
+      {
+        group: twoleg1, name: 'Twoleg',
+        ai: { state: 'idle', timer: 0, target: { x: -2, z: 85.5 }, walkSpeed: 0.8 },
+        _walkCycle: 0
+      },
+      {
+        group: twoleg2, name: 'Twoleg',
+        ai: { state: 'idle', timer: 0, target: { x: 2, z: 86.5 }, walkSpeed: 0.7 },
+        _walkCycle: 0
+      }
+    ];
+
+    // Add name labels
+    twolegs.forEach(tl => {
+      const label = makeNameLabel('Twoleg', 3.2);
+      tl.group.add(label);
+    });
+  }
+
+  function updateTwolegs (dt) {
+    if (!twolegs.length) return;
+    const houseCenter = { x: 0, z: 85 };
+    // House interior bounds (world coords): x ∈ [-4.5, 4.5], z ∈ [82, 88]
+    const hBounds = { minX: -4, maxX: 4, minZ: 82.5, maxZ: 87.5 };
+
+    twolegs.forEach(tl => {
+      const ai = tl.ai;
+      ai.timer -= dt;
+
+      if (ai.state === 'idle') {
+        if (ai.timer <= 0) {
+          // Pick a random spot inside the house to walk to
+          ai.target = {
+            x: hBounds.minX + Math.random() * (hBounds.maxX - hBounds.minX),
+            z: hBounds.minZ + Math.random() * (hBounds.maxZ - hBounds.minZ)
+          };
+          ai.state = 'walking';
+          ai.timer = 3 + Math.random() * 5;
+        }
+      }
+
+      if (ai.state === 'walking') {
+        const pos = tl.group.position;
+        const dx = ai.target.x - pos.x;
+        const dz = ai.target.z - pos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist < 0.3) {
+          ai.state = 'idle';
+          ai.timer = 2 + Math.random() * 4;
+          // Stop leg/arm animation
+          return;
+        }
+
+        const speed = ai.walkSpeed * dt;
+        pos.x += (dx / dist) * speed;
+        pos.z += (dz / dist) * speed;
+
+        // Face walking direction
+        tl.group.rotation.y = Math.atan2(dx, dz);
+
+        // Animate legs and arms
+        tl._walkCycle += dt * ai.walkSpeed * 3;
+        const swing = Math.sin(tl._walkCycle * 3) * 0.3;
+        if (tl.group.legL) tl.group.legL.rotation.x = swing;
+        if (tl.group.legR) tl.group.legR.rotation.x = -swing;
+        if (tl.group.armL) tl.group.armL.rotation.x = -swing * 0.5;
+        if (tl.group.armR) tl.group.armR.rotation.x = swing * 0.5;
+      }
+    });
+  }
+
+  /** Check if a Twoleg is near the player and let them interact */
+  function talkToNearestTwoleg () {
+    if (!player || !twolegs.length) return false;
+    const px = player.position.x, pz = player.position.z;
+    let nearest = null, nearDist = 3;
+
+    twolegs.forEach(tl => {
+      const dx = tl.group.position.x - px, dz = tl.group.position.z - pz;
+      const d = Math.sqrt(dx * dx + dz * dz);
+      if (d < nearDist) { nearest = tl; nearDist = d; }
+    });
+
+    if (nearest) {
+      // Feed the cat!
+      if (player.health < player.maxHealth) {
+        player.health = Math.min(player.maxHealth, player.health + 15);
+        queueMessage('Narrator', 'The Twoleg gives you some food! You eat happily and feel better. (+15 health)');
+        playSound('eat');
+      } else {
+        const lines = [
+          'The Twoleg reaches down and scratches behind your ears. You purr.',
+          'The Twoleg smiles at you and says something in Twoleg language.',
+          'The Twoleg gives you a gentle pat on the head.',
+          'The Twoleg picks up a toy and dangles it. You bat at it playfully.',
+          'The Twoleg opens a can of food and puts it in your bowl.'
+        ];
+        queueMessage('Narrator', lines[Math.floor(Math.random() * lines.length)]);
+      }
+      return true;
+    }
+    return false;
   }
 
   /* ====================================================
@@ -1020,12 +1355,27 @@ window.onerror = function(msg, url, line, col, err) {
     const wB = new THREE.Mesh(new THREE.BoxGeometry(41, 2, 0.5), wallMat);
     wB.position.set(0, 1, 95); scene.add(wB);
 
-    // House front wall (can't walk into the house!)
-    const wHouse = new THREE.Mesh(new THREE.BoxGeometry(12, 2, 0.5), wallMat);
-    wHouse.position.set(0, 1, 84.5); scene.add(wHouse);
+    // House walls — with a gap for the cat flap (centered at x=0)
+    // Left of cat flap
+    const wHouseL = new THREE.Mesh(new THREE.BoxGeometry(5.5, 2, 0.5), wallMat);
+    wHouseL.position.set(-3.25, 1, 81.7); scene.add(wHouseL);
+    // Right of cat flap
+    const wHouseR = new THREE.Mesh(new THREE.BoxGeometry(5.5, 2, 0.5), wallMat);
+    wHouseR.position.set(3.25, 1, 81.7); scene.add(wHouseR);
+    // Left side of house
+    const wHouseSL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2, 7), wallMat);
+    wHouseSL.position.set(-5.25, 1, 85); scene.add(wHouseSL);
+    // Right side of house
+    const wHouseSR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2, 7), wallMat);
+    wHouseSR.position.set(5.25, 1, 85); scene.add(wHouseSR);
+    // Back of house
+    const wHouseBack = new THREE.Mesh(new THREE.BoxGeometry(11, 2, 0.5), wallMat);
+    wHouseBack.position.set(0, 1, 88.3); scene.add(wHouseBack);
 
-    // Store walls for collision detection
-    gardenWalls = [wFL, wFR, wL, wR, wB, wHouse];
+    // Store garden fence walls (these stop blocking after leaving home)
+    gardenWalls = [wFL, wFR, wL, wR, wB];
+    // Store house walls (these ALWAYS block — only the cat flap gap lets you through)
+    houseWalls = [wHouseL, wHouseR, wHouseSL, wHouseSR, wHouseBack];
   }
 
   /* ====================================================
@@ -1036,23 +1386,23 @@ window.onerror = function(msg, url, line, col, err) {
     const roadMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
     const road = new THREE.Mesh(new THREE.PlaneGeometry(7, 200), roadMat);
     road.rotation.x = -Math.PI / 2;
-    road.position.set(-58.5, 0.03, 0);
+    road.position.set(-58.5, 0.06, 0);
     scene.add(road);
     // Yellow center line
     const lineMat = new THREE.MeshLambertMaterial({ color: 0xcccc00 });
     const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 200), lineMat);
     centerLine.rotation.x = -Math.PI / 2;
-    centerLine.position.set(-58.5, 0.04, 0);
+    centerLine.position.set(-58.5, 0.07, 0);
     scene.add(centerLine);
     // Dashed white edge lines
     for (let z = -95; z < 95; z += 6) {
       const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 3), new THREE.MeshLambertMaterial({ color: 0xffffff }));
       dash.rotation.x = -Math.PI / 2;
-      dash.position.set(-55.2, 0.04, z);
+      dash.position.set(-55.2, 0.07, z);
       scene.add(dash);
       const dash2 = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 3), new THREE.MeshLambertMaterial({ color: 0xffffff }));
       dash2.rotation.x = -Math.PI / 2;
-      dash2.position.set(-61.8, 0.04, z);
+      dash2.position.set(-61.8, 0.07, z);
       scene.add(dash2);
     }
     const tpLabel = makeNameLabel('Thunderpath', 3.0);
@@ -1104,8 +1454,9 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* --- SHADOWCLAN TERRITORY (dark pine forest, past Thunderpath) --- */
     const scGroundMat = new THREE.MeshLambertMaterial({ color: 0x2a3a20 });
+    scGroundMat.polygonOffset = true; scGroundMat.polygonOffsetFactor = -1; scGroundMat.polygonOffsetUnits = -1;
     const scGround = new THREE.Mesh(new THREE.PlaneGeometry(33, 200), scGroundMat);
-    scGround.rotation.x = -Math.PI / 2; scGround.position.set(-78.5, 0.04, 0);
+    scGround.rotation.x = -Math.PI / 2; scGround.position.set(-78.5, 0.08, 0);
     scene.add(scGround);
     const scLabel = makeNameLabel('ShadowClan Territory', 3.5);
     scLabel.position.set(-78, 0, 0);
@@ -1113,8 +1464,9 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* --- RIVERCLAN TERRITORY (past the river, marshy) --- */
     const rcGroundMat = new THREE.MeshLambertMaterial({ color: 0x3a6a45 });
+    rcGroundMat.polygonOffset = true; rcGroundMat.polygonOffsetFactor = -1; rcGroundMat.polygonOffsetUnits = -1;
     const rcGround = new THREE.Mesh(new THREE.PlaneGeometry(16, 200), rcGroundMat);
-    rcGround.rotation.x = -Math.PI / 2; rcGround.position.set(87, 0.05, 0);
+    rcGround.rotation.x = -Math.PI / 2; rcGround.position.set(87, 0.10, 0);
     scene.add(rcGround);
     // Reeds near water
     const reedMat = new THREE.MeshLambertMaterial({ color: 0x5a7a3a });
@@ -1130,8 +1482,9 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* --- WINDCLAN TERRITORY (open moorland, few trees) --- */
     const wcGroundMat = new THREE.MeshLambertMaterial({ color: 0x7a8a55 });
+    wcGroundMat.polygonOffset = true; wcGroundMat.polygonOffsetFactor = -2; wcGroundMat.polygonOffsetUnits = -2;
     const wcGround = new THREE.Mesh(new THREE.PlaneGeometry(200, 35), wcGroundMat);
-    wcGround.rotation.x = -Math.PI / 2; wcGround.position.set(0, 0.06, -77.5);
+    wcGround.rotation.x = -Math.PI / 2; wcGround.position.set(0, 0.12, -77.5);
     scene.add(wcGround);
     // Rolling hills
     for (let i = 0; i < 12; i++) {
@@ -1156,11 +1509,11 @@ window.onerror = function(msg, url, line, col, err) {
     for (let z = -80; z <= 80; z += 5) {
       // Bright yellow pad on the ground
       const pad = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 4.5), scentMat);
-      pad.rotation.x = -Math.PI / 2; pad.position.set(-50, 0.06, z);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(-50, 0.18, z);
       scene.add(pad);
       // Faint glow halo
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), scentGlowMat);
-      glow.rotation.x = -Math.PI / 2; glow.position.set(-50, 0.05, z);
+      glow.rotation.x = -Math.PI / 2; glow.position.set(-50, 0.17, z);
       scene.add(glow);
       // Small upright marker stone
       const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 5),
@@ -1172,10 +1525,10 @@ window.onerror = function(msg, url, line, col, err) {
     // RiverClan scent line (along x = 70)
     for (let z = -80; z <= 80; z += 5) {
       const pad = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 4.5), scentMat);
-      pad.rotation.x = -Math.PI / 2; pad.position.set(70, 0.06, z);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(70, 0.18, z);
       scene.add(pad);
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), scentGlowMat);
-      glow.rotation.x = -Math.PI / 2; glow.position.set(70, 0.05, z);
+      glow.rotation.x = -Math.PI / 2; glow.position.set(70, 0.17, z);
       scene.add(glow);
       const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 5),
         new THREE.MeshLambertMaterial({ color: 0x44aaaa }));
@@ -1186,10 +1539,10 @@ window.onerror = function(msg, url, line, col, err) {
     // WindClan scent line (along z = -55)
     for (let x = -50; x <= 70; x += 5) {
       const pad = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 2.5), scentMat);
-      pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.06, -55);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.18, -55);
       scene.add(pad);
       const glow = new THREE.Mesh(new THREE.PlaneGeometry(6, 4), scentGlowMat);
-      glow.rotation.x = -Math.PI / 2; glow.position.set(x, 0.05, -55);
+      glow.rotation.x = -Math.PI / 2; glow.position.set(x, 0.17, -55);
       scene.add(glow);
       const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.5, 5),
         new THREE.MeshLambertMaterial({ color: 0xaa8844 }));
@@ -1208,8 +1561,9 @@ window.onerror = function(msg, url, line, col, err) {
     /* --- HIGHSTONES & MOTHERMOUTH (far northwest, beyond WindClan) --- */
     // Rocky barren ground around Highstones
     const hsGroundMat = new THREE.MeshLambertMaterial({ color: 0x7a7a6a });
+    hsGroundMat.polygonOffset = true; hsGroundMat.polygonOffsetFactor = -3; hsGroundMat.polygonOffsetUnits = -3;
     const hsGround = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), hsGroundMat);
-    hsGround.rotation.x = -Math.PI / 2; hsGround.position.set(-80, 0.07, -95);
+    hsGround.rotation.x = -Math.PI / 2; hsGround.position.set(-80, 0.15, -95);
     scene.add(hsGround);
 
     // Highstones — jagged rocky hills
@@ -1253,7 +1607,7 @@ window.onerror = function(msg, url, line, col, err) {
     scene.add(caveHole);
     // Cave floor (leading in)
     const caveFloor = new THREE.Mesh(new THREE.PlaneGeometry(4, 6), hsDarkMat);
-    caveFloor.rotation.x = -Math.PI / 2; caveFloor.position.set(-80, 0.03, -95);
+    caveFloor.rotation.x = -Math.PI / 2; caveFloor.position.set(-80, 0.16, -95);
     scene.add(caveFloor);
 
     // The Moonstone — a shimmering crystal inside the cave
@@ -2350,6 +2704,11 @@ window.onerror = function(msg, url, line, col, err) {
     }
 
     if (!nearest) {
+      // Check for Twolegs nearby
+      if (talkToNearestTwoleg()) {
+        lastTalkTime = Date.now();
+        return;
+      }
       queueMessage('Narrator', 'There\'s no one close enough to talk to. Walk closer to a cat!');
       lastTalkTime = Date.now();
       return;
@@ -2636,12 +2995,26 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CUTSCENE SYSTEM
+     CUTSCENE SYSTEM — Cinematic with typewriter & transitions
      ==================================================== */
+  let typewriterInterval = null;
+  let typewriterDone = false;
+  let typewriterFullHTML = '';
+  let cutsceneCamLerp = null; // for smooth camera transitions
+
+  // Cat emoji / icon mapping for speaker portraits
+  const speakerIcons = {
+    'Bluestar':   '🐱', 'Lionheart':  '🦁', 'Tigerclaw':  '🐯',
+    'Spottedleaf':'🌸', 'Whitestorm': '⚪', 'Graypaw':    '🐺',
+    'Ravenpaw':   '🖤', 'Dustpaw':    '🟤', 'Sandpaw':    '🟡',
+    'Darkstripe': '🐱', 'Longtail':   '🐱', 'Yellowfang': '🟠',
+    'Smudge':     '🐱', 'Princess':   '👑', 'Narrator':   '📖',
+  };
+
   function startCutscene (scenes, onDone) {
     gameState = 'cutscene';
-    if (catGroup) catGroup.visible = true; // make sure cat is visible
-    setCatFirstPerson(false); // show full cat during cutscenes
+    if (catGroup) catGroup.visible = true;
+    setCatFirstPerson(false);
     cutsceneQueue = scenes.slice();
     cutsceneOverlay.classList.remove('hidden');
     cutsceneOverlay._onDone = onDone;
@@ -2650,38 +3023,178 @@ window.onerror = function(msg, url, line, col, err) {
 
   function showCutsceneSlide () {
     if (cutsceneQueue.length === 0) {
+      // Clean up
+      if (typewriterInterval) { clearInterval(typewriterInterval); typewriterInterval = null; }
+      cutsceneCamLerp = null;
       cutsceneOverlay.classList.add('hidden');
+      const speakerIcon = $('cutscene-speaker-icon');
+      if (speakerIcon) speakerIcon.classList.remove('visible');
       if (cutsceneOverlay._onDone) cutsceneOverlay._onDone();
       return;
     }
+
     const slide = cutsceneQueue[0];
-    let html = '';
-    if (slide.speaker) html += '<span class="speaker">' + slide.speaker + '</span>';
-    if (slide.narration) html += '<span class="narration">' + slide.text + '</span>';
-    else html += slide.text;
-    cutsceneText.innerHTML = html;
-    // camera move
-    if (slide.camPos) {
-      camera.position.set(slide.camPos.x, slide.camPos.y, slide.camPos.z);
+    const speakerIcon = $('cutscene-speaker-icon');
+
+    // --- Speaker portrait icon ---
+    if (speakerIcon) {
+      if (slide.speaker) {
+        speakerIcon.textContent = speakerIcons[slide.speaker] || '🐱';
+        speakerIcon.classList.remove('narration-icon');
+        speakerIcon.classList.add('visible');
+      } else if (slide.narration) {
+        speakerIcon.textContent = '✨';
+        speakerIcon.classList.add('narration-icon');
+        speakerIcon.classList.add('visible');
+      } else {
+        speakerIcon.classList.remove('visible');
+      }
     }
-    if (slide.camLook) {
-      camera.lookAt(new THREE.Vector3(slide.camLook.x, slide.camLook.y, slide.camLook.z));
+
+    // --- Title slide styling ---
+    const isTitle = slide.text && (slide.text.includes('WARRIOR CATS') || slide.text.includes('INTO THE WILD'));
+    if (isTitle) {
+      cutsceneText.classList.add('title-slide');
+    } else {
+      cutsceneText.classList.remove('title-slide');
     }
+
+    // --- Build HTML (but don't show it all at once — typewriter!) ---
+    let speakerHTML = '';
+    let bodyText = '';
+    if (slide.speaker) {
+      speakerHTML = '<span class="speaker">' + slide.speaker + '</span>';
+      bodyText = slide.text;
+    } else if (slide.narration) {
+      bodyText = '<span class="narration">' + slide.text + '</span>';
+    } else {
+      bodyText = slide.text;
+    }
+
+    // Store full HTML for skip-ahead
+    typewriterFullHTML = speakerHTML + bodyText;
+    typewriterDone = false;
+
+    // --- Typewriter effect ---
+    if (typewriterInterval) clearInterval(typewriterInterval);
+
+    // Extract plain text from body for typewriter (handle HTML tags gracefully)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = bodyText;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+
+    // Show speaker name immediately, type out the body
+    let charIdx = 0;
+    const typeSpeed = slide.narration ? 28 : 22; // ms per character (narration slightly slower)
+
+    // Start with speaker name + cursor
+    cutsceneText.innerHTML = speakerHTML + '<span class="typewriter-body"></span><span class="typewriter-cursor"></span>';
+    const bodyEl = cutsceneText.querySelector('.typewriter-body');
+
+    typewriterInterval = setInterval(() => {
+      if (charIdx >= plainText.length) {
+        clearInterval(typewriterInterval);
+        typewriterInterval = null;
+        typewriterDone = true;
+        // Replace with full HTML (includes formatting like <strong>, <em>)
+        cutsceneText.innerHTML = typewriterFullHTML;
+        return;
+      }
+      charIdx++;
+      // Show characters up to charIdx (plain text, preserving spaces)
+      if (bodyEl) bodyEl.textContent = plainText.substring(0, charIdx);
+
+      // Soft typing sound every few characters
+      if (charIdx % 3 === 0 && audioCtx) {
+        try {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.connect(g); g.connect(audioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = 800 + Math.random() * 400;
+          g.gain.value = 0.008;
+          osc.start(); osc.stop(audioCtx.currentTime + 0.02);
+        } catch (e) {}
+      }
+    }, typeSpeed);
+
+    // --- Smooth camera transition ---
+    if (slide.camPos || slide.camLook) {
+      const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+      const endPos = slide.camPos || startPos;
+
+      // Compute target quaternion for lookAt
+      const startQuat = camera.quaternion.clone();
+      if (slide.camLook) {
+        const tmpCam = camera.clone();
+        tmpCam.position.set(endPos.x, endPos.y, endPos.z);
+        tmpCam.lookAt(new THREE.Vector3(slide.camLook.x, slide.camLook.y, slide.camLook.z));
+        var endQuat = tmpCam.quaternion.clone();
+      } else {
+        var endQuat = startQuat.clone();
+      }
+
+      cutsceneCamLerp = {
+        startPos, endPos,
+        startQuat, endQuat,
+        t: 0,
+        duration: 0.8 // seconds
+      };
+    } else {
+      cutsceneCamLerp = null;
+    }
+
     // Play cat voice for speaker
     if (slide.speaker) {
       playCatVoice(slide.speaker);
     } else if (slide.narration) {
-      // Soft ambient sound for narration
       playWindRustle();
     }
   }
 
+  /** Called every frame to smoothly animate the camera during cutscenes */
+  function updateCutsceneCamera (dt) {
+    if (!cutsceneCamLerp) return;
+    const lerp = cutsceneCamLerp;
+    lerp.t += dt / lerp.duration;
+    if (lerp.t >= 1) {
+      lerp.t = 1;
+      camera.position.set(lerp.endPos.x, lerp.endPos.y, lerp.endPos.z);
+      camera.quaternion.copy(lerp.endQuat);
+      cutsceneCamLerp = null;
+      return;
+    }
+    // Smooth ease (cubic ease-in-out)
+    const e = lerp.t < 0.5 ? 4 * lerp.t * lerp.t * lerp.t : 1 - Math.pow(-2 * lerp.t + 2, 3) / 2;
+    camera.position.set(
+      lerp.startPos.x + (lerp.endPos.x - lerp.startPos.x) * e,
+      lerp.startPos.y + (lerp.endPos.y - lerp.startPos.y) * e,
+      lerp.startPos.z + (lerp.endPos.z - lerp.startPos.z) * e
+    );
+    camera.quaternion.slerpQuaternions(lerp.startQuat, lerp.endQuat, e);
+  }
+
   let lastCutsceneAdvance = 0;
   function advanceCutscene () {
-    // Prevent rapid clicks from skipping entire cutscene
     const now = Date.now();
-    if (now - lastCutsceneAdvance < 400) return;
+    if (now - lastCutsceneAdvance < 300) return;
     lastCutsceneAdvance = now;
+
+    // If typewriter is still typing, skip to full text first
+    if (!typewriterDone && typewriterInterval) {
+      clearInterval(typewriterInterval);
+      typewriterInterval = null;
+      typewriterDone = true;
+      cutsceneText.innerHTML = typewriterFullHTML;
+      // Also snap camera to final position
+      if (cutsceneCamLerp) {
+        camera.position.set(cutsceneCamLerp.endPos.x, cutsceneCamLerp.endPos.y, cutsceneCamLerp.endPos.z);
+        camera.quaternion.copy(cutsceneCamLerp.endQuat);
+        cutsceneCamLerp = null;
+      }
+      return; // First tap = finish text; second tap = next slide
+    }
+
     cutsceneQueue.shift();
     showCutsceneSlide();
   }
@@ -2710,8 +3223,8 @@ window.onerror = function(msg, url, line, col, err) {
 
     const scenes = [
       // --- PROLOGUE: The Battle ---
-      { narration: true, text: '<strong>WARRIOR CATS: INTO THE WILD</strong><br><em>The Prophecy Begins...</em>',
-        camPos: { x: 0, y: 20, z: 50 }, camLook: { x: 0, y: 0, z: 0 } },
+      { narration: true, text: '<strong>WARRIOR CATS: INTO THE WILD</strong><br><br><em>The Prophecy Begins...</em>',
+        camPos: { x: 0, y: 25, z: 55 }, camLook: { x: 0, y: 0, z: 0 } },
 
       { narration: true, text: 'The forest is dark. Moonlight filters through the canopy as the sounds of battle echo through the trees...',
         camPos: { x: 35, y: 3, z: -28 }, camLook: { x: 30, y: 1, z: -30 } },
@@ -2748,7 +3261,7 @@ window.onerror = function(msg, url, line, col, err) {
       { speaker: 'Bluestar', text: '"A prophecy? What did they say, Spottedleaf?"',
         camPos: { x: -5, y: 3, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-      { speaker: 'Spottedleaf', text: '"<em><strong>Fire alone will save our Clan.</strong></em>"',
+      { speaker: 'Spottedleaf', text: '<span class="prophecy">"Fire alone will save our Clan."</span>',
         camPos: { x: -9, y: 2.5, z: 4 }, camLook: { x: -10, y: 1.2, z: 3 } },
 
       { speaker: 'Bluestar', text: '"Fire? But fire is the enemy of every Clan... How can fire save us?"',
@@ -5239,6 +5752,7 @@ window.onerror = function(msg, url, line, col, err) {
       updateHUD();
       updateNPCAI(dt);
       updateBorderPatrols(dt);
+      updateTwolegs(dt);
       checkStoryTriggers();
       checkTrainingProximity();
       updateFollowers(dt);
@@ -5252,6 +5766,10 @@ window.onerror = function(msg, url, line, col, err) {
       if (Math.random() < 0.004) playSound('ambient');
     }
 
+    if (gameState === 'cutscene') {
+      updateCutsceneCamera(dt);
+    }
+
     if (gameState === 'title' || gameState === 'saves') {
       // Pan between the house and the forest for a nice title view
       camera.position.x = Math.sin(time * 0.06) * 20;
@@ -5263,28 +5781,34 @@ window.onerror = function(msg, url, line, col, err) {
     renderer.render(scene, camera);
   }
 
-  /** Check if position collides with garden fence walls (AABB box check).
-   *  Once the player has left home (storyPhase is no longer 'house'),
-   *  the garden fence walls stop blocking — you can freely visit Smudge & Princess. */
+  /** Check if position collides with walls (AABB box check).
+   *  Garden fence walls only block in 'house' phase.
+   *  House walls ALWAYS block (you enter through the cat flap gap). */
   function checkWallCollision (pos) {
-    // After leaving home, fence no longer blocks you
-    if (storyPhase !== 'house') return false;
-
     const px = pos.x, pz = pos.z;
     const r = 0.4; // player radius
-    for (let i = 0; i < gardenWalls.length; i++) {
-      const w = gardenWalls[i];
-      if (!w) continue;
-      const wx = w.position.x, wz = w.position.z;
-      // Get half-extents from the box geometry
-      const g = w.geometry.parameters;
-      const hx = g.width / 2, hz = g.depth / 2;
-      // AABB overlap check
-      if (px + r > wx - hx && px - r < wx + hx &&
-          pz + r > wz - hz && pz - r < wz + hz) {
-        return true;
+
+    function hitsWall (walls) {
+      for (let i = 0; i < walls.length; i++) {
+        const w = walls[i];
+        if (!w) continue;
+        const wx = w.position.x, wz = w.position.z;
+        const g = w.geometry.parameters;
+        const hx = g.width / 2, hz = g.depth / 2;
+        if (px + r > wx - hx && px - r < wx + hx &&
+            pz + r > wz - hz && pz - r < wz + hz) {
+          return true;
+        }
       }
+      return false;
     }
+
+    // House walls always block (only the cat flap gap is open)
+    if (hitsWall(houseWalls)) return true;
+
+    // Garden fence walls only block while still in the 'house' phase
+    if (storyPhase === 'house' && hitsWall(gardenWalls)) return true;
+
     return false;
   }
 
@@ -5432,7 +5956,24 @@ window.onerror = function(msg, url, line, col, err) {
         : 'Press E to talk to ' + displayName;
       interactHint.classList.remove('hidden');
     } else {
-      interactHint.classList.add('hidden');
+      // Check for Twolegs nearby
+      let nearTwoleg = null;
+      if (twolegs && twolegs.length) {
+        for (const tl of twolegs) {
+          const dx = tl.group.position.x - player.position.x;
+          const dz = tl.group.position.z - player.position.z;
+          const d = Math.sqrt(dx * dx + dz * dz);
+          if (d < 3) { nearTwoleg = tl; break; }
+        }
+      }
+      if (nearTwoleg) {
+        interactHintText.textContent = isMobile
+          ? 'Tap ACT to ask Twoleg for food'
+          : 'Press E to ask Twoleg for food';
+        interactHint.classList.remove('hidden');
+      } else {
+        interactHint.classList.add('hidden');
+      }
     }
   }
 
