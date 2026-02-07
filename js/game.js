@@ -3366,38 +3366,100 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      LIGHTING
      ==================================================== */
+  // Store light references for day/night transitions
+  let lightAmbient, lightSun, lightHemi, lightFill, lightRim, lightBounce;
+  let isNightMode = false;
+
   function createLighting () {
     // Soft warm ambient — gives everything a gentle base illumination
-    scene.add(new THREE.AmbientLight(0xfff0e0, 0.5));
+    lightAmbient = new THREE.AmbientLight(0xfff0e0, 0.5);
+    scene.add(lightAmbient);
 
     // Main sun — warm golden light with high-quality shadows
-    const sun = new THREE.DirectionalLight(0xffeedd, 0.85);
-    sun.position.set(30, 50, 25); sun.castShadow = true;
-    sun.shadow.mapSize.width = 4096; sun.shadow.mapSize.height = 4096;
-    sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 150;
-    sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
-    sun.shadow.camera.top = 60;  sun.shadow.camera.bottom = -60;
-    sun.shadow.bias = -0.0005;
-    sun.shadow.normalBias = 0.02;
-    scene.add(sun);
+    lightSun = new THREE.DirectionalLight(0xffeedd, 0.85);
+    lightSun.position.set(30, 50, 25); lightSun.castShadow = true;
+    lightSun.shadow.mapSize.width = 4096; lightSun.shadow.mapSize.height = 4096;
+    lightSun.shadow.camera.near = 0.5; lightSun.shadow.camera.far = 150;
+    lightSun.shadow.camera.left = -60; lightSun.shadow.camera.right = 60;
+    lightSun.shadow.camera.top = 60;  lightSun.shadow.camera.bottom = -60;
+    lightSun.shadow.bias = -0.0005;
+    lightSun.shadow.normalBias = 0.02;
+    scene.add(lightSun);
 
     // Hemisphere light — rich sky-to-ground color gradient for natural feel
-    scene.add(new THREE.HemisphereLight(0x7ab5e0, 0x3a7a2a, 0.4));
+    lightHemi = new THREE.HemisphereLight(0x7ab5e0, 0x3a7a2a, 0.4);
+    scene.add(lightHemi);
 
     // Soft fill light from the other side (removes harsh shadows, adds depth)
-    const fill = new THREE.DirectionalLight(0x99bbee, 0.22);
-    fill.position.set(-25, 20, -15);
-    scene.add(fill);
+    lightFill = new THREE.DirectionalLight(0x99bbee, 0.22);
+    lightFill.position.set(-25, 20, -15);
+    scene.add(lightFill);
 
     // Warm rim/back light — adds gentle glow to edges
-    const rim = new THREE.DirectionalLight(0xffcc88, 0.15);
-    rim.position.set(-10, 12, -30);
-    scene.add(rim);
+    lightRim = new THREE.DirectionalLight(0xffcc88, 0.15);
+    lightRim.position.set(-10, 12, -30);
+    scene.add(lightRim);
 
     // Soft bounce light from below — prevents pitch-black undersides
-    const bounce = new THREE.DirectionalLight(0x88aa66, 0.08);
-    bounce.position.set(0, -5, 0);
-    scene.add(bounce);
+    lightBounce = new THREE.DirectionalLight(0x88aa66, 0.08);
+    lightBounce.position.set(0, -5, 0);
+    scene.add(lightBounce);
+  }
+
+  /** Switch to night mode — dark blue sky, moonlight, stars feel */
+  function setNightMode () {
+    if (isNightMode) return;
+    isNightMode = true;
+    // Dark sky
+    scene.background = new THREE.Color(0.05, 0.08, 0.18);
+    scene.fog = new THREE.Fog(0x0a1020, 30, 120);
+    // Dim ambient to cool blue
+    lightAmbient.color.set(0x2233aa);
+    lightAmbient.intensity = 0.25;
+    // Moon replaces sun — cold silver light from above
+    lightSun.color.set(0x8899cc);
+    lightSun.intensity = 0.35;
+    lightSun.position.set(-20, 45, -15);
+    // Hemisphere: dark blue sky to dark ground
+    lightHemi.color.set(0x223355);
+    lightHemi.groundColor.set(0x111a11);
+    lightHemi.intensity = 0.2;
+    // Fill light — very dim cool
+    lightFill.color.set(0x334466);
+    lightFill.intensity = 0.08;
+    // Rim — faint moonshine
+    lightRim.color.set(0x6677aa);
+    lightRim.intensity = 0.1;
+    // Bounce — nearly off
+    lightBounce.intensity = 0.03;
+  }
+
+  /** Switch back to daytime — restores original warm lighting */
+  function setDayMode () {
+    if (!isNightMode) return;
+    isNightMode = false;
+    // Original sky
+    scene.background = new THREE.Color(0.48, 0.72, 0.92);
+    scene.fog = new THREE.Fog(0x7ab5d8, 50, 180);
+    // Restore ambient
+    lightAmbient.color.set(0xfff0e0);
+    lightAmbient.intensity = 0.5;
+    // Restore sun
+    lightSun.color.set(0xffeedd);
+    lightSun.intensity = 0.85;
+    lightSun.position.set(30, 50, 25);
+    // Restore hemisphere
+    lightHemi.color.set(0x7ab5e0);
+    lightHemi.groundColor.set(0x3a7a2a);
+    lightHemi.intensity = 0.4;
+    // Restore fill
+    lightFill.color.set(0x99bbee);
+    lightFill.intensity = 0.22;
+    // Restore rim
+    lightRim.color.set(0xffcc88);
+    lightRim.intensity = 0.15;
+    // Restore bounce
+    lightBounce.intensity = 0.08;
   }
 
   /* ====================================================
@@ -4292,6 +4354,11 @@ window.onerror = function(msg, url, line, col, err) {
     } else if (slide.narration) {
       playWindRustle();
     }
+
+    // Optional callback when this slide is first shown (e.g. night/day transitions)
+    if (slide.onShow) {
+      try { slide.onShow(); } catch (e) {}
+    }
   }
 
   /** Called every frame to smoothly animate the camera during cutscenes */
@@ -5130,33 +5197,34 @@ window.onerror = function(msg, url, line, col, err) {
       { speaker: 'Bluestar', text: '"We leave at once. Stay close together and keep your eyes open. Let\'s go."',
         camPos: { x: -1, y: 3, z: 0 }, camLook: { x: -3, y: 3, z: -4 } },
 
-      // The journey begins
-      { narration: true, text: 'The five of you set out from camp together. Bluestar leads the way with Tigerclaw at her side, while you, Graypaw, and Ravenpaw follow behind.',
-        camPos: { x: -20, y: 8, z: -20 }, camLook: { x: -40, y: 2, z: -50 } },
+      // The journey begins — night falls as they travel
+      { narration: true, text: 'The five of you set out from camp as the sun begins to set. By the time you reach the edge of the forest, night has fallen. Stars glitter overhead.',
+        camPos: { x: -20, y: 8, z: -20 }, camLook: { x: -40, y: 2, z: -50 },
+        onShow: function () { setNightMode(); } },
 
-      { speaker: 'Graypaw', text: '"Can you believe it, ' + pName + '? We\'re going to the MOONSTONE! I bet it glows like the sun!"',
+      { speaker: 'Graypaw', text: '"Can you believe it, ' + pName + '? We\'re going to the MOONSTONE! I bet it glows like a star!"',
         camPos: { x: -25, y: 3, z: -30 }, camLook: { x: -28, y: 1.5, z: -35 } },
 
-      { speaker: 'Ravenpaw', text: '"I-I just hope we don\'t run into any ShadowClan patrols out here... or worse..."',
+      { speaker: 'Ravenpaw', text: '"I-I don\'t like the dark... I hope we don\'t run into any ShadowClan patrols out here..."',
         camPos: { x: -27, y: 2.5, z: -33 }, camLook: { x: -30, y: 1.5, z: -38 } },
 
-      { narration: true, text: 'The trees thin as you reach the edge of ThunderClan\'s forest. Ahead stretches the open moorland of WindClan — eerily empty and silent.',
+      { narration: true, text: 'The trees thin as you reach the edge of ThunderClan\'s forest. The moon hangs low over the open moorland of WindClan — eerily empty and silent under the starlight.',
         camPos: { x: -30, y: 6, z: -55 }, camLook: { x: -50, y: 3, z: -70 } },
 
       { speaker: 'Tigerclaw', text: '"This territory stinks of ShadowClan. Brokenstar has driven WindClan out. Stay alert, all of you."',
         camPos: { x: -35, y: 3, z: -60 }, camLook: { x: -40, y: 2, z: -65 } },
 
-      { narration: true, text: 'The wind howls across the barren moor. Without WindClan\'s patrols, the empty hills feel dangerous and exposed. You press on in silence.',
+      { narration: true, text: 'The cold night wind howls across the barren moor. Without WindClan\'s patrols, the moonlit hills feel dangerous and exposed. You press on in silence, your breath misting in the cold.',
         camPos: { x: -50, y: 10, z: -70 }, camLook: { x: -70, y: 3, z: -85 } },
 
       { speaker: 'Bluestar', text: '"The Moonstone lies deep inside Mothermouth, a cave in Highstones. Medicine cats and leaders come here to share tongues with StarClan."',
         camPos: { x: -60, y: 5, z: -80 }, camLook: { x: -80, y: 5, z: -90 } },
 
       // Arriving at Highstones
-      { narration: true, text: 'At last, the rocky peaks of <strong>Highstones</strong> rise before you — jagged grey mountains cutting against the darkening sky.',
+      { narration: true, text: 'At last, the rocky peaks of <strong>Highstones</strong> rise before you — jagged grey mountains silhouetted against the star-filled sky. The moon is nearly at its peak.',
         camPos: { x: -65, y: 10, z: -85 }, camLook: { x: -80, y: 7, z: -97 } },
 
-      { narration: true, text: 'A dark opening yawns in the rock face. This is <strong>Mothermouth</strong> — the entrance to the cave where the Moonstone lies.',
+      { narration: true, text: 'A dark opening yawns in the rock face, blacker than the night itself. This is <strong>Mothermouth</strong> — the entrance to the cave where the Moonstone lies.',
         camPos: { x: -78, y: 4, z: -90 }, camLook: { x: -80, y: 2, z: -94 } },
 
       { speaker: 'Bluestar', text: '"We must wait for moonrise. When the moon shines into the cave, the Moonstone will glow with StarClan\'s light."',
@@ -5227,7 +5295,7 @@ window.onerror = function(msg, url, line, col, err) {
         camPos: { x: -80, y: 2, z: -94 }, camLook: { x: -80, y: 1.5, z: -93 } },
 
       // Rejoining the others outside
-      { narration: true, text: 'You emerge from Mothermouth into the cold night air. Tigerclaw stands guard. Graypaw and Ravenpaw are huddled together nearby.',
+      { narration: true, text: 'You emerge from Mothermouth into the cold night air. The stars still blaze above. Tigerclaw stands guard like a shadow. Graypaw and Ravenpaw are huddled together nearby, shivering.',
         camPos: { x: -77, y: 3, z: -91 }, camLook: { x: -76, y: 1, z: -90 } },
 
       { speaker: 'Graypaw', text: '"' + pName + '! What was it like in there? Was the Moonstone amazing?!"',
@@ -5239,8 +5307,8 @@ window.onerror = function(msg, url, line, col, err) {
       { speaker: 'Bluestar', text: '"Let us go. We have a long journey home."',
         camPos: { x: -76, y: 2.5, z: -90 }, camLook: { x: -78, y: 1.5, z: -92 } },
 
-      // The return — the rat attack
-      { narration: true, text: 'The five of you begin the journey home. You pass near an old Twoleg barn. A musty, foul smell hangs in the air.',
+      // The return — the rat attack (still night)
+      { narration: true, text: 'The five of you begin the long journey home through the darkness. Near an old Twoleg barn, a musty, foul smell fills the night air.',
         camPos: { x: -60, y: 5, z: -75 }, camLook: { x: -55, y: 2, z: -70 } },
 
       { speaker: 'Tigerclaw', text: '"Rats! Everyone, be on your guard!"',
@@ -5279,12 +5347,13 @@ window.onerror = function(msg, url, line, col, err) {
       { speaker: 'Ravenpaw', text: '"I-I thought she was dead... I was so scared..."',
         camPos: { x: -35, y: 2, z: -54 }, camLook: { x: -36, y: 1, z: -55 } },
 
-      // Return to camp
-      { narration: true, text: 'Slowly, painfully, you all help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. Dawn is breaking.',
+      // Return to camp — dawn breaks
+      { narration: true, text: 'Slowly, painfully, you all help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. The sky begins to lighten in the east.',
         camPos: { x: -15, y: 8, z: -30 }, camLook: { x: 0, y: 2, z: 0 } },
 
-      { narration: true, text: 'You reach ThunderClan camp just as the sun rises. Spottedleaf rushes to tend Bluestar\'s wounds.',
-        camPos: { x: 2, y: 4, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+      { narration: true, text: 'You reach ThunderClan camp just as the sun rises, painting the sky gold and pink. Spottedleaf rushes to tend Bluestar\'s wounds.',
+        camPos: { x: 2, y: 4, z: 10 }, camLook: { x: 0, y: 1, z: 0 },
+        onShow: function () { setDayMode(); } },
 
       { speaker: 'Spottedleaf', text: '"Bluestar! What happened? These wounds..."',
         camPos: { x: -9, y: 2, z: 5 }, camLook: { x: -10, y: 1, z: 3 } },
@@ -5311,6 +5380,7 @@ window.onerror = function(msg, url, line, col, err) {
     startCutscene(scenes, () => {
       gameState = 'playing';
       mothermouthTriggered = true;
+      setDayMode(); // ensure daytime is restored
       // Bluestar rests in medicine den
       if (bs) { bs.group.position.set(-9, 0, 5); }
       if (tc) { tc.group.position.set(6, 0, -3); }
