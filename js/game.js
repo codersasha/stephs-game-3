@@ -4431,9 +4431,10 @@ window.onerror = function(msg, url, line, col, err) {
     catGroup.visible = false;
 
     const scenes = [
-      // --- PROLOGUE: The Battle ---
+      // --- PROLOGUE: The Battle (night) ---
       { narration: true, text: '<strong>WARRIOR CATS: INTO THE WILD</strong><br><br><em>The Prophecy Begins...</em>',
-        camPos: { x: 0, y: 25, z: 55 }, camLook: { x: 0, y: 0, z: 0 } },
+        camPos: { x: 0, y: 25, z: 55 }, camLook: { x: 0, y: 0, z: 0 },
+        onShow: function () { setNightMode(); } },
 
       { narration: true, text: 'The forest is dark. Moonlight filters through the canopy as the sounds of battle echo through the trees...',
         camPos: { x: 35, y: 3, z: -28 }, camLook: { x: 30, y: 1, z: -30 } },
@@ -4500,6 +4501,7 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(scenes, () => {
+      setDayMode(); // restore daytime for gameplay
       // Hide all NPCs and start the exploring phase
       npcCats.forEach(c => { c.group.visible = false; });
       startExploring();
