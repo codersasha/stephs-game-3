@@ -76,6 +76,7 @@ window.onerror = function(msg, url, line, col, err) {
   let houseWalls = [];          // invisible collision boxes for house walls (always block)
   let trees = [], rocks = [];
   let treeObjects = [], rockObjects = [];
+  let branchPlatforms = [];   // { x, z, y, radius } — jumpable branch platforms on trees
 
   /* ---------- known cats ---------- */
   const knownCats = new Set(); // names of cats the player has been introduced to
@@ -1745,6 +1746,17 @@ window.onerror = function(msg, url, line, col, err) {
       obj.position.set(t.x, 0, t.z);
       scene.add(obj);
       treeObjects.push({ mesh: obj, data: t });
+      // Register branch platforms (convert local coords to world)
+      if (obj._branches) {
+        obj._branches.forEach(br => {
+          branchPlatforms.push({
+            x: t.x + br.lx,
+            z: t.z + br.lz,
+            y: br.y,
+            radius: br.radius,
+          });
+        });
+      }
     });
 
     /* rocks */
@@ -3421,6 +3433,7 @@ window.onerror = function(msg, url, line, col, err) {
 
   function makeOak (d) {
     const g = new THREE.Group(); const s = d.scale;
+    g._branches = []; // store branch data for collision
     // Detailed trunk with bark texture feel
     const barkColor = new THREE.Color(0.35 + Math.random()*0.08, 0.25 + Math.random()*0.06, 0.15);
     const trunkMat = new THREE.MeshPhongMaterial({ color: barkColor, shininess: 2 });
@@ -3444,6 +3457,51 @@ window.onerror = function(msg, url, line, col, err) {
       root.rotation.x = Math.sin(rootAngle) * 0.6;
       g.add(root);
     }
+
+    // === BRANCHES — thick limbs you can jump onto ===
+    const branchMat = new THREE.MeshPhongMaterial({ color: barkColor.clone().multiplyScalar(0.95), shininess: 2 });
+    const numBranches = 2 + Math.floor(Math.random() * 2); // 2-3 branches per oak
+    for (let b = 0; b < numBranches; b++) {
+      const bAngle = (b / numBranches) * Math.PI * 2 + Math.random() * 0.8;
+      const bHeight = 2.2*s + b * 1.1*s + Math.random() * 0.5*s; // stagger heights
+      const bLen = 1.8*s + Math.random() * 0.8*s;
+      const bRad = 0.12*s + Math.random() * 0.05*s;
+
+      // Branch cylinder (angled outward and slightly up)
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(bRad*0.6, bRad, bLen, 6), branchMat);
+      branch.position.set(
+        Math.cos(bAngle) * bLen * 0.4,
+        bHeight,
+        Math.sin(bAngle) * bLen * 0.4
+      );
+      branch.rotation.z = -Math.cos(bAngle) * 0.7;
+      branch.rotation.x = Math.sin(bAngle) * 0.7;
+      branch.castShadow = true;
+      g.add(branch);
+
+      // Small leaf cluster at the end of the branch
+      const leafCol = new THREE.Color(0.22+Math.random()*0.1, 0.50+Math.random()*0.1, 0.15+Math.random()*0.06);
+      const leafCluster = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.6*s, 0),
+        new THREE.MeshPhongMaterial({ color: leafCol, shininess: 2 })
+      );
+      leafCluster.position.set(
+        Math.cos(bAngle) * bLen * 0.85,
+        bHeight + 0.2*s,
+        Math.sin(bAngle) * bLen * 0.85
+      );
+      leafCluster.castShadow = true;
+      g.add(leafCluster);
+
+      // Store branch platform data (local coords — will be converted to world when placed)
+      g._branches.push({
+        lx: Math.cos(bAngle) * bLen * 0.45,
+        lz: Math.sin(bAngle) * bLen * 0.45,
+        y: bHeight,
+        radius: bLen * 0.45,
+      });
+    }
+
     // Richer, multi-toned canopy with more leaf clusters
     const baseGreen = new THREE.Color(0.20+Math.random()*0.1, 0.52+Math.random()*0.12, 0.14+Math.random()*0.08);
     const leafPositions = [
@@ -3465,10 +3523,53 @@ window.onerror = function(msg, url, line, col, err) {
 
   function makePine (d) {
     const g = new THREE.Group(); const s = d.scale;
+    g._branches = []; // store branch data for collision
     const barkColor = new THREE.Color(0.30 + Math.random()*0.06, 0.22 + Math.random()*0.05, 0.12);
     const trunkMat = new THREE.MeshPhongMaterial({ color: barkColor, shininess: 2 });
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2*s, 0.38*s, 3.5*s, 8), trunkMat);
     trunk.position.y = 1.75*s; trunk.castShadow = true; g.add(trunk);
+
+    // === PINE BRANCHES — shorter, angled down slightly ===
+    const branchMat = new THREE.MeshPhongMaterial({ color: barkColor.clone().multiplyScalar(0.9), shininess: 2 });
+    const numBranches = 1 + Math.floor(Math.random() * 2); // 1-2 branches per pine
+    for (let b = 0; b < numBranches; b++) {
+      const bAngle = (b / numBranches) * Math.PI * 2 + Math.random() * 1.2;
+      const bHeight = 1.8*s + b * 1.5*s + Math.random() * 0.4*s;
+      const bLen = 1.2*s + Math.random() * 0.5*s;
+      const bRad = 0.08*s + Math.random() * 0.03*s;
+
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(bRad*0.5, bRad, bLen, 5), branchMat);
+      branch.position.set(
+        Math.cos(bAngle) * bLen * 0.35,
+        bHeight,
+        Math.sin(bAngle) * bLen * 0.35
+      );
+      branch.rotation.z = -Math.cos(bAngle) * 0.8;
+      branch.rotation.x = Math.sin(bAngle) * 0.8;
+      branch.castShadow = true;
+      g.add(branch);
+
+      // Pine needle tuft at branch tip
+      const needleCol = new THREE.Color(0.12+Math.random()*0.05, 0.38+Math.random()*0.08, 0.10);
+      const needles = new THREE.Mesh(
+        new THREE.ConeGeometry(0.4*s, 0.5*s, 6),
+        new THREE.MeshPhongMaterial({ color: needleCol, shininess: 2 })
+      );
+      needles.position.set(
+        Math.cos(bAngle) * bLen * 0.7,
+        bHeight,
+        Math.sin(bAngle) * bLen * 0.7
+      );
+      g.add(needles);
+
+      g._branches.push({
+        lx: Math.cos(bAngle) * bLen * 0.4,
+        lz: Math.sin(bAngle) * bLen * 0.4,
+        y: bHeight,
+        radius: bLen * 0.35,
+      });
+    }
+
     // Deep, rich pine greens — 4 tiers for more detail
     const baseGreen = new THREE.Color(0.10+Math.random()*0.05, 0.35+Math.random()*0.10, 0.08+Math.random()*0.05);
     const tiers = [
@@ -9876,7 +9977,7 @@ window.onerror = function(msg, url, line, col, err) {
       }
       const np = GameLogic.calculateMovement(player.position, dir, spd, dt);
       const cp = GameLogic.clampPosition(np, GameLogic.getForestBounds());
-      if (!GameLogic.checkCollisions(cp, trees, 1.2) && !checkWallCollision(cp) && !checkRockCollision(cp)) {
+      if ((playerY > 1.5 || !GameLogic.checkCollisions(cp, trees, 1.2)) && !checkWallCollision(cp) && !checkRockCollision(cp)) {
         player.position = cp;
       }
       // Swimming leg animation is slower
@@ -9932,6 +10033,14 @@ window.onerror = function(msg, url, line, col, err) {
           landHeight = Math.max(landHeight, 2.5);
         }
       }
+      // Check tree branches
+      for (const bp of branchPlatforms) {
+        const ddx = player.position.x - bp.x, ddz = player.position.z - bp.z;
+        const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dist < bp.radius && playerY >= bp.y - 0.4 && playerY <= bp.y + 0.8 && playerVY <= 0) {
+          landHeight = Math.max(landHeight, bp.y);
+        }
+      }
 
       if (playerY <= landHeight) {
         playerY = landHeight;
@@ -9963,6 +10072,15 @@ window.onerror = function(msg, url, line, col, err) {
         const ddx = player.position.x - hx, ddz = player.position.z - hz;
         if (Math.sqrt(ddx * ddx + ddz * ddz) < 2.5 && Math.abs(playerY - 2.5) < 0.5) {
           shouldFall = false;
+        }
+      }
+      // Check tree branches
+      for (const bp of branchPlatforms) {
+        const ddx = player.position.x - bp.x, ddz = player.position.z - bp.z;
+        const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dist < bp.radius && Math.abs(playerY - bp.y) < 0.4) {
+          shouldFall = false;
+          break;
         }
       }
       if (shouldFall) {
