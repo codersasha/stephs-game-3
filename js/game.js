@@ -3676,6 +3676,16 @@ window.onerror = function(msg, url, line, col, err) {
     $('hud-map-btn').addEventListener('click', () => {
       if (gameState === 'playing') openMap();
     });
+    // Mobile Map button
+    if ($('btn-map')) {
+      $('btn-map').addEventListener('click', () => {
+        if (gameState === 'playing') openMap();
+      });
+      $('btn-map').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState === 'playing') openMap();
+      });
+    }
     // Map close button
     $('map-close-btn').addEventListener('click', closeMap);
     $('map-close-btn').addEventListener('touchstart', e => { e.preventDefault(); closeMap(); });

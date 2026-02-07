@@ -1010,6 +1010,15 @@ html, body {
   background: rgba(140, 80, 200, 0.45);
   border-color: rgba(200, 130, 255, 0.8);
 }
+.action-btn-map {
+  border-color: rgba(255, 200, 100, 0.4);
+  background: rgba(200, 150, 50, 0.2);
+  grid-column: span 2;
+}
+.action-btn-map:active {
+  background: rgba(200, 150, 50, 0.45);
+  border-color: rgba(255, 200, 100, 0.8);
+}
 
 /* ========================================
    Loading Screen
@@ -1064,8 +1073,8 @@ html, body {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  z-index: 85;
-  background: rgba(10, 15, 10, 0.92);
+  z-index: 500;
+  background: rgba(10, 15, 10, 0.95);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1108,6 +1117,8 @@ html, body {
 #map-canvas {
   width: min(95vw, 700px);
   height: min(70vh, 700px);
+  min-width: 280px;
+  min-height: 280px;
   border: 2px solid rgba(255, 200, 100, 0.3);
   border-radius: 12px;
   background: #1a2a18;
