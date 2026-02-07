@@ -813,6 +813,78 @@ html, body {
 }
 
 /* ========================================
+   Next Chapter Button
+   ======================================== */
+#next-chapter-btn {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, rgba(180, 120, 40, 0.92), rgba(120, 60, 15, 0.95));
+  border: 2px solid rgba(255, 200, 80, 0.7);
+  border-radius: 30px;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 4px 20px rgba(255, 160, 40, 0.35),
+              0 0 40px rgba(255, 140, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: chapterPulse 2.5s ease-in-out infinite, chapterSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#next-chapter-btn.hidden {
+  display: none;
+}
+
+#next-chapter-btn:hover {
+  transform: translateX(-50%) scale(1.08);
+  border-color: rgba(255, 220, 100, 0.9);
+  box-shadow: 0 6px 30px rgba(255, 160, 40, 0.5),
+              0 0 60px rgba(255, 140, 0, 0.25);
+}
+
+#next-chapter-btn:active {
+  transform: translateX(-50%) scale(0.96);
+}
+
+.next-chapter-icon {
+  font-size: 1.4rem;
+}
+
+.next-chapter-label {
+  color: #fff;
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.next-chapter-name {
+  color: rgba(255, 230, 180, 0.85);
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.7rem, 2vw, 0.85rem);
+  font-style: italic;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes chapterPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 160, 40, 0.35), 0 0 40px rgba(255, 140, 0, 0.15); }
+  50% { box-shadow: 0 4px 25px rgba(255, 160, 40, 0.55), 0 0 50px rgba(255, 140, 0, 0.3); }
+}
+
+@keyframes chapterSlideIn {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ========================================
    Mobile Controls
    ======================================== */
 #mobile-controls {

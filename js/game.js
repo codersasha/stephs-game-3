@@ -2522,6 +2522,10 @@ window.onerror = function(msg, url, line, col, err) {
       }
     });
 
+    // Next Chapter button
+    $('next-chapter-btn').addEventListener('click', () => { advanceChapter(); });
+    $('next-chapter-btn').addEventListener('touchstart', e => { e.preventDefault(); advanceChapter(); });
+
     // mobile
     setupMobileControls();
 
@@ -2678,6 +2682,15 @@ window.onerror = function(msg, url, line, col, err) {
       '"Oh, Rusty! I\'m so glad you\'re okay!"',
       '"Tell me all about the wild cats! Is it exciting?"',
       '"Be safe out there, okay? I worry about you."',
+    ],
+    'Yellowfang': [
+      '"Stop hovering, kit. I\'m fine. Go catch a mouse or something useful."',
+      '"Brokenstar is a fool and a tyrant. ShadowClan deserves better."',
+      '"Hmph. You\'re not as useless as most ThunderClan cats. Don\'t let it go to your head."',
+      '"These herbs need sorting. Juniper berries for bellyache, cobwebs for wounds. Pay attention!"',
+      '"I was ShadowClan\'s medicine cat for many moons. I know things that would make your fur stand on end."',
+      '"Don\'t give me that look. I may be old but I can still cuff your ears."',
+      '"StarClan speaks to me in my dreams... they say dark times are coming."',
     ],
   };
 
@@ -2918,10 +2931,20 @@ window.onerror = function(msg, url, line, col, err) {
           else if (ago < 86400000) timeStr = Math.floor(ago / 3600000) + 'h ago';
           else timeStr = Math.floor(ago / 86400000) + 'd ago';
         }
+        // Chapter info
+        let chapterStr = '';
+        if (data.storyPhase === 'playing' && data.storyChapter !== undefined) {
+          const chapIdx = data.storyChapter;
+          if (chapIdx > 0 && chapIdx <= STORY_CHAPTERS.length) {
+            chapterStr = ' &bull; Ch.' + chapIdx;
+          } else if (chapIdx === 0) {
+            chapterStr = ' &bull; Free Roam';
+          }
+        }
         el.querySelector('.save-slot-info').innerHTML =
           '<span class="save-name">' + (p.name || 'Firepaw') + '</span><br>' +
           '<span class="save-detail">Lvl ' + (p.level || 1) + ' &bull; ' + phaseLabel +
-          (timeStr ? ' &bull; ' + timeStr : '') + '</span>';
+          chapterStr + (timeStr ? ' &bull; ' + timeStr : '') + '</span>';
         delBtn.classList.remove('hidden');
         continue;
       }
@@ -2948,6 +2971,8 @@ window.onerror = function(msg, url, line, col, err) {
       redtailEventTriggered = data.redtailEventTriggered !== false;
       mothermouthTriggered = data.mothermouthTriggered || false;
       mothermouthTimer = data.mothermouthTimer || 0;
+      yellowfangEncounterTriggered = data.yellowfangEncounterTriggered || false;
+      storyChapter = data.storyChapter || 0;
       scentMarkerWarned = data.scentMarkerWarned || {};
       playingTimer = data.playingTimer || 0;
       gameTime = data.gameTime || 0;
@@ -3013,6 +3038,7 @@ window.onerror = function(msg, url, line, col, err) {
 
   function startCutscene (scenes, onDone) {
     gameState = 'cutscene';
+    hideNextChapterButton();
     if (catGroup) catGroup.visible = true;
     setCatFirstPerson(false);
     cutsceneQueue = scenes.slice();
@@ -3307,6 +3333,59 @@ window.onerror = function(msg, url, line, col, err) {
   let redtailEventTriggered = false;
   let playingTimer = 0; // counts frames since free-roam started
 
+  /* --- CHAPTER SYSTEM ---
+     After training, the story is split into chapters. The player can explore
+     freely, and when they're ready to continue the story they press the
+     "Next Chapter" button at the top of the screen. */
+  let storyChapter = 0; // 0 = not yet in chapter mode
+  let chapterReady = false; // true when the player can advance
+
+  const STORY_CHAPTERS = [
+    { id: 1, name: "Redtail's Death",        trigger: 'triggerRedtailEvent' },
+    { id: 2, name: 'Journey to Mothermouth', trigger: 'triggerMothermouthJourney' },
+    { id: 3, name: 'Yellowfang',             trigger: 'triggerYellowfangEncounter' },
+    // Future chapters go here...
+  ];
+
+  function showNextChapterButton () {
+    const btn = $('next-chapter-btn');
+    const nameEl = $('next-chapter-name');
+    if (!btn) return;
+    const nextChap = STORY_CHAPTERS[storyChapter]; // storyChapter is 0-indexed into next
+    if (nextChap && storyPhase === 'playing') {
+      nameEl.textContent = '— ' + nextChap.name;
+      btn.classList.remove('hidden');
+      chapterReady = true;
+    } else {
+      btn.classList.add('hidden');
+      chapterReady = false;
+    }
+  }
+
+  function hideNextChapterButton () {
+    const btn = $('next-chapter-btn');
+    if (btn) btn.classList.add('hidden');
+    chapterReady = false;
+  }
+
+  function advanceChapter () {
+    if (!chapterReady) return;
+    const chapter = STORY_CHAPTERS[storyChapter];
+    if (!chapter) return;
+
+    hideNextChapterButton();
+    storyChapter++;
+    saveGame();
+
+    // Call the trigger function by name
+    switch (chapter.trigger) {
+      case 'triggerRedtailEvent':           triggerRedtailEvent(); break;
+      case 'triggerMothermouthJourney':      triggerMothermouthJourney(); break;
+      case 'triggerYellowfangEncounter':     triggerYellowfangEncounter(); break;
+      default: break;
+    }
+  }
+
   function startExploring () {
     gameState = 'playing';
     catGroup.visible = true;
@@ -3370,25 +3449,10 @@ window.onerror = function(msg, url, line, col, err) {
       checkTerritoryTrespass();
     }
 
-    // TRIGGER 3: Ravenpaw returns with news of Redtail's death
-    // Fires after the player has been in free-roam and is near camp
-    if (storyPhase === 'playing' && !redtailEventTriggered) {
-      playingTimer++;
-      // Trigger after ~30 seconds of playing (1800 frames at 60fps) AND player is near camp
-      if (playingTimer > 1800 && dist < 20) {
-        redtailEventTriggered = true;
-        triggerRedtailEvent();
-      }
-    }
-
-    // TRIGGER 4: Journey to Mothermouth (after Redtail event + more time)
-    // Fires after the player has explored for a while after the Redtail event
-    if (storyPhase === 'playing' && redtailEventTriggered && !mothermouthTriggered) {
-      mothermouthTimer++;
-      // Trigger after ~60 seconds of exploration post-Redtail (3600 frames at 60fps) AND near camp
-      if (mothermouthTimer > 3600 && dist < 20) {
-        triggerMothermouthJourney();
-      }
+    // Show the Next Chapter button if it should be visible
+    // (the player controls when to advance — no more auto-triggers)
+    if (storyPhase === 'playing' && !chapterReady && storyChapter < STORY_CHAPTERS.length && gameState === 'playing') {
+      showNextChapterButton();
     }
   }
 
@@ -3888,6 +3952,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     startCutscene(scenes, () => {
       gameState = 'playing';
+      redtailEventTriggered = true;
       // Move Ravenpaw to medicine den (he's hurt)
       if (rp) { rp.group.position.set(-9, 0, 4); }
       // Tigerclaw goes to his spot
@@ -3896,7 +3961,8 @@ window.onerror = function(msg, url, line, col, err) {
       if (bs) { bs.group.position.set(-4, 0, -2); }
       placeCatsInCamp();
       saveGame();
-      queueMessage('Narrator', 'The Clan mourns Redtail. But you can\'t shake the feeling that something is wrong. Keep your eyes on Ravenpaw... and Tigerclaw.');
+      queueMessage('Narrator', 'The Clan mourns Redtail. But you can\'t shake the feeling that something is wrong. Keep your eyes on Ravenpaw... and Tigerclaw. Explore the territory and press "Next Chapter" when you\'re ready to continue.');
+      showNextChapterButton();
     });
   }
 
@@ -4068,6 +4134,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     startCutscene(scenes, () => {
       gameState = 'playing';
+      mothermouthTriggered = true;
       // Bluestar rests in medicine den
       if (bs) { bs.group.position.set(-9, 0, 5); }
       if (tc) { tc.group.position.set(6, 0, -3); }
@@ -4076,7 +4143,123 @@ window.onerror = function(msg, url, line, col, err) {
       catGroup.position.set(2, 0, 3);
       placeCatsInCamp();
       saveGame();
-      queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality.');
+      queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality. Explore freely, and press "Next Chapter" when you\'re ready.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     YELLOWFANG ENCOUNTER (Chapter 3)
+     The player finds an injured rogue cat near the border.
+     ==================================================== */
+  let yellowfangEncounterTriggered = false;
+
+  function triggerYellowfangEncounter () {
+    gameState = 'cutscene';
+    yellowfangEncounterTriggered = true;
+    hideNextChapterButton();
+
+    // Make Yellowfang visible and position her near the ShadowClan border
+    const yf = npcCats.find(c => c.name === 'Yellowfang');
+    if (yf) {
+      yf.group.visible = true;
+      yf.group.position.set(-42, 0, 15);
+    }
+
+    // Position Bluestar in camp
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    // Position the player near the border
+    player.position = { x: -38, y: 0, z: 15 };
+    catGroup.position.set(-38, 0, 15);
+
+    const pName = player.name;
+
+    const scenes = [
+      { narration: true, text: 'While hunting near the ShadowClan border, you catch a strange scent — not ThunderClan, not ShadowClan either...',
+        camPos: { x: -36, y: 3, z: 18 }, camLook: { x: -42, y: 1, z: 15 } },
+
+      { narration: true, text: 'You push through the undergrowth and find a scraggly, battle-scarred she-cat lying on the ground. Her dark gray fur is matted and she looks exhausted.',
+        camPos: { x: -40, y: 2, z: 17 }, camLook: { x: -42, y: 0.5, z: 15 } },
+
+      { speaker: '???', text: '"What are you staring at, kittypet? Never seen a real warrior before?"',
+        camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { speaker: pName, text: '"I\'m not a kittypet! I\'m ' + pName + ' of ThunderClan. Who are you? You\'re injured..."',
+        camPos: { x: -39, y: 1.5, z: 16 }, camLook: { x: -38, y: 1, z: 15 } },
+
+      { speaker: '???', text: '"Hmph. ThunderClan. I don\'t need your help, youngster. Leave me be."',
+        camPos: { x: -41, y: 1.5, z: 14 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { narration: true, text: 'But you can see she\'s badly hurt. Her flank has deep claw marks, and she hasn\'t eaten in days. Something about her feels... important.',
+        camPos: { x: -40, y: 2, z: 13 }, camLook: { x: -42, y: 0.5, z: 15 } },
+
+      { speaker: pName, text: '"You need help. At least let me bring you some prey."',
+        camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { speaker: '???', text: '"...Fine. I suppose even a ThunderClan cat has some sense. The name is <strong>Yellowfang</strong>. I was a ShadowClan medicine cat... before Brokenstar drove me out."',
+        camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { narration: true, text: 'Yellowfang! A ShadowClan medicine cat, cast out by her own leader. Her eyes burn with a fierce intelligence despite her wounds.',
+        camPos: { x: -42, y: 2.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { speaker: 'Yellowfang', text: '"Brokenstar is a tyrant. He trains kits as warriors before they\'re six moons old. He drove out the elders. ShadowClan is not what it once was."',
+        camPos: { x: -41, y: 1.5, z: 14 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { speaker: pName, text: '"That\'s terrible! Come with me — Bluestar will want to hear about this."',
+        camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      { speaker: 'Yellowfang', text: '"Hmph. Take me to your leader then, kit. But I warn you — I don\'t suffer fools."',
+        camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+      // Scene at camp
+      { narration: true, text: 'You bring Yellowfang back to ThunderClan camp. The Clan watches warily as the old she-cat limps through the entrance...',
+        camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+
+      { speaker: 'Bluestar', text: '"' + pName + ', who is this? A ShadowClan cat in our camp?"',
+        camPos: { x: -2, y: 3.5, z: 0 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: pName, text: '"This is Yellowfang, a former ShadowClan medicine cat. Brokenstar drove her out. She\'s hurt and needs help."',
+        camPos: { x: 1, y: 1.5, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Bluestar', text: '"A medicine cat... exiled by Brokenstar? This is troubling news indeed. Very well — Yellowfang may stay, for now. ' + pName + ', you are responsible for her. Make sure she is fed and her wounds are tended."',
+        camPos: { x: -2, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+      { speaker: 'Yellowfang', text: '"Don\'t expect me to be grateful, kit. But... thank you."',
+        camPos: { x: -8, y: 1.5, z: 4 }, camLook: { x: -9, y: 1, z: 3 } },
+
+      { narration: true, text: 'Yellowfang settles into the medicine den. Though grumpy, she begins to share her vast knowledge of herbs and healing. The Clan watches her carefully, but ' + pName + ' senses she can be trusted.',
+        camPos: { x: -7, y: 3, z: 6 }, camLook: { x: -9, y: 1, z: 3 } },
+
+      { narration: true, text: '<em>Yellowfang has joined ThunderClan as your responsibility. She stays in the medicine den and will help with healing. Explore the territory freely!</em>',
+        camPos: { x: 0, y: 8, z: 12 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+
+    revealCatName('Yellowfang');
+
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      // Yellowfang now stays in medicine den
+      if (yf) {
+        yf.group.visible = true;
+        yf.group.position.set(-9, 0, 3);
+        // Set her AI to medicine cat role
+        if (yf.ai) {
+          yf.ai.role = 'medicine';
+          yf.ai.task = 'idle';
+          yf.ai.timer = 5;
+          yf.ai.home = { x: -9, z: 3 };
+        }
+      }
+      // Remove Yellowfang from HIDDEN_UNTIL_STORY
+      placeCatsInCamp();
+      saveGame();
+      queueMessage('Narrator', 'Yellowfang has settled into the medicine den. You can talk to her anytime. Keep exploring the territory!');
+      // Show next chapter if there is one
+      if (storyChapter < STORY_CHAPTERS.length) {
+        showNextChapterButton();
+      }
     });
   }
 
@@ -5012,10 +5195,13 @@ window.onerror = function(msg, url, line, col, err) {
         queueMessage('Lionheart', 'Your training tour is complete, ' + pName + '! You are now free to explore the territory on your own.', () => {
           queueMessage('Graypaw', 'Hey ' + pName + '! Want to go explore? There\'s so much to see!', () => {
             storyPhase = 'playing';
+            storyChapter = 0; // ready for first chapter
             saveGame();
             queueMessage('Narrator', 'You are now free to explore! ' +
               (isMob ? 'Use the joystick to move. RUN to sprint. ACT to interact.'
-                     : 'WASD to move. SHIFT to sprint. E to interact. Click to look around.'));
+                     : 'WASD to move. SHIFT to sprint. E to interact.') +
+              ' When you\'re ready, tap the "Next Chapter" button at the top to continue the story.');
+            showNextChapterButton();
           });
         });
         break;
@@ -5121,17 +5307,26 @@ window.onerror = function(msg, url, line, col, err) {
     player.position = { x: px, y: 0, z: pz };
     catGroup.position.set(px, 0, pz);
 
-    // Reveal ThunderClan cat names (NOT Yellowfang — she hasn't appeared yet)
-    revealCatNames([
+    // Reveal ThunderClan cat names
+    const knownNames = [
       'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
       'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
       'Ravenpaw', 'Spottedleaf', 'Tigerclaw'
-    ]);
+    ];
+    // If Yellowfang has been encountered, reveal her name too
+    if (yellowfangEncounterTriggered) knownNames.push('Yellowfang');
+    revealCatNames(knownNames);
 
-    // Show NPC cats — hide story-locked cats (Yellowfang), kittypets stay at house
+    // Show NPC cats — hide story-locked cats unless they've been encountered
     npcCats.forEach(c => {
-      if (HIDDEN_UNTIL_STORY.includes(c.name)) {
-        c.group.visible = false; // not in the story yet
+      if (c.name === 'Yellowfang') {
+        // Yellowfang is only visible after her encounter
+        c.group.visible = !!yellowfangEncounterTriggered;
+        if (yellowfangEncounterTriggered) {
+          c.group.position.set(-9, 0, 3); // medicine den
+        }
+      } else if (HIDDEN_UNTIL_STORY.includes(c.name)) {
+        c.group.visible = false;
       } else {
         c.group.visible = true;
       }
@@ -5154,6 +5349,11 @@ window.onerror = function(msg, url, line, col, err) {
       'Welcome back, ' + player.name + '! Explore the territory. ' +
       (isMobile ? 'Use the joystick to move. RUN to sprint. ACT to interact.'
                 : 'WASD to move. SHIFT to sprint. E to interact. Click to look around.'));
+
+    // Show Next Chapter button if there are more chapters
+    if (storyPhase === 'playing' && storyChapter < STORY_CHAPTERS.length) {
+      showNextChapterButton();
+    }
   }
 
   /* ====================================================
@@ -5202,6 +5402,8 @@ window.onerror = function(msg, url, line, col, err) {
       bluestarEncounterTriggered: bluestarEncounterTriggered,
       mothermouthTriggered: mothermouthTriggered,
       mothermouthTimer: mothermouthTimer,
+      yellowfangEncounterTriggered: yellowfangEncounterTriggered,
+      storyChapter: storyChapter,
       scentMarkerWarned: scentMarkerWarned,
       playingTimer: playingTimer,
       gameTime: gameTime,
@@ -5235,6 +5437,7 @@ window.onerror = function(msg, url, line, col, err) {
         // Old format: just a player object
         return { player: data, storyPhase: 'playing', knownCats: [], redtailEventTriggered: true,
           graypawEncounterTriggered: true, bluestarEncounterTriggered: true, mothermouthTriggered: true,
+          yellowfangEncounterTriggered: false, storyChapter: 2,
           mothermouthTimer: 9999, playingTimer: 9999, gameTime: 0, savedAt: 0 };
       }
     } catch (e) {}
