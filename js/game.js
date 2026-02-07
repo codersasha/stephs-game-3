@@ -281,6 +281,17 @@ window.onerror = function(msg, url, line, col, err) {
     'WindClan Patrol':    { base: 340, end: 270, dur: 0.32, type: 'sine',     vol: 0.11, vibrato: 5 }, // quick, sharp
     'WindClan Runner':    { base: 360, end: 290, dur: 0.28, type: 'sine',     vol: 0.10, vibrato: 6 }, // very quick
     '???':         { base: 350, end: 280, dur: 0.30, type: 'triangle', vol: 0.10, vibrato: 3 },   // unknown cat
+    // Queens
+    'Frostfur':    { base: 400, end: 320, dur: 0.38, type: 'sine',     vol: 0.10, vibrato: 3 },   // gentle, protective she-cat
+    'Brindleface': { base: 360, end: 290, dur: 0.40, type: 'sine',     vol: 0.10, vibrato: 3 },   // warm, quiet she-cat
+    'Goldenflower':{ base: 380, end: 310, dur: 0.36, type: 'sine',     vol: 0.10, vibrato: 3 },   // gentle, calm she-cat
+    // Kits — high-pitched, fast, squeaky
+    'Cinderkit':   { base: 680, end: 550, dur: 0.20, type: 'sine',     vol: 0.11, vibrato: 8 },   // energetic she-kit
+    'Brackenkit':  { base: 650, end: 520, dur: 0.22, type: 'sine',     vol: 0.11, vibrato: 7 },   // playful tom-kit
+    'Brightkit':   { base: 700, end: 580, dur: 0.18, type: 'sine',     vol: 0.11, vibrato: 8 },   // bouncy she-kit
+    'Thornkit':    { base: 640, end: 500, dur: 0.20, type: 'sine',     vol: 0.11, vibrato: 7 },   // rough little tom-kit
+    'Ashkit':      { base: 670, end: 540, dur: 0.19, type: 'sine',     vol: 0.11, vibrato: 8 },   // pale shy tom-kit
+    'Fernkit':     { base: 720, end: 600, dur: 0.17, type: 'sine',     vol: 0.10, vibrato: 9 },   // tiniest she-kit
   };
 
   /** Play a cat "speaking" sound — unique voice per character */
@@ -4126,6 +4137,82 @@ window.onerror = function(msg, url, line, col, err) {
         eyeColor: 0x66bb44, earInner: 0xffbb99, noseColor: 0xddaa88,
         size: 0.82, whiteChest: true, whitePaws: true, longFur: false
       }, -3, 84),
+
+      // === QUEENS (Nursery she-cats) ===
+
+      // Frostfur - beautiful white she-cat with blue eyes, queen
+      makeBookCat({
+        name: 'Frostfur', fur: 0xeeeeee, belly: 0xffffff,
+        eyeColor: 0x66aaee, earInner: 0xffbbbb, noseColor: 0xffaabb,
+        size: 0.92, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: true
+      }, -8, 5),
+
+      // Brindleface - pale gray tabby she-cat, green eyes, gentle queen
+      makeBookCat({
+        name: 'Brindleface', fur: 0x999999, belly: 0xbbbbbb,
+        stripeColor: 0x666666, stripes: 3,
+        eyeColor: 0x77cc55, earInner: 0xddaaaa, noseColor: 0x998888,
+        size: 0.88, whiteChest: false, whitePaws: false, longFur: false
+      }, -9, 5.5),
+
+      // Goldenflower - pale ginger she-cat, yellow eyes, sleek queen
+      makeBookCat({
+        name: 'Goldenflower', fur: 0xddaa55, belly: 0xeebb77,
+        eyeColor: 0xeedd33, earInner: 0xffbb88, noseColor: 0xdd9966,
+        size: 0.90, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, -7, 5.5),
+
+      // === KITS (tiny baby cats in the Nursery) ===
+
+      // Cinderkit - dark gray she-kit, blue eyes (Frostfur's kit)
+      makeBookCat({
+        name: 'Cinderkit', fur: 0x666677, belly: 0x888899,
+        eyeColor: 0x66aaee, earInner: 0xddaaaa, noseColor: 0x777788,
+        size: 0.45, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, -8.5, 4.5),
+
+      // Brackenkit - golden-brown tabby tom-kit (Frostfur's kit)
+      makeBookCat({
+        name: 'Brackenkit', fur: 0xbb8833, belly: 0xccaa66,
+        stripeColor: 0x886622, stripes: 3,
+        eyeColor: 0xddaa33, earInner: 0xffbb99, noseColor: 0xaa7744,
+        size: 0.42, whiteChest: false, whitePaws: false, longFur: false
+      }, -7.5, 4.2),
+
+      // Brightkit - white she-kit with ginger patches (Frostfur's kit)
+      makeBookCat({
+        name: 'Brightkit', fur: 0xeeeeee, belly: 0xffffff,
+        stripeColor: 0xdd8844, stripes: 2,
+        eyeColor: 0xddaa33, earInner: 0xffaaaa, noseColor: 0xffaabb,
+        size: 0.43, whiteChest: false, whitePaws: true, longFur: false
+      }, -8.8, 5.5),
+
+      // Thornkit - golden-brown tabby tom-kit (Frostfur's kit)
+      makeBookCat({
+        name: 'Thornkit', fur: 0xbb9944, belly: 0xccbb77,
+        stripeColor: 0x886622, stripes: 4,
+        eyeColor: 0xddaa33, earInner: 0xffbb99, noseColor: 0xaa8855,
+        size: 0.40, whiteChest: false, whitePaws: false, longFur: false
+      }, -7.2, 5.8),
+
+      // Ashkit - pale gray tom-kit with darker flecks (Brindleface's kit)
+      makeBookCat({
+        name: 'Ashkit', fur: 0xaaaaaa, belly: 0xcccccc,
+        stripeColor: 0x777777, stripes: 2,
+        eyeColor: 0x66bbdd, earInner: 0xddbbbb, noseColor: 0xaa9999,
+        size: 0.40, whiteChest: false, whitePaws: false, longFur: false
+      }, -9.3, 4.8),
+
+      // Fernkit - pale gray she-kit with green eyes (Brindleface's kit)
+      makeBookCat({
+        name: 'Fernkit', fur: 0xbbbbaa, belly: 0xddddcc,
+        eyeColor: 0x55cc55, earInner: 0xddbbbb, noseColor: 0xaa9999,
+        size: 0.38, whiteChest: false, whitePaws: false,
+        stripes: 0, longFur: false
+      }, -9, 6),
     ];
 
     // --- BORDER PATROL CATS (visible in enemy territories, walk along borders) ---
@@ -4743,6 +4830,66 @@ window.onerror = function(msg, url, line, col, err) {
       '"Oh, Rusty! I\'m so glad you\'re okay!"',
       '"Tell me all about the wild cats! Is it exciting?"',
       '"Be safe out there, okay? I worry about you."',
+    ],
+    // Queens
+    'Frostfur': [
+      '"Keep your voice down — the kits just fell asleep!"',
+      '"My kits are the most beautiful in all of ThunderClan. Don\'t you agree?"',
+      '"If anything ever happened to my kits, I don\'t know what I\'d do."',
+      '"Being a queen is hard work, but I wouldn\'t trade it for the world."',
+      '"Stay away from my kits if you\'re going to track mud everywhere!"',
+      '"Cinderkit is always getting into trouble. She has so much energy!"',
+    ],
+    'Brindleface': [
+      '"Hello, dear. Would you like to sit with us for a while?"',
+      '"The nursery is always warm. The kits make sure of that!"',
+      '"Ashkit is so shy, but Fernkit is bold enough for both of them."',
+      '"I hope my kits grow up to be strong warriors."',
+      '"There\'s nothing more precious than a sleeping kit."',
+    ],
+    'Goldenflower': [
+      '"It\'s a beautiful day. The kits will want to play outside."',
+      '"I keep the nursery tidy. It\'s important for the kits."',
+      '"Would you mind bringing some fresh moss for the nests?"',
+      '"The kits love hearing stories about brave warriors."',
+    ],
+    // Kits
+    'Cinderkit': [
+      '"I\'m gonna be the BEST warrior ever! Watch me pounce!"',
+      '"Can you teach me some fighting moves? Pleeeease?"',
+      '"I bet I could beat Brackenkit in a race! Wanna see?"',
+      '"When I\'m a warrior, I\'m gonna catch the biggest prey EVER!"',
+      '"Frostfur says I have to stay near the nursery. Boring!"',
+    ],
+    'Brackenkit': [
+      '"I was pretending to hunt a mouse! Did you see?"',
+      '"Thornkit and I are playing warriors! He\'s the enemy and I\'m the hero!"',
+      '"When can I leave camp? I want to see the whole forest!"',
+      '"I\'m going to be the bravest warrior in all the Clans!"',
+    ],
+    'Brightkit': [
+      '"Look at my paws! Frostfur says they\'re the whitest in the Clan!"',
+      '"Do you want to play with us? You can be the fox!"',
+      '"I had the BEST dream last night! StarClan was in it!"',
+      '"Cinderkit dared me to touch the Highrock. Should I do it?"',
+    ],
+    'Thornkit': [
+      '"Rrraawr! I\'m a fierce warrior! Fear me!"',
+      '"I pounced on Brackenkit\'s tail! He didn\'t even see me coming!"',
+      '"I don\'t need a mentor. I already know everything!"',
+      '"When I grow up, I want to be just like Tigerclaw! He\'s so strong!"',
+    ],
+    'Ashkit': [
+      '"H-hello... I\'m Ashkit..."',
+      '"Fernkit keeps pushing me around... but don\'t tell anyone."',
+      '"Do you think I\'ll make a good warrior? I\'m kind of small..."',
+      '"I like watching the warriors from the nursery. They\'re so brave."',
+    ],
+    'Fernkit': [
+      '"Come play with us! We\'re making a den out of leaves!"',
+      '"I found a feather! Look, isn\'t it pretty?"',
+      '"Ashkit is being boring again. Ashkit, come PLAY!"',
+      '"I want to go outside the camp! Can you take us? Please?"',
     ],
     'Yellowfang': [
       '"Stop hovering, kit. I\'m fine. Go catch a mouse or something useful."',
@@ -8242,7 +8389,9 @@ window.onerror = function(msg, url, line, col, err) {
         revealCatNames([
           'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
           'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
-          'Ravenpaw', 'Spottedleaf', 'Tigerclaw'
+          'Ravenpaw', 'Spottedleaf', 'Tigerclaw',
+          'Frostfur', 'Brindleface', 'Goldenflower',
+          'Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit'
         ]);
         // Show clan cats, hide story-locked cats (Yellowfang not yet in ThunderClan)
         npcCats.forEach(c => { c.group.visible = !HIDDEN_UNTIL_STORY.includes(c.name); });
@@ -8459,6 +8608,17 @@ window.onerror = function(msg, url, line, col, err) {
       { name: 'Tigerclaw', x: DEN_SPOTS['Warriors'].x + 2, z: DEN_SPOTS['Warriors'].z },
       // Yellowfang NOT placed — she's ShadowClan and hasn't been found yet
       { name: 'Longtail', x: DEN_SPOTS['Warriors'].x - 2, z: DEN_SPOTS['Warriors'].z + 1 },
+      // Queens in the Nursery
+      { name: 'Frostfur', x: DEN_SPOTS['Nursery'].x, z: DEN_SPOTS['Nursery'].z },
+      { name: 'Brindleface', x: DEN_SPOTS['Nursery'].x - 1, z: DEN_SPOTS['Nursery'].z + 0.5 },
+      { name: 'Goldenflower', x: DEN_SPOTS['Nursery'].x + 1, z: DEN_SPOTS['Nursery'].z + 0.5 },
+      // Kits tumbling around the Nursery
+      { name: 'Cinderkit', x: DEN_SPOTS['Nursery'].x - 0.5, z: DEN_SPOTS['Nursery'].z - 0.5 },
+      { name: 'Brackenkit', x: DEN_SPOTS['Nursery'].x + 0.5, z: DEN_SPOTS['Nursery'].z - 0.8 },
+      { name: 'Brightkit', x: DEN_SPOTS['Nursery'].x - 0.8, z: DEN_SPOTS['Nursery'].z + 0.5 },
+      { name: 'Thornkit', x: DEN_SPOTS['Nursery'].x + 0.8, z: DEN_SPOTS['Nursery'].z + 0.8 },
+      { name: 'Ashkit', x: DEN_SPOTS['Nursery'].x - 1.3, z: DEN_SPOTS['Nursery'].z - 0.2 },
+      { name: 'Fernkit', x: DEN_SPOTS['Nursery'].x - 1, z: DEN_SPOTS['Nursery'].z + 1 },
     ];
     campPositions.forEach(cp => {
       const cat = npcCats.find(c => c.name === cp.name);
@@ -8841,6 +9001,11 @@ window.onerror = function(msg, url, line, col, err) {
     'Mousefur': '#8b6b4a', 'Darkstripe': '#555566', 'Ravenpaw': '#2a2a2a',
     'Spottedleaf': '#aa6633', 'Tigerclaw': '#5a3a1a', 'Yellowfang': '#555555',
     'Longtail': '#ccbb99', 'Smudge': '#333333', 'Princess': '#ccaa77',
+    // Queens
+    'Frostfur': '#dddddd', 'Brindleface': '#999999', 'Goldenflower': '#ddaa55',
+    // Kits
+    'Cinderkit': '#666677', 'Brackenkit': '#bb8833', 'Brightkit': '#dddddd',
+    'Thornkit': '#bb9944', 'Ashkit': '#aaaaaa', 'Fernkit': '#bbbbaa',
   };
 
   // Den interior state
@@ -8882,7 +9047,31 @@ window.onerror = function(msg, url, line, col, err) {
 
   function getAIStatusText (npc) {
     if (!npc.ai) return 'Resting';
-    switch (npc.ai.state) {
+    const role = npc.ai.role || '';
+    const state = npc.ai.state || npc.ai.task || 'idle';
+    // Role-specific status overrides
+    if (role === 'kit') {
+      switch (state) {
+        case 'rest':   return 'Napping \uD83D\uDCA4';
+        case 'eat':    return 'Eating \uD83C\uDF56';
+        case 'drink':  return 'Drinking \uD83D\uDCA7';
+        case 'patrol': return 'Playing \uD83C\uDFBE';
+        case 'hunt':   return 'Play-pouncing \uD83D\uDC3E';
+        case 'idle':   return 'Sitting around';
+        default:       return 'Playing';
+      }
+    }
+    if (role === 'queen') {
+      switch (state) {
+        case 'rest':   return 'Resting with kits \uD83D\uDCA4';
+        case 'eat':    return 'Eating \uD83C\uDF56';
+        case 'drink':  return 'Drinking \uD83D\uDCA7';
+        case 'patrol': return 'Watching over kits \uD83D\uDC41\uFE0F';
+        case 'idle':   return 'Grooming kits';
+        default:       return 'In the nursery';
+      }
+    }
+    switch (state) {
       case 'rest':  return 'Sleeping \uD83D\uDCA4';
       case 'eat':   return 'Eating \uD83C\uDF56';
       case 'drink': return 'Drinking \uD83D\uDCA7';
@@ -8956,6 +9145,9 @@ window.onerror = function(msg, url, line, col, err) {
   // Assign rank-based dens (kittypets get the Twoleg house as their "den")
   const TWOLEG_HOUSE_SPOT = { x: 0, z: 83 };
 
+  const QUEEN_NAMES = ['Frostfur', 'Brindleface', 'Goldenflower'];
+  const KIT_NAMES = ['Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit'];
+
   function getDenForCat (name) {
     if (KITTYPET_NAMES.includes(name)) return TWOLEG_HOUSE_SPOT;
     const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'];
@@ -8963,6 +9155,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (name === 'Bluestar') return DEN_SPOTS['Leader'];
     if (name === 'Spottedleaf') return DEN_SPOTS['Medicine'];
     if (name === 'Yellowfang') return DEN_SPOTS['Prisoner'];
+    if (QUEEN_NAMES.includes(name) || KIT_NAMES.includes(name)) return DEN_SPOTS['Nursery'];
     return DEN_SPOTS['Warriors'];
   }
 
@@ -8973,6 +9166,8 @@ window.onerror = function(msg, url, line, col, err) {
    * - 'warrior':     hunts, patrols borders, drinks, eats, rests — goes far out
    * - 'apprentice':  hunts, patrols (shorter range), drinks, eats, trains
    * - 'elder':       stays near camp, eats, drinks, rests
+   * - 'queen':       stays in/near nursery, protective, rarely leaves camp
+   * - 'kit':         plays near nursery, never leaves camp, tiny and energetic
    * - 'kittypet':    stays near Twoleg house
    */
   function getCatRole (name) {
@@ -8981,18 +9176,25 @@ window.onerror = function(msg, url, line, col, err) {
     if (name === 'Yellowfang') return 'elder';
     if (name === 'Smudge' || name === 'Princess') return 'kittypet';
     if (['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'].includes(name)) return 'apprentice';
+    if (QUEEN_NAMES.includes(name)) return 'queen';
+    if (KIT_NAMES.includes(name)) return 'kit';
     return 'warrior'; // Lionheart, Whitestorm, Tigerclaw, Mousefur, Darkstripe, Longtail
   }
 
   function initNPCAI () {
     npcCats.forEach(c => {
       const role = getCatRole(c.name);
+      let walkSpeed = 2.5 + Math.random() * 1.5;
+      if (role === 'apprentice') walkSpeed = 3.0 + Math.random();
+      else if (role === 'elder') walkSpeed = 1.8;
+      else if (role === 'queen') walkSpeed = 2.0 + Math.random() * 0.5;
+      else if (role === 'kit') walkSpeed = 3.5 + Math.random() * 1.5; // kits are fast and energetic!
       c.ai = {
         task: 'idle',
         target: null,
         timer: Math.random() * 6 + 2,
         carryingPrey: false,
-        walkSpeed: role === 'apprentice' ? 3.0 + Math.random() : (role === 'elder' ? 1.8 : 2.5 + Math.random() * 1.5),
+        walkSpeed: walkSpeed,
         role: role,
         homePos: null,  // where they return to
       };
@@ -9080,6 +9282,81 @@ window.onerror = function(msg, url, line, col, err) {
         ai.task = 'drink';
         ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
         ai.timer = 15;
+      }
+      return;
+    }
+
+    // --- QUEEN: stays in/near the nursery, occasionally walks around camp ---
+    if (role === 'queen') {
+      const nx = DEN_SPOTS['Nursery'].x, nz = DEN_SPOTS['Nursery'].z;
+      if (roll < 0.45) {
+        // Rest in nursery
+        ai.task = 'rest';
+        ai.target = { x: nx + (Math.random()-0.5)*2, z: nz + (Math.random()-0.5)*2 };
+        ai.timer = 15 + Math.random() * 20;
+      } else if (roll < 0.65) {
+        // Walk nearby in camp (stretch legs, check on camp)
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 2 + Math.random() * 4;
+        ai.target = { x: nx + Math.sin(angle) * dist, z: nz + Math.cos(angle) * dist };
+        ai.timer = 8 + Math.random() * 8;
+      } else if (roll < 0.80) {
+        // Eat from the fresh-kill pile
+        ai.task = 'eat';
+        ai.target = { x: 0 + (Math.random()-0.5)*2, z: 0 + (Math.random()-0.5)*2 };
+        ai.timer = 10 + Math.random() * 5;
+      } else if (roll < 0.90) {
+        // Drink
+        ai.task = 'drink';
+        ai.target = { x: -15, z: -10 };
+        ai.timer = 12;
+      } else {
+        // Idle near nursery
+        ai.task = 'idle';
+        ai.target = { x: nx + (Math.random()-0.5)*3, z: nz + (Math.random()-0.5)*3 };
+        ai.timer = 5 + Math.random() * 8;
+      }
+      return;
+    }
+
+    // --- KIT: plays near the nursery, chases other kits, never leaves camp ---
+    if (role === 'kit') {
+      const nx = DEN_SPOTS['Nursery'].x, nz = DEN_SPOTS['Nursery'].z;
+      if (roll < 0.25) {
+        // Play-chase (dart around the nursery area quickly)
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 1.5 + Math.random() * 3;
+        ai.target = { x: nx + Math.sin(angle) * dist, z: nz + Math.cos(angle) * dist };
+        ai.timer = 3 + Math.random() * 4;
+      } else if (roll < 0.45) {
+        // Play-pounce (short quick movement, like practicing hunting)
+        ai.task = 'hunt';
+        ai.target = { x: nx + (Math.random()-0.5)*4, z: nz + (Math.random()-0.5)*4 };
+        ai.timer = 2 + Math.random() * 3;
+      } else if (roll < 0.60) {
+        // Explore around camp (but not too far)
+        ai.task = 'patrol';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 3 + Math.random() * 4;
+        ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
+        ai.timer = 4 + Math.random() * 5;
+      } else if (roll < 0.75) {
+        // Rest/sleep in nursery (kits nap often)
+        ai.task = 'rest';
+        ai.target = { x: nx + (Math.random()-0.5)*1.5, z: nz + (Math.random()-0.5)*1.5 };
+        ai.timer = 8 + Math.random() * 12;
+      } else if (roll < 0.85) {
+        // Eat
+        ai.task = 'eat';
+        ai.target = { x: 0 + (Math.random()-0.5)*1, z: 0 + (Math.random()-0.5)*1 };
+        ai.timer = 5 + Math.random() * 4;
+      } else {
+        // Idle — sitting near nursery
+        ai.task = 'idle';
+        ai.target = { x: nx + (Math.random()-0.5)*2, z: nz + (Math.random()-0.5)*2 };
+        ai.timer = 4 + Math.random() * 6;
       }
       return;
     }
