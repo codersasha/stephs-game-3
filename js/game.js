@@ -3404,6 +3404,12 @@ window.onerror = function(msg, url, line, col, err) {
     if (messageBox.classList.contains('visible')) return; // already in conversation
     if (Date.now() - lastTalkTime < TALK_COOLDOWN) return;
 
+    // Try to catch training prey first
+    if (trainingPrey && trainingPrey.alive && tryToCatchPrey()) {
+      lastTalkTime = Date.now();
+      return;
+    }
+
     // Find the nearest visible NPC cat in range
     let nearest = null, nearestDist = TALK_RANGE;
     for (const npc of npcCats) {
@@ -5645,6 +5651,9 @@ window.onerror = function(msg, url, line, col, err) {
   let trainingStep = 0;
   let trainingTarget = null;  // { x, z } where to walk next
   let trainingLionheart = null;
+  let trainingPrey = null;     // { group, position, alive, runAngle, runTimer }
+  let trainingHuntComplete = false;
+  let trainingFightComplete = false;
 
   function startTraining () {
     gameState = 'playing';
@@ -5749,18 +5758,40 @@ window.onerror = function(msg, url, line, col, err) {
         break;
 
       case 4:
-        // Fresh-kill pile - hunting lesson
+        // Fresh-kill pile - hunting lesson with REAL prey
         queueMessage('Lionheart', 'This is the fresh-kill pile. Warriors bring prey here to feed the Clan.', () => {
           queueMessage('Lionheart', 'Hunting is one of your most important duties. When you\'re out in the forest, ' +
             'crouch low and stay downwind of your prey.', () => {
-            queueMessage('Lionheart', 'HUNTING: ' + (isMob
-              ? 'Press the ACT button when near prey to catch it.'
-              : 'Press E or click ACT when you see prey in the forest to try to catch it.'), () => {
-              queueMessage('Lionheart', 'Now, let me teach you about water. Follow me to the stream.', () => {
-                trainingStep = 5;
-                trainingTarget = { x: 20, z: -15 };
-                moveLionheartTo(20, -15);
-              });
+            queueMessage('Lionheart', 'Let me teach you. Follow me to the hunting grounds — I\'ll find us something to practice on!', () => {
+              trainingStep = 41; // sub-step: walk to hunting ground
+              trainingTarget = { x: 20, z: 20 };
+              moveLionheartTo(20, 20);
+            });
+          });
+        });
+        break;
+
+      case 41:
+        // Arrived at hunting ground — spawn a practice mouse
+        queueMessage('Lionheart', 'Shh! Look — there\'s a mouse over there! Crouch low and sneak up on it...', () => {
+          queueMessage('Lionheart', 'HUNTING: ' + (isMob
+            ? 'Walk close to the mouse and press ACT to catch it!'
+            : 'Walk close to the mouse and press E to catch it!'), () => {
+            // Spawn the training prey
+            spawnTrainingPrey(25, 22);
+            trainingStep = 42; // waiting for player to catch the mouse
+          });
+        });
+        break;
+
+      case 42:
+        // Player caught the mouse!
+        queueMessage('Lionheart', 'Excellent catch, ' + pName + '! You\'re a natural hunter! That mouse will feed the Clan.', () => {
+          queueMessage('Lionheart', 'Remember — always bring your prey back to the fresh-kill pile. The Clan eats together.', () => {
+            queueMessage('Lionheart', 'Now, let me teach you about water. Follow me to the stream.', () => {
+              trainingStep = 5;
+              trainingTarget = { x: 20, z: -15 };
+              moveLionheartTo(20, -15);
             });
           });
         });
@@ -5782,16 +5813,51 @@ window.onerror = function(msg, url, line, col, err) {
         break;
 
       case 6:
-        // Fighting lesson
-        queueMessage('Lionheart', 'A warrior must know how to fight. You already showed skill against Graypaw!', () => {
-          queueMessage('Lionheart', 'FIGHTING: When you encounter an enemy, a battle screen will open. ' +
-            'You can Attack, Dodge, or use a Fierce Attack!', () => {
-            queueMessage('Lionheart', 'SPRINTING: Hold ' + sprintKey + ' to run fast, but it uses your energy. ' +
-              'Use it to escape danger or chase prey!', () => {
-              queueMessage('Lionheart', 'Now, the MOST important part of being a warrior - knowing our borders! Follow me to the ShadowClan border!', () => {
-                trainingStep = 7;
-                trainingTarget = { x: -48, z: -10 };
-                moveLionheartTo(-48, -10);
+        // Fighting lesson — real sparring match!
+        queueMessage('Lionheart', 'A warrior must know how to fight. You showed spirit against Graypaw, but you need proper training!', () => {
+          queueMessage('Lionheart', 'I\'m going to spar with you, ' + pName + '. Don\'t worry — I\'ll go easy on you. But fight hard!', () => {
+            queueMessage('Lionheart', 'FIGHTING: You can Attack, Dodge, or use a Fierce Attack! Dodging reduces the next hit you take. Fierce Attack deals big damage but is risky!', () => {
+              queueMessage('Lionheart', 'Ready? Let\'s go! Show me what you\'ve got, apprentice!', () => {
+                // Start sparring match with Lionheart
+                startBattle({
+                  enemyName: 'Lionheart (Sparring)',
+                  enemyHP: 45,
+                  enemyMaxHP: 45,
+                  enemyAttack: 5,     // goes easy
+                  enemyDefense: 2,
+                  enemyFurColor: 0xddaa44,
+                  enemyEyeColor: 0xcc8800,
+                  enemyStripes: false,
+                  playerMinHP: 10,    // can't die in training
+                  expReward: 20,
+                  onWin: function () {
+                    trainingFightComplete = true;
+                    queueMessage('Lionheart', 'Ha! Well fought, ' + pName + '! You\'re stronger than I expected!', () => {
+                      queueMessage('Lionheart', 'Remember — a true warrior fights to protect, not to destroy. Use your claws wisely.', () => {
+                        queueMessage('Lionheart', 'SPRINTING: Hold ' + sprintKey + ' to run fast, but it uses your energy. ' +
+                          'Use it to escape danger or chase prey!', () => {
+                          queueMessage('Lionheart', 'Now, the MOST important part of being a warrior — knowing our borders! Follow me to the ShadowClan border!', () => {
+                            trainingStep = 7;
+                            trainingTarget = { x: -48, z: -10 };
+                            moveLionheartTo(-48, -10);
+                          });
+                        });
+                      });
+                    });
+                  },
+                  onLose: function () {
+                    // Can't really lose (playerMinHP = 10), but just in case
+                    queueMessage('Lionheart', 'Not bad for your first real sparring match! You\'ll get stronger with practice.', () => {
+                      trainingFightComplete = true;
+                      player.health = player.maxHealth; // heal up
+                      queueMessage('Lionheart', 'Let me teach you about sprinting and borders now. Follow me!', () => {
+                        trainingStep = 7;
+                        trainingTarget = { x: -48, z: -10 };
+                        moveLionheartTo(-48, -10);
+                      });
+                    });
+                  }
+                });
               });
             });
           });
@@ -5944,6 +6010,130 @@ window.onerror = function(msg, url, line, col, err) {
       trainingTarget = null; // clear so we don't trigger again
       advanceTraining();
     }
+  }
+
+  /* ====================================================
+     TRAINING PREY (hunting practice)
+     ==================================================== */
+  function spawnTrainingPrey (px, pz) {
+    if (trainingPrey && trainingPrey.group) {
+      scene.remove(trainingPrey.group);
+    }
+    const g = new THREE.Group();
+
+    // Mouse body - small brown oval
+    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x8B6914, shininess: 10 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), bodyMat);
+    body.scale.set(1, 0.7, 1.5);
+    body.position.y = 0.12;
+    g.add(body);
+
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 5), bodyMat);
+    head.position.set(0, 0.12, 0.2);
+    g.add(head);
+
+    // Ears
+    const earMat = new THREE.MeshPhongMaterial({ color: 0xcc9966 });
+    const earL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 5, 4), earMat);
+    earL.position.set(-0.05, 0.2, 0.2); g.add(earL);
+    const earR = new THREE.Mesh(new THREE.SphereGeometry(0.04, 5, 4), earMat);
+    earR.position.set(0.05, 0.2, 0.2); g.add(earR);
+
+    // Eyes (tiny black)
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.015, 4, 4), eyeMat);
+    eyeL.position.set(-0.03, 0.14, 0.27); g.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.015, 4, 4), eyeMat);
+    eyeR.position.set(0.03, 0.14, 0.27); g.add(eyeR);
+
+    // Tail - thin cylinder
+    const tailMat = new THREE.MeshPhongMaterial({ color: 0x997744 });
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.015, 0.3, 4), tailMat);
+    tail.position.set(0, 0.1, -0.3);
+    tail.rotation.x = Math.PI / 4;
+    g.add(tail);
+
+    // Name label
+    const label = makeNameLabel('Mouse', 0.8);
+    label.position.y = 0.4;
+    g.add(label);
+
+    g.position.set(px, 0, pz);
+    scene.add(g);
+
+    trainingPrey = {
+      group: g,
+      position: { x: px, z: pz },
+      alive: true,
+      runAngle: Math.random() * Math.PI * 2,
+      runTimer: 0,
+      scaredOf: null, // set when player gets close
+    };
+    trainingHuntComplete = false;
+  }
+
+  /** Update training prey — mouse runs away from player when they get close */
+  function updateTrainingPrey (dt) {
+    if (!trainingPrey || !trainingPrey.alive || !player) return;
+
+    const p = trainingPrey;
+    const ddx = player.position.x - p.position.x;
+    const ddz = player.position.z - p.position.z;
+    const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+
+    // Mouse runs when player is within 4 units
+    if (dist < 4) {
+      // Run away from player
+      const fleeAngle = Math.atan2(-ddx, -ddz);
+      p.runAngle = fleeAngle + (Math.random() - 0.5) * 0.8; // slightly random
+      const spd = 3.5 * dt;
+      p.position.x += Math.sin(p.runAngle) * spd;
+      p.position.z += Math.cos(p.runAngle) * spd;
+      // Keep in bounds
+      p.position.x = Math.max(-40, Math.min(60, p.position.x));
+      p.position.z = Math.max(-40, Math.min(60, p.position.z));
+      // Face the direction it's running
+      p.group.rotation.y = p.runAngle;
+    } else {
+      // Idle — small random movements
+      p.runTimer -= dt;
+      if (p.runTimer <= 0) {
+        p.runAngle = Math.random() * Math.PI * 2;
+        p.runTimer = 1 + Math.random() * 3;
+      }
+      const idleSpd = 0.5 * dt;
+      p.position.x += Math.sin(p.runAngle) * idleSpd;
+      p.position.z += Math.cos(p.runAngle) * idleSpd;
+      p.group.rotation.y = p.runAngle;
+    }
+
+    p.group.position.set(p.position.x, 0, p.position.z);
+  }
+
+  /** Try to catch the training prey — called when player presses E / ACT near it */
+  function tryToCatchPrey () {
+    if (!trainingPrey || !trainingPrey.alive || !player) return false;
+
+    const ddx = player.position.x - trainingPrey.position.x;
+    const ddz = player.position.z - trainingPrey.position.z;
+    const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+
+    if (dist < 2.0) {
+      // Caught it!
+      trainingPrey.alive = false;
+      trainingPrey.group.visible = false;
+      trainingHuntComplete = true;
+      playPreyCatch();
+      playSound('eat');
+
+      // Advance training
+      if (trainingStep === 42) {
+        advanceTraining();
+      }
+      return true;
+    }
+    return false;
   }
 
   /** Place all cats in their camp positions */
@@ -6676,6 +6866,7 @@ window.onerror = function(msg, url, line, col, err) {
       updateMonsters(dt);
       checkStoryTriggers();
       checkTrainingProximity();
+      updateTrainingPrey(dt);
       updateFollowers(dt);
       gameTime += dt;
       // autosave every 15 seconds during gameplay
@@ -7474,6 +7665,19 @@ window.onerror = function(msg, url, line, col, err) {
           ? 'Tap ACT to ask Twoleg for food'
           : 'Press E to ask Twoleg for food';
         interactHint.classList.remove('hidden');
+      } else if (trainingPrey && trainingPrey.alive) {
+        // Check distance to training prey
+        const pdx = trainingPrey.position.x - player.position.x;
+        const pdz = trainingPrey.position.z - player.position.z;
+        const pDist = Math.sqrt(pdx * pdx + pdz * pdz);
+        if (pDist < 3) {
+          interactHintText.textContent = isMobile
+            ? 'Tap ACT to catch the mouse!'
+            : 'Press E to catch the mouse!';
+          interactHint.classList.remove('hidden');
+        } else {
+          interactHint.classList.add('hidden');
+        }
       } else {
         interactHint.classList.add('hidden');
       }
