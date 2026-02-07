@@ -140,10 +140,118 @@ window.onerror = function(msg, url, line, col, err) {
   /* ---------- audio ---------- */
   let audioCtx;
   let ambientInterval = null;
+  let audioBus, masterComp, masterGain, reverbConv, reverbSendNode;
+  let whiteNoiseBuf = null, pinkNoiseBuf = null;
 
   function initAudio () {
     if (audioCtx) return;
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* silent */ }
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const hwDest = audioCtx['destination']; // hardware output
+
+      // === Master dynamics compressor — glues sounds, prevents clipping ===
+      masterComp = audioCtx.createDynamicsCompressor();
+      masterComp.threshold.value = -18;
+      masterComp.knee.value = 8;
+      masterComp.ratio.value = 4;
+      masterComp.attack.value = 0.003;
+      masterComp.release.value = 0.12;
+
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.88;
+      masterComp.connect(masterGain);
+      masterGain.connect(hwDest);
+
+      // === Pre-effects bus — all game sounds connect here ===
+      audioBus = audioCtx.createGain();
+      audioBus.gain.value = 1.0;
+      audioBus.connect(masterComp); // dry path
+
+      // === Convolver reverb — natural space and depth ===
+      try {
+        const sr = audioCtx.sampleRate;
+        const irDur = 1.6;
+        const irLen = Math.floor(sr * irDur);
+        const irBuf = audioCtx.createBuffer(2, irLen, sr);
+        for (let ch = 0; ch < 2; ch++) {
+          const d = irBuf.getChannelData(ch);
+          for (let i = 0; i < irLen; i++) {
+            const env = Math.pow(1 - i / irLen, 2.8);
+            d[i] = (Math.random() * 2 - 1) * env;
+          }
+          // Early reflections for realistic room feel
+          [0.007, 0.016, 0.025, 0.038, 0.053, 0.071].forEach((rt, idx) => {
+            const si = Math.floor(sr * rt);
+            if (si < irLen) d[si] += (Math.random() - 0.5) * (0.55 - idx * 0.07);
+          });
+        }
+        reverbConv = audioCtx.createConvolver();
+        reverbConv.buffer = irBuf;
+        // Reverb send bus
+        reverbSendNode = audioCtx.createGain();
+        reverbSendNode.gain.value = 0.20;
+        audioBus.connect(reverbSendNode);
+        // Low-pass before reverb to avoid harsh high-frequency reflections
+        const reverbLP = audioCtx.createBiquadFilter();
+        reverbLP.type = 'lowpass';
+        reverbLP.frequency.value = 4500;
+        reverbSendNode.connect(reverbLP);
+        reverbLP.connect(reverbConv);
+        reverbConv.connect(masterComp);
+      } catch (rvErr) { /* reverb optional */ }
+
+      // === Pre-cache stereo noise buffers (2 seconds) ===
+      const sr = audioCtx.sampleRate;
+      const nLen = sr * 2;
+      // White noise
+      whiteNoiseBuf = audioCtx.createBuffer(2, nLen, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = whiteNoiseBuf.getChannelData(ch);
+        for (let i = 0; i < nLen; i++) d[i] = Math.random() * 2 - 1;
+      }
+      // Pink noise — warmer, more natural (Paul Kellet's refined method)
+      pinkNoiseBuf = audioCtx.createBuffer(2, nLen, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = pinkNoiseBuf.getChannelData(ch);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < nLen; i++) {
+          const w = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + w * 0.0555179;
+          b1 = 0.99332 * b1 + w * 0.0750759;
+          b2 = 0.96900 * b2 + w * 0.1538520;
+          b3 = 0.86650 * b3 + w * 0.3104856;
+          b4 = 0.55000 * b4 + w * 0.5329522;
+          b5 = -0.7616 * b5 - w * 0.0168980;
+          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+          b6 = w * 0.115926;
+        }
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  // Audio routing helper — all sounds connect here for compression + reverb
+  function _out () { return audioBus || (audioCtx ? audioCtx['destination'] : null); }
+  // Create looping noise source from pre-cached stereo buffer
+  function _noise (pink) {
+    const s = audioCtx.createBufferSource();
+    s.buffer = pink ? (pinkNoiseBuf || whiteNoiseBuf) : whiteNoiseBuf;
+    if (!s.buffer) {
+      const sz = audioCtx.sampleRate;
+      s.buffer = audioCtx.createBuffer(1, sz, sz);
+      const d = s.buffer.getChannelData(0);
+      for (let i = 0; i < sz; i++) d[i] = Math.random() * 2 - 1;
+    }
+    s.loop = true;
+    s.loopStart = Math.random() * 1.5;
+    return s;
+  }
+  // Stereo panner with random slight offset for width
+  function _pan (v) {
+    try {
+      const p = audioCtx.createStereoPanner();
+      p.pan.value = v !== undefined ? v : (Math.random() - 0.5) * 0.5;
+      return p;
+    } catch (e) { return audioCtx.createGain(); }
   }
 
   /* --- Cat voice profiles (pitch, speed, vibrato per character) --- */
@@ -179,484 +287,974 @@ window.onerror = function(msg, url, line, col, err) {
   function playCatVoice (speakerName) {
     if (!audioCtx) return;
     const voice = catVoices[speakerName];
-    if (!voice || voice.base === 0) return; // narrator = no sound
+    if (!voice || voice.base === 0) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
 
       if (speakerName === 'ThunderClan') {
-        // Crowd cheer: several overlapping meows
-        for (let i = 0; i < 5; i++) {
-          const delay = i * 0.08;
+        // Crowd cheer: many overlapping varied cat calls with depth
+        for (let i = 0; i < 8; i++) {
+          const delay = i * 0.06 + Math.random() * 0.04;
+          const p = _pan((Math.random() - 0.5) * 0.8);
+          p.connect(dest);
+          // Main voice
           const o = audioCtx.createOscillator();
+          const formant = audioCtx.createBiquadFilter();
+          formant.type = 'bandpass';
+          formant.frequency.value = 400 + Math.random() * 600;
+          formant.Q.value = 2.5;
           const g = audioCtx.createGain();
-          o.connect(g); g.connect(audioCtx.destination);
-          o.type = 'sine';
-          const pitch = 280 + Math.random() * 300;
+          o.connect(formant); formant.connect(g); g.connect(p);
+          o.type = Math.random() > 0.5 ? 'sine' : 'triangle';
+          const pitch = 250 + Math.random() * 350;
           o.frequency.setValueAtTime(pitch, t + delay);
-          o.frequency.linearRampToValueAtTime(pitch * 0.7, t + delay + 0.35);
-          g.gain.setValueAtTime(0.06, t + delay);
-          g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.4);
-          o.start(t + delay); o.stop(t + delay + 0.45);
+          o.frequency.linearRampToValueAtTime(pitch * 0.6, t + delay + 0.4);
+          g.gain.setValueAtTime(0, t + delay);
+          g.gain.linearRampToValueAtTime(0.07, t + delay + 0.015);
+          g.gain.setValueAtTime(0.06, t + delay + 0.15);
+          g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
+          o.start(t + delay); o.stop(t + delay + 0.55);
+          // Harmonic layer
+          const o2 = audioCtx.createOscillator();
+          const g2 = audioCtx.createGain();
+          o2.connect(g2); g2.connect(p);
+          o2.type = 'sine';
+          o2.frequency.setValueAtTime(pitch * 1.5, t + delay);
+          o2.frequency.linearRampToValueAtTime(pitch * 0.9, t + delay + 0.35);
+          g2.gain.setValueAtTime(0, t + delay);
+          g2.gain.linearRampToValueAtTime(0.025, t + delay + 0.02);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.4);
+          o2.start(t + delay); o2.stop(t + delay + 0.45);
         }
         return;
       }
 
-      // Main voice tone
+      // === Formant filter — shapes raw oscillator into a more natural voice ===
+      const formant1 = audioCtx.createBiquadFilter();
+      formant1.type = 'bandpass';
+      formant1.frequency.value = voice.base * 1.2;
+      formant1.Q.value = 1.8;
+
+      const formant2 = audioCtx.createBiquadFilter();
+      formant2.type = 'bandpass';
+      formant2.frequency.value = voice.base * 2.8;
+      formant2.Q.value = 2.5;
+
+      // === Main voice tone ===
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.connect(formant1);
+      formant1.connect(gain);
+      gain.connect(pan);
       osc.type = voice.type;
-      osc.frequency.setValueAtTime(voice.base, t);
-      osc.frequency.linearRampToValueAtTime(voice.end, t + voice.dur * 0.7);
-      osc.frequency.linearRampToValueAtTime(voice.base * 0.9, t + voice.dur);
-      gain.gain.setValueAtTime(voice.vol, t);
-      gain.gain.setValueAtTime(voice.vol, t + voice.dur * 0.5);
+      // More expressive pitch contour
+      osc.frequency.setValueAtTime(voice.base * 1.02, t);
+      osc.frequency.linearRampToValueAtTime(voice.base, t + 0.02);
+      osc.frequency.linearRampToValueAtTime(voice.end, t + voice.dur * 0.55);
+      osc.frequency.linearRampToValueAtTime(voice.base * 0.82, t + voice.dur * 0.8);
+      osc.frequency.linearRampToValueAtTime(voice.end * 0.9, t + voice.dur);
+      // Soft attack envelope
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(voice.vol * 1.1, t + 0.012);
+      gain.gain.setValueAtTime(voice.vol, t + voice.dur * 0.3);
+      gain.gain.linearRampToValueAtTime(voice.vol * 0.75, t + voice.dur * 0.65);
       gain.gain.exponentialRampToValueAtTime(0.001, t + voice.dur);
       osc.start(t); osc.stop(t + voice.dur + 0.05);
 
-      // Vibrato / warble (gives each voice character)
+      // === Vibrato LFO ===
       if (voice.vibrato > 0) {
         const lfo = audioCtx.createOscillator();
         const lfoGain = audioCtx.createGain();
         lfo.frequency.value = voice.vibrato;
-        lfoGain.gain.value = voice.base * 0.04;
+        lfoGain.gain.value = voice.base * 0.05;
         lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
         lfo.start(t); lfo.stop(t + voice.dur + 0.05);
       }
 
-      // Second harmonic for richness
+      // === 2nd harmonic (fifth) — through second formant ===
       const osc2 = audioCtx.createOscillator();
       const gain2 = audioCtx.createGain();
-      osc2.connect(gain2); gain2.connect(audioCtx.destination);
+      osc2.connect(formant2);
+      formant2.connect(gain2);
+      gain2.connect(pan);
       osc2.type = 'sine';
       osc2.frequency.setValueAtTime(voice.base * 1.5, t);
       osc2.frequency.linearRampToValueAtTime(voice.end * 1.5, t + voice.dur);
-      gain2.gain.setValueAtTime(voice.vol * 0.25, t);
+      gain2.gain.setValueAtTime(0, t);
+      gain2.gain.linearRampToValueAtTime(voice.vol * 0.22, t + 0.01);
       gain2.gain.exponentialRampToValueAtTime(0.001, t + voice.dur);
       osc2.start(t); osc2.stop(t + voice.dur + 0.05);
+
+      // === 3rd harmonic (octave) — adds brightness ===
+      const osc3 = audioCtx.createOscillator();
+      const gain3 = audioCtx.createGain();
+      osc3.connect(gain3); gain3.connect(pan);
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(voice.base * 2, t);
+      osc3.frequency.linearRampToValueAtTime(voice.end * 2, t + voice.dur);
+      gain3.gain.setValueAtTime(0, t);
+      gain3.gain.linearRampToValueAtTime(voice.vol * 0.08, t + 0.02);
+      gain3.gain.exponentialRampToValueAtTime(0.001, t + voice.dur * 0.65);
+      osc3.start(t); osc3.stop(t + voice.dur + 0.05);
+
+      // === Breath/noise layer — adds realism and texture ===
+      const noise = _noise(false);
+      const nGain = audioCtx.createGain();
+      const nFilter = audioCtx.createBiquadFilter();
+      nFilter.type = 'bandpass';
+      nFilter.frequency.value = voice.base * 3;
+      nFilter.Q.value = 3;
+      noise.connect(nFilter); nFilter.connect(nGain); nGain.connect(pan);
+      nGain.gain.setValueAtTime(0, t);
+      nGain.gain.linearRampToValueAtTime(voice.vol * 0.10, t + 0.01);
+      nGain.gain.exponentialRampToValueAtTime(0.001, t + voice.dur * 0.75);
+      noise.start(t); noise.stop(t + voice.dur + 0.05);
     } catch (e) { /* silent */ }
   }
 
-  /** Bird tweet — short high chirpy sound */
-  /** Bird tweet — cheerful chirps (LOUDER) */
+  /** Bird tweet — cheerful chirps with harmonics and vibrato */
   function playBirdTweet () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
       const chirps = 2 + Math.floor(Math.random() * 3);
       for (let i = 0; i < chirps; i++) {
         const delay = i * (0.1 + Math.random() * 0.08);
+        const pitch = 2200 + Math.random() * 1400;
+        // Main chirp tone
         const o = audioCtx.createOscillator();
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = pitch; bp.Q.value = 4;
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(bp); bp.connect(g); g.connect(pan);
         o.type = 'sine';
-        const pitch = 1800 + Math.random() * 1200;
         o.frequency.setValueAtTime(pitch, t + delay);
-        o.frequency.linearRampToValueAtTime(pitch * (0.8 + Math.random() * 0.4), t + delay + 0.06);
-        o.frequency.linearRampToValueAtTime(pitch * 1.1, t + delay + 0.10);
-        g.gain.setValueAtTime(0.12 + Math.random() * 0.06, t + delay);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.15);
+        o.frequency.linearRampToValueAtTime(pitch * (0.75 + Math.random() * 0.5), t + delay + 0.05);
+        o.frequency.linearRampToValueAtTime(pitch * (1.05 + Math.random() * 0.15), t + delay + 0.09);
+        o.frequency.linearRampToValueAtTime(pitch * 0.85, t + delay + 0.13);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.10 + Math.random() * 0.05, t + delay + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.16);
         o.start(t + delay); o.stop(t + delay + 0.18);
+        // Harmonic overtone for richness
+        const o2 = audioCtx.createOscillator();
+        const g2 = audioCtx.createGain();
+        o2.connect(g2); g2.connect(pan);
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime(pitch * 2, t + delay);
+        o2.frequency.linearRampToValueAtTime(pitch * 1.7, t + delay + 0.08);
+        g2.gain.setValueAtTime(0, t + delay);
+        g2.gain.linearRampToValueAtTime(0.03, t + delay + 0.005);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+        o2.start(t + delay); o2.stop(t + delay + 0.14);
+        // Vibrato on each chirp
+        const lfo = audioCtx.createOscillator();
+        const lg = audioCtx.createGain();
+        lfo.frequency.value = 20 + Math.random() * 20;
+        lg.gain.value = pitch * 0.06;
+        lfo.connect(lg); lg.connect(o.frequency);
+        lfo.start(t + delay); lfo.stop(t + delay + 0.18);
       }
     } catch (e) {}
   }
 
-  /** Songbird — longer melodic call */
+  /** Songbird — longer melodic call with harmonics */
   function playSongbird () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const notes = [2200, 2600, 2400, 2800, 2500, 2900];
-      for (let i = 0; i < 4 + Math.floor(Math.random() * 3); i++) {
-        const delay = i * 0.15;
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
-        o.type = 'sine';
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      const notes = [2200, 2600, 2400, 2800, 2500, 2900, 2300, 2700];
+      const count = 4 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < count; i++) {
+        const delay = i * 0.14;
         const p = notes[i % notes.length] + Math.random() * 300;
+        // Main note
+        const o = audioCtx.createOscillator();
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = p * 1.1; bp.Q.value = 3;
+        const g = audioCtx.createGain();
+        o.connect(bp); bp.connect(g); g.connect(pan);
+        o.type = 'sine';
         o.frequency.setValueAtTime(p, t + delay);
-        o.frequency.linearRampToValueAtTime(p * 0.85, t + delay + 0.12);
-        g.gain.setValueAtTime(0.10, t + delay);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.14);
-        o.start(t + delay); o.stop(t + delay + 0.16);
+        o.frequency.linearRampToValueAtTime(p * 0.82, t + delay + 0.11);
+        o.frequency.linearRampToValueAtTime(p * 0.95, t + delay + 0.15);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.09, t + delay + 0.005);
+        g.gain.linearRampToValueAtTime(0.07, t + delay + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.17);
+        o.start(t + delay); o.stop(t + delay + 0.19);
+        // Harmonic
+        const o2 = audioCtx.createOscillator();
+        const g2 = audioCtx.createGain();
+        o2.connect(g2); g2.connect(pan);
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime(p * 1.5, t + delay);
+        o2.frequency.linearRampToValueAtTime(p * 1.3, t + delay + 0.10);
+        g2.gain.setValueAtTime(0, t + delay);
+        g2.gain.linearRampToValueAtTime(0.025, t + delay + 0.005);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.13);
+        o2.start(t + delay); o2.stop(t + delay + 0.15);
+        // Vibrato
+        const lfo = audioCtx.createOscillator();
+        const lg = audioCtx.createGain();
+        lfo.frequency.value = 15 + Math.random() * 15;
+        lg.gain.value = p * 0.04;
+        lfo.connect(lg); lg.connect(o.frequency);
+        lfo.start(t + delay); lfo.stop(t + delay + 0.19);
       }
     } catch (e) {}
   }
 
-  /** Owl hoot — deep, eerie */
+  /** Owl hoot — deep, eerie, resonant with extra reverb */
   function playOwlHoot () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan(0); // center
+      pan.connect(dest);
+      // Extra reverb for owl
+      const extraRev = audioCtx.createGain();
+      extraRev.gain.value = 0.3;
+      if (reverbSendNode) extraRev.connect(reverbSendNode);
+      else extraRev.connect(dest);
       for (let i = 0; i < 2; i++) {
-        const delay = i * 0.6;
+        const delay = i * 0.65;
+        // Main hoot — deep sine
         const o = audioCtx.createOscillator();
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = 360; bp.Q.value = 5;
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(bp); bp.connect(g); g.connect(pan); g.connect(extraRev);
         o.type = 'sine';
-        o.frequency.setValueAtTime(380, t + delay);
-        o.frequency.linearRampToValueAtTime(320, t + delay + 0.4);
-        g.gain.setValueAtTime(0.12, t + delay);
-        g.gain.linearRampToValueAtTime(0.08, t + delay + 0.2);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
-        o.start(t + delay); o.stop(t + delay + 0.55);
+        o.frequency.setValueAtTime(390, t + delay);
+        o.frequency.linearRampToValueAtTime(355, t + delay + 0.15);
+        o.frequency.linearRampToValueAtTime(320, t + delay + 0.45);
+        // Soft attack, hold, decay
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.13, t + delay + 0.03);
+        g.gain.setValueAtTime(0.11, t + delay + 0.2);
+        g.gain.linearRampToValueAtTime(0.06, t + delay + 0.35);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.55);
+        o.start(t + delay); o.stop(t + delay + 0.6);
+        // Sub-harmonic for warmth
+        const sub = audioCtx.createOscillator();
+        const sg = audioCtx.createGain();
+        sub.connect(sg); sg.connect(pan);
+        sub.type = 'triangle';
+        sub.frequency.setValueAtTime(195, t + delay);
+        sub.frequency.linearRampToValueAtTime(160, t + delay + 0.45);
+        sg.gain.setValueAtTime(0, t + delay);
+        sg.gain.linearRampToValueAtTime(0.06, t + delay + 0.04);
+        sg.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
+        sub.start(t + delay); sub.stop(t + delay + 0.55);
+        // Breath noise layer
+        const n = _noise(true);
+        const nf = audioCtx.createBiquadFilter();
+        nf.type = 'bandpass'; nf.frequency.value = 400; nf.Q.value = 6;
+        const ng = audioCtx.createGain();
+        n.connect(nf); nf.connect(ng); ng.connect(pan);
+        ng.gain.setValueAtTime(0, t + delay);
+        ng.gain.linearRampToValueAtTime(0.03, t + delay + 0.02);
+        ng.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.4);
+        n.start(t + delay); n.stop(t + delay + 0.45);
       }
     } catch (e) {}
   }
 
-  /** Wind rustling through trees — soft filtered noise (LOUDER) */
+  /** Wind rustling through trees — pink noise with modulated filter */
   function playWindRustle () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 2;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass'; filter.frequency.value = 400 + Math.random() * 200;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Use warm pink noise
+      const noise = _noise(true);
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(350 + Math.random() * 200, t);
+      // LFO to modulate filter — creates realistic wind gusting
+      const lfo = audioCtx.createOscillator();
+      const lfog = audioCtx.createGain();
+      lfo.frequency.value = 0.4 + Math.random() * 0.6;
+      lfog.gain.value = 150;
+      lfo.connect(lfog); lfog.connect(lp.frequency);
+      // Second filter stage for smoother rolloff
+      const lp2 = audioCtx.createBiquadFilter();
+      lp2.type = 'lowpass';
+      lp2.frequency.value = 600;
       const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      noise.connect(lp); lp.connect(lp2); lp2.connect(g); g.connect(pan);
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.07, t + 0.5);
-      g.gain.linearRampToValueAtTime(0.04, t + 1.5);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
-      noise.start(t); noise.stop(t + 2.5);
+      g.gain.linearRampToValueAtTime(0.08, t + 0.6);
+      g.gain.setValueAtTime(0.06, t + 1.5);
+      g.gain.linearRampToValueAtTime(0.07, t + 2.0);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
+      noise.start(t); noise.stop(t + 3.0);
+      lfo.start(t); lfo.stop(t + 3.0);
     } catch (e) {}
   }
 
-  /** Leaves rustling / crunching underfoot */
+  /** Leaves rustling / crunching underfoot — multi-layer crunch */
   function playLeafCrunch () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 0.15;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'highpass'; filter.frequency.value = 2000 + Math.random() * 1000;
-      const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.10 + Math.random() * 0.05, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-      noise.start(t); noise.stop(t + 0.15);
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Layer 1: sharp crackle
+      const n1 = _noise(false);
+      const hp1 = audioCtx.createBiquadFilter();
+      hp1.type = 'highpass'; hp1.frequency.value = 2500 + Math.random() * 1500;
+      const g1 = audioCtx.createGain();
+      n1.connect(hp1); hp1.connect(g1); g1.connect(pan);
+      g1.gain.setValueAtTime(0, t);
+      g1.gain.linearRampToValueAtTime(0.10 + Math.random() * 0.04, t + 0.003);
+      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      n1.start(t); n1.stop(t + 0.10);
+      // Layer 2: body of the crunch (lower)
+      const n2 = _noise(true);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 1200 + Math.random() * 600; bp.Q.value = 1;
+      const g2 = audioCtx.createGain();
+      n2.connect(bp); bp.connect(g2); g2.connect(pan);
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(0.06, t + 0.005);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      n2.start(t); n2.stop(t + 0.14);
     } catch (e) {}
   }
 
-  /** Cricket chirps — nighttime ambient (LOUDER) */
+  /** Cricket chirps — nighttime ambient, filtered and layered */
   function playCricket () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const count = 4 + Math.floor(Math.random() * 4);
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      const baseFreq = 4000 + Math.random() * 1000;
+      const count = 5 + Math.floor(Math.random() * 5);
       for (let i = 0; i < count; i++) {
-        const delay = i * 0.07;
+        const delay = i * 0.065;
         const o = audioCtx.createOscillator();
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = baseFreq; bp.Q.value = 8;
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(bp); bp.connect(g); g.connect(pan);
         o.type = 'square';
-        o.frequency.value = 4200 + Math.random() * 800;
-        g.gain.setValueAtTime(0.04, t + delay);
+        o.frequency.value = baseFreq + Math.random() * 200;
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.035, t + delay + 0.003);
         g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.04);
         o.start(t + delay); o.stop(t + delay + 0.05);
+      }
+      // Second cricket at slightly different pitch for stereo depth
+      if (Math.random() < 0.5) {
+        const p2 = _pan();
+        p2.connect(dest);
+        const freq2 = baseFreq + 300 + Math.random() * 400;
+        for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
+          const delay = 0.3 + i * 0.06;
+          const o = audioCtx.createOscillator();
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = freq2; bp.Q.value = 10;
+          const g = audioCtx.createGain();
+          o.connect(bp); bp.connect(g); g.connect(p2);
+          o.type = 'square';
+          o.frequency.value = freq2;
+          g.gain.setValueAtTime(0, t + delay);
+          g.gain.linearRampToValueAtTime(0.025, t + delay + 0.003);
+          g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.035);
+          o.start(t + delay); o.stop(t + delay + 0.045);
+        }
       }
     } catch (e) {}
   }
 
-  /** Frog croak — deep rhythmic */
+  /** Frog croak — deep rhythmic with formant */
   function playFrogCroak () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-        const delay = i * 0.25;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      const croaks = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < croaks; i++) {
+        const delay = i * 0.28;
+        const freq = 110 + Math.random() * 50;
+        // Main croak tone through formant
         const o = audioCtx.createOscillator();
+        const formant = audioCtx.createBiquadFilter();
+        formant.type = 'bandpass'; formant.frequency.value = 250; formant.Q.value = 3;
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(formant); formant.connect(g); g.connect(pan);
         o.type = 'sawtooth';
-        o.frequency.setValueAtTime(120 + Math.random() * 40, t + delay);
-        o.frequency.linearRampToValueAtTime(80, t + delay + 0.1);
-        g.gain.setValueAtTime(0.08, t + delay);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.15);
-        o.start(t + delay); o.stop(t + delay + 0.18);
+        o.frequency.setValueAtTime(freq, t + delay);
+        o.frequency.linearRampToValueAtTime(freq * 0.65, t + delay + 0.12);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.09, t + delay + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.18);
+        o.start(t + delay); o.stop(t + delay + 0.20);
+        // Sub tone for depth
+        const sub = audioCtx.createOscillator();
+        const sg = audioCtx.createGain();
+        sub.connect(sg); sg.connect(pan);
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(freq * 0.5, t + delay);
+        sub.frequency.linearRampToValueAtTime(freq * 0.35, t + delay + 0.1);
+        sg.gain.setValueAtTime(0, t + delay);
+        sg.gain.linearRampToValueAtTime(0.05, t + delay + 0.005);
+        sg.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.15);
+        sub.start(t + delay); sub.stop(t + delay + 0.17);
+        // Noise burst for throat texture
+        const n = _noise(true);
+        const nf = audioCtx.createBiquadFilter();
+        nf.type = 'bandpass'; nf.frequency.value = 200; nf.Q.value = 4;
+        const ng = audioCtx.createGain();
+        n.connect(nf); nf.connect(ng); ng.connect(pan);
+        ng.gain.setValueAtTime(0, t + delay);
+        ng.gain.linearRampToValueAtTime(0.04, t + delay + 0.005);
+        ng.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+        n.start(t + delay); n.stop(t + delay + 0.14);
       }
     } catch (e) {}
   }
 
-  /** Water / river flowing — gentle filtered noise (LOUDER) */
+  /** Water / river flowing — pink noise with modulated filter for babbling */
   function playRiverSound () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.5;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Pink noise for natural water texture
+      const noise = _noise(true);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6;
+      // LFO modulation for babbling quality
+      const lfo = audioCtx.createOscillator();
+      const lfog = audioCtx.createGain();
+      lfo.frequency.value = 1.5 + Math.random();
+      lfog.gain.value = 200;
+      lfo.connect(lfog); lfog.connect(bp.frequency);
+      // Second filter for smoother sound
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1800;
       const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.06, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
-      noise.start(t); noise.stop(t + 1.5);
+      noise.connect(bp); bp.connect(lp); lp.connect(g); g.connect(pan);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.07, t + 0.2);
+      g.gain.setValueAtTime(0.05, t + 1.0);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+      noise.start(t); noise.stop(t + 2.0);
+      lfo.start(t); lfo.stop(t + 2.0);
+      // Subtle high-frequency sparkle
+      const n2 = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 3000;
+      const g2 = audioCtx.createGain();
+      n2.connect(hp); hp.connect(g2); g2.connect(pan);
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(0.015, t + 0.3);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
+      n2.start(t); n2.stop(t + 1.8);
     } catch (e) {}
   }
 
-  /** Water splash — short burst */
+  /** Water splash — layered noise burst with tonal drop */
   function playWaterSplash () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 0.3;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass'; filter.frequency.value = 1200; filter.Q.value = 0.3;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Main splash body
+      const n = _noise(false);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.4;
       const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.15, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-      noise.start(t); noise.stop(t + 0.3);
+      n.connect(bp); bp.connect(g); g.connect(pan);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.16, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      n.start(t); n.stop(t + 0.35);
+      // High-frequency spray
+      const n2 = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 3500;
+      const g2 = audioCtx.createGain();
+      n2.connect(hp); hp.connect(g2); g2.connect(pan);
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(0.08, t + 0.003);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      n2.start(t); n2.stop(t + 0.18);
+      // Tonal drop
+      const o = audioCtx.createOscillator();
+      const og = audioCtx.createGain();
+      o.connect(og); og.connect(pan);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(800, t);
+      o.frequency.exponentialRampToValueAtTime(200, t + 0.12);
+      og.gain.setValueAtTime(0.06, t);
+      og.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      o.start(t); o.stop(t + 0.14);
     } catch (e) {}
   }
 
-  /** Swimming stroke splash — lighter, rhythmic paddle sound */
+  /** Swimming stroke splash — lighter rhythmic paddle with drip */
   function playSwimSplash () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 0.2;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass'; filter.frequency.value = 800 + Math.random() * 600; filter.Q.value = 0.4;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Paddle noise
+      const n = _noise(false);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 900 + Math.random() * 500; bp.Q.value = 0.5;
       const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.08, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      noise.start(t); noise.stop(t + 0.2);
-      // Add a subtle drip tone
-      const o = audioCtx.createOscillator();
+      n.connect(bp); bp.connect(g); g.connect(pan);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.08, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      n.start(t); n.stop(t + 0.2);
+      // High spray layer
+      const n2 = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 3000;
       const g2 = audioCtx.createGain();
-      o.connect(g2); g2.connect(audioCtx.destination);
-      o.type = 'sine';
-      o.frequency.setValueAtTime(600 + Math.random() * 400, t);
-      o.frequency.exponentialRampToValueAtTime(200, t + 0.1);
-      g2.gain.setValueAtTime(0.04, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-      o.start(t); o.stop(t + 0.12);
+      n2.connect(hp); hp.connect(g2); g2.connect(pan);
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(0.04, t + 0.003);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.10);
+      n2.start(t); n2.stop(t + 0.12);
+      // Drip tones
+      for (let i = 0; i < 2; i++) {
+        const d = 0.05 + i * 0.06;
+        const o = audioCtx.createOscillator();
+        const og = audioCtx.createGain();
+        o.connect(og); og.connect(pan);
+        o.type = 'sine';
+        const freq = 500 + Math.random() * 500;
+        o.frequency.setValueAtTime(freq, t + d);
+        o.frequency.exponentialRampToValueAtTime(freq * 0.4, t + d + 0.08);
+        og.gain.setValueAtTime(0.035, t + d);
+        og.gain.exponentialRampToValueAtTime(0.001, t + d + 0.08);
+        o.start(t + d); o.stop(t + d + 0.10);
+      }
     } catch (e) {}
   }
 
-  /** Cat purr — warm rumble */
+  /** Cat purr — warm multi-layer rumble with amplitude modulation */
   function playPurr () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan(0);
+      pan.connect(dest);
+      const baseFreq = 26 + Math.random() * 8;
+      // Main purr oscillator
       const o = audioCtx.createOscillator();
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 120;
       const g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
+      o.connect(lp); lp.connect(g); g.connect(pan);
       o.type = 'sawtooth';
-      o.frequency.value = 28 + Math.random() * 8;
-      g.gain.setValueAtTime(0.06, t);
+      o.frequency.value = baseFreq;
+      // AM for rhythmic purr-purr-purr pattern
+      const am = audioCtx.createOscillator();
+      const amg = audioCtx.createGain();
+      am.frequency.value = 4.5; // purr rhythm
+      amg.gain.value = 0.04;
+      am.connect(amg); amg.connect(g.gain);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.07, t + 0.08);
       g.gain.setValueAtTime(0.08, t + 0.3);
-      g.gain.setValueAtTime(0.05, t + 0.6);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
-      o.start(t); o.stop(t + 1.0);
+      g.gain.setValueAtTime(0.06, t + 0.7);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      o.start(t); o.stop(t + 1.2);
+      am.start(t); am.stop(t + 1.2);
+      // Second harmonic for body
+      const o2 = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o2.connect(g2); g2.connect(pan);
+      o2.type = 'sine';
+      o2.frequency.value = baseFreq * 2;
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(0.03, t + 0.1);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+      o2.start(t); o2.stop(t + 1.15);
+      // Noise layer for breath texture
+      const n = _noise(true);
+      const nf = audioCtx.createBiquadFilter();
+      nf.type = 'lowpass'; nf.frequency.value = 200;
+      const ng = audioCtx.createGain();
+      n.connect(nf); nf.connect(ng); ng.connect(pan);
+      ng.gain.setValueAtTime(0, t);
+      ng.gain.linearRampToValueAtTime(0.02, t + 0.1);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+      n.start(t); n.stop(t + 1.05);
     } catch (e) {}
   }
 
-  /** Cat hiss — angry sound */
+  /** Cat hiss — aggressive filtered noise with body */
   function playHiss () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 0.5;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'highpass'; filter.frequency.value = 3000;
+      const dest = _out();
+      const pan = _pan(0);
+      pan.connect(dest);
+      // Main hiss — high-passed noise with envelope
+      const n1 = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 2500;
+      const peak = audioCtx.createBiquadFilter();
+      peak.type = 'peaking'; peak.frequency.value = 5000; peak.gain.value = 6; peak.Q.value = 2;
       const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.15, t);
-      g.gain.linearRampToValueAtTime(0.20, t + 0.1);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-      noise.start(t); noise.stop(t + 0.5);
+      n1.connect(hp); hp.connect(peak); peak.connect(g); g.connect(pan);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.05, t + 0.015);
+      g.gain.linearRampToValueAtTime(0.18, t + 0.06);
+      g.gain.setValueAtTime(0.16, t + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      n1.start(t); n1.stop(t + 0.5);
+      // Low growl underneath
+      const o = audioCtx.createOscillator();
+      const og = audioCtx.createGain();
+      const olp = audioCtx.createBiquadFilter();
+      olp.type = 'lowpass'; olp.frequency.value = 300;
+      o.connect(olp); olp.connect(og); og.connect(pan);
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(100, t);
+      o.frequency.linearRampToValueAtTime(80, t + 0.3);
+      og.gain.setValueAtTime(0, t);
+      og.gain.linearRampToValueAtTime(0.06, t + 0.03);
+      og.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      o.start(t); o.stop(t + 0.4);
     } catch (e) {}
   }
 
-  /** Cat yowl — distressed sound */
+  /** Cat yowl — distressed multi-oscillator with vibrato */
   function playYowl () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan(0);
+      pan.connect(dest);
+      // Main yowl
       const o = audioCtx.createOscillator();
+      const formant = audioCtx.createBiquadFilter();
+      formant.type = 'bandpass'; formant.frequency.value = 600; formant.Q.value = 2;
       const g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
+      o.connect(formant); formant.connect(g); g.connect(pan);
       o.type = 'sawtooth';
-      o.frequency.setValueAtTime(500, t);
-      o.frequency.linearRampToValueAtTime(800, t + 0.2);
-      o.frequency.linearRampToValueAtTime(400, t + 0.5);
-      o.frequency.linearRampToValueAtTime(600, t + 0.7);
-      g.gain.setValueAtTime(0.12, t);
-      g.gain.linearRampToValueAtTime(0.15, t + 0.2);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-      o.start(t); o.stop(t + 0.85);
+      o.frequency.setValueAtTime(480, t);
+      o.frequency.linearRampToValueAtTime(820, t + 0.18);
+      o.frequency.linearRampToValueAtTime(380, t + 0.45);
+      o.frequency.linearRampToValueAtTime(650, t + 0.65);
+      o.frequency.linearRampToValueAtTime(350, t + 0.85);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.13, t + 0.02);
+      g.gain.linearRampToValueAtTime(0.16, t + 0.18);
+      g.gain.linearRampToValueAtTime(0.10, t + 0.55);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+      o.start(t); o.stop(t + 0.95);
+      // Vibrato
+      const lfo = audioCtx.createOscillator();
+      const lfog = audioCtx.createGain();
+      lfo.frequency.value = 6;
+      lfog.gain.value = 40;
+      lfo.connect(lfog); lfog.connect(o.frequency);
+      lfo.start(t); lfo.stop(t + 0.95);
+      // Second voice for thickness
+      const o2 = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o2.connect(g2); g2.connect(pan);
+      o2.type = 'triangle';
+      o2.frequency.setValueAtTime(500, t);
+      o2.frequency.linearRampToValueAtTime(850, t + 0.2);
+      o2.frequency.linearRampToValueAtTime(400, t + 0.5);
+      g2.gain.setValueAtTime(0, t);
+      g2.gain.linearRampToValueAtTime(0.06, t + 0.03);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+      o2.start(t); o2.stop(t + 0.75);
+      // Noise texture
+      const n = _noise(false);
+      const nf = audioCtx.createBiquadFilter();
+      nf.type = 'bandpass'; nf.frequency.value = 800; nf.Q.value = 2;
+      const ng = audioCtx.createGain();
+      n.connect(nf); nf.connect(ng); ng.connect(pan);
+      ng.gain.setValueAtTime(0, t);
+      ng.gain.linearRampToValueAtTime(0.04, t + 0.02);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      n.start(t); n.stop(t + 0.65);
     } catch (e) {}
   }
 
-  /** Bell jingle — for collar */
+  /** Bell jingle — for collar, metallic harmonics with decay */
   function playBellJingle () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan(0.1);
+      pan.connect(dest);
+      const baseFreq = 2600;
       for (let i = 0; i < 3; i++) {
-        const delay = i * 0.08;
+        const delay = i * 0.07;
+        // Fundamental
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(g); g.connect(pan);
         o.type = 'sine';
-        o.frequency.setValueAtTime(2800 + i * 200, t + delay);
-        g.gain.setValueAtTime(0.08, t + delay);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.2);
-        o.start(t + delay); o.stop(t + delay + 0.25);
+        o.frequency.setValueAtTime(baseFreq + i * 180, t + delay);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.08, t + delay + 0.002);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.3);
+        o.start(t + delay); o.stop(t + delay + 0.35);
+        // Upper partial (inharmonic for metallic quality)
+        const o2 = audioCtx.createOscillator();
+        const g2 = audioCtx.createGain();
+        o2.connect(g2); g2.connect(pan);
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime((baseFreq + i * 180) * 2.76, t + delay);
+        g2.gain.setValueAtTime(0, t + delay);
+        g2.gain.linearRampToValueAtTime(0.03, t + delay + 0.001);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.2);
+        o2.start(t + delay); o2.stop(t + delay + 0.25);
       }
     } catch (e) {}
   }
 
-  /** Drink/lap water sound */
+  /** Drink/lap water — rhythmic tongue laps with splash */
   function playDrinkSound () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const pan = _pan(0);
+      pan.connect(dest);
       for (let i = 0; i < 3; i++) {
         const delay = i * 0.2;
+        // Tongue lap tone
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(g); g.connect(pan);
         o.type = 'sine';
-        o.frequency.setValueAtTime(600, t + delay);
-        o.frequency.linearRampToValueAtTime(300, t + delay + 0.08);
-        g.gain.setValueAtTime(0.10, t + delay);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
-        o.start(t + delay); o.stop(t + delay + 0.15);
+        o.frequency.setValueAtTime(600 + Math.random() * 80, t + delay);
+        o.frequency.exponentialRampToValueAtTime(250, t + delay + 0.07);
+        g.gain.setValueAtTime(0, t + delay);
+        g.gain.linearRampToValueAtTime(0.10, t + delay + 0.003);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.10);
+        o.start(t + delay); o.stop(t + delay + 0.12);
+        // Tiny splash noise
+        const n = _noise(false);
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = 2000; bp.Q.value = 1;
+        const ng = audioCtx.createGain();
+        n.connect(bp); bp.connect(ng); ng.connect(pan);
+        ng.gain.setValueAtTime(0, t + delay + 0.01);
+        ng.gain.linearRampToValueAtTime(0.03, t + delay + 0.015);
+        ng.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.06);
+        n.start(t + delay + 0.01); n.stop(t + delay + 0.08);
       }
     } catch (e) {}
   }
 
-  /** Prey caught — excited squeak + crunch */
+  /** Prey caught — excited squeak + crunch, richer layers */
   function playPreyCatch () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      // Squeak
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Squeak with vibrato
       const o1 = audioCtx.createOscillator();
       const g1 = audioCtx.createGain();
-      o1.connect(g1); g1.connect(audioCtx.destination);
+      o1.connect(g1); g1.connect(pan);
       o1.type = 'sine';
-      o1.frequency.setValueAtTime(3000, t);
-      o1.frequency.linearRampToValueAtTime(4000, t + 0.05);
-      o1.frequency.linearRampToValueAtTime(2500, t + 0.12);
-      g1.gain.setValueAtTime(0.10, t);
+      o1.frequency.setValueAtTime(2800, t);
+      o1.frequency.linearRampToValueAtTime(4200, t + 0.04);
+      o1.frequency.linearRampToValueAtTime(2400, t + 0.12);
+      g1.gain.setValueAtTime(0, t);
+      g1.gain.linearRampToValueAtTime(0.10, t + 0.005);
       g1.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
       o1.start(t); o1.stop(t + 0.18);
-      // Crunch
-      const bufferSize = audioCtx.sampleRate * 0.1;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
+      // Vibrato on squeak
+      const lfo = audioCtx.createOscillator();
+      const lfog = audioCtx.createGain();
+      lfo.frequency.value = 30;
+      lfog.gain.value = 200;
+      lfo.connect(lfog); lfog.connect(o1.frequency);
+      lfo.start(t); lfo.stop(t + 0.18);
+      // Crunch — layered noise
+      const n = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 1500;
       const g2 = audioCtx.createGain();
-      noise.connect(g2); g2.connect(audioCtx.destination);
-      g2.gain.setValueAtTime(0.08, t + 0.15);
+      n.connect(hp); hp.connect(g2); g2.connect(pan);
+      g2.gain.setValueAtTime(0, t + 0.14);
+      g2.gain.linearRampToValueAtTime(0.09, t + 0.145);
       g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-      noise.start(t + 0.15); noise.stop(t + 0.28);
+      n.start(t + 0.14); n.stop(t + 0.28);
     } catch (e) {}
   }
 
-  /** Heartbeat — tense moments */
+  /** Heartbeat — deep tense thuds with sub-bass and noise impact */
   function playHeartbeat () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
       for (let i = 0; i < 3; i++) {
         const delay = i * 0.7;
-        // Lub
+        // Lub — deep thud with sub-bass
         const o1 = audioCtx.createOscillator();
+        const lp1 = audioCtx.createBiquadFilter();
+        lp1.type = 'lowpass'; lp1.frequency.value = 80;
         const g1 = audioCtx.createGain();
-        o1.connect(g1); g1.connect(audioCtx.destination);
-        o1.type = 'sine'; o1.frequency.value = 50;
-        g1.gain.setValueAtTime(0.15, t + delay);
-        g1.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1);
-        o1.start(t + delay); o1.stop(t + delay + 0.12);
-        // Dub
+        o1.connect(lp1); lp1.connect(g1); g1.connect(dest);
+        o1.type = 'sine';
+        o1.frequency.setValueAtTime(55, t + delay);
+        o1.frequency.exponentialRampToValueAtTime(35, t + delay + 0.08);
+        g1.gain.setValueAtTime(0, t + delay);
+        g1.gain.linearRampToValueAtTime(0.18, t + delay + 0.005);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+        o1.start(t + delay); o1.stop(t + delay + 0.14);
+        // Noise transient for impact
+        const n1 = _noise(true);
+        const nlp = audioCtx.createBiquadFilter();
+        nlp.type = 'lowpass'; nlp.frequency.value = 150;
+        const ng = audioCtx.createGain();
+        n1.connect(nlp); nlp.connect(ng); ng.connect(dest);
+        ng.gain.setValueAtTime(0, t + delay);
+        ng.gain.linearRampToValueAtTime(0.06, t + delay + 0.003);
+        ng.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.06);
+        n1.start(t + delay); n1.stop(t + delay + 0.08);
+        // Dub — slightly softer follow-up
         const o2 = audioCtx.createOscillator();
+        const lp2 = audioCtx.createBiquadFilter();
+        lp2.type = 'lowpass'; lp2.frequency.value = 70;
         const g2 = audioCtx.createGain();
-        o2.connect(g2); g2.connect(audioCtx.destination);
-        o2.type = 'sine'; o2.frequency.value = 40;
-        g2.gain.setValueAtTime(0.12, t + delay + 0.15);
-        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.25);
-        o2.start(t + delay + 0.15); o2.stop(t + delay + 0.28);
+        o2.connect(lp2); lp2.connect(g2); g2.connect(dest);
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime(42, t + delay + 0.15);
+        o2.frequency.exponentialRampToValueAtTime(28, t + delay + 0.25);
+        g2.gain.setValueAtTime(0, t + delay + 0.15);
+        g2.gain.linearRampToValueAtTime(0.14, t + delay + 0.155);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.28);
+        o2.start(t + delay + 0.15); o2.stop(t + delay + 0.30);
       }
     } catch (e) {}
   }
 
-  /** Twig snap — alerting sound */
+  /** Twig snap — sharp transient crack with resonance */
   function playTwigSnap () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 0.05;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
+      const dest = _out();
+      const pan = _pan();
+      pan.connect(dest);
+      // Sharp crack
+      const n = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 1500;
+      const peak = audioCtx.createBiquadFilter();
+      peak.type = 'peaking'; peak.frequency.value = 3000; peak.gain.value = 6; peak.Q.value = 3;
       const g = audioCtx.createGain();
-      noise.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.18, t);
+      n.connect(hp); hp.connect(peak); peak.connect(g); g.connect(pan);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.20, t + 0.001);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-      noise.start(t); noise.stop(t + 0.05);
+      n.start(t); n.stop(t + 0.06);
+      // Resonant body
+      const o = audioCtx.createOscillator();
+      const og = audioCtx.createGain();
+      o.connect(og); og.connect(pan);
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(800, t);
+      o.frequency.exponentialRampToValueAtTime(200, t + 0.03);
+      og.gain.setValueAtTime(0.06, t);
+      og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      o.start(t); o.stop(t + 0.05);
     } catch (e) {}
   }
 
-  /** Thunder rumble — distant storm */
+  /** Thunder rumble — deep rolling with sub-bass and crackling */
   function playThunderRumble () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const bufferSize = audioCtx.sampleRate * 3;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = audioCtx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass'; filter.frequency.value = 150;
+      const dest = _out();
+      // Main rumble — pink noise lowpassed
+      const n = _noise(true);
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 120;
+      // Modulate the filter for rolling effect
+      const lfo = audioCtx.createOscillator();
+      const lfog = audioCtx.createGain();
+      lfo.frequency.value = 0.8;
+      lfog.gain.value = 50;
+      lfo.connect(lfog); lfog.connect(lp.frequency);
       const g = audioCtx.createGain();
-      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.02, t);
-      g.gain.linearRampToValueAtTime(0.12, t + 0.3);
-      g.gain.linearRampToValueAtTime(0.08, t + 1.0);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
-      noise.start(t); noise.stop(t + 3.0);
+      n.connect(lp); lp.connect(g); g.connect(dest);
+      g.gain.setValueAtTime(0.01, t);
+      g.gain.linearRampToValueAtTime(0.14, t + 0.25);
+      g.gain.setValueAtTime(0.12, t + 0.8);
+      g.gain.linearRampToValueAtTime(0.08, t + 1.5);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
+      n.start(t); n.stop(t + 3.2);
+      lfo.start(t); lfo.stop(t + 3.2);
+      // Sub-bass thud at the start
+      const sub = audioCtx.createOscillator();
+      const sg = audioCtx.createGain();
+      sub.connect(sg); sg.connect(dest);
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(40, t + 0.1);
+      sub.frequency.exponentialRampToValueAtTime(20, t + 0.5);
+      sg.gain.setValueAtTime(0, t);
+      sg.gain.linearRampToValueAtTime(0.10, t + 0.12);
+      sg.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      sub.start(t + 0.1); sub.stop(t + 0.65);
+      // High-frequency crackle
+      const n2 = _noise(false);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 4000; bp.Q.value = 0.5;
+      const g2 = audioCtx.createGain();
+      n2.connect(bp); bp.connect(g2); g2.connect(dest);
+      g2.gain.setValueAtTime(0, t + 0.15);
+      g2.gain.linearRampToValueAtTime(0.04, t + 0.18);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      n2.start(t + 0.15); n2.stop(t + 0.65);
+      // Extra reverb
+      if (reverbSendNode) {
+        const rv = audioCtx.createGain();
+        rv.gain.value = 0.25;
+        g.connect(rv);
+        rv.connect(reverbSendNode);
+      }
     } catch (e) {}
   }
 
@@ -664,115 +1262,319 @@ window.onerror = function(msg, url, line, col, err) {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
+      const dest = _out();
       switch (type) {
-        case 'step':
-          osc.frequency.value = 80 + Math.random() * 40; osc.type = 'triangle';
-          gain.gain.value = 0.10; gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-          osc.start(); osc.stop(t + 0.08);
+        case 'step': {
+          // Layered footstep: tonal thud + noise crackle
+          const pan = _pan();
+          pan.connect(dest);
+          // Low thud
+          const o = audioCtx.createOscillator();
+          const lp = audioCtx.createBiquadFilter();
+          lp.type = 'lowpass'; lp.frequency.value = 150;
+          const g = audioCtx.createGain();
+          o.connect(lp); lp.connect(g); g.connect(pan);
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(70 + Math.random() * 30, t);
+          o.frequency.exponentialRampToValueAtTime(40, t + 0.06);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.10, t + 0.003);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          o.start(t); o.stop(t + 0.10);
+          // Ground noise texture
+          const n = _noise(true);
+          const hp = audioCtx.createBiquadFilter();
+          hp.type = 'bandpass'; hp.frequency.value = 800 + Math.random() * 400; hp.Q.value = 0.5;
+          const ng = audioCtx.createGain();
+          n.connect(hp); hp.connect(ng); ng.connect(pan);
+          ng.gain.setValueAtTime(0, t);
+          ng.gain.linearRampToValueAtTime(0.04, t + 0.002);
+          ng.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+          n.start(t); n.stop(t + 0.07);
           // Also play a leaf crunch on some steps
           if (Math.random() < 0.3) playLeafCrunch();
           // Bell jingle when kittypet
           if (storyPhase === 'house' && Math.random() < 0.15) playBellJingle();
           break;
-        case 'meow':
-          osc.frequency.setValueAtTime(650, t); osc.type = 'sine';
-          osc.frequency.linearRampToValueAtTime(500, t + 0.15);
-          osc.frequency.linearRampToValueAtTime(420, t + 0.35);
-          gain.gain.setValueAtTime(0.22, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-          osc.start(); osc.stop(t + 0.42); break;
-        case 'ceremony':
-          // Dramatic rising tone — LOUD
-          osc.frequency.setValueAtTime(330, t); osc.type = 'sine';
-          osc.frequency.linearRampToValueAtTime(550, t + 0.4);
-          osc.frequency.linearRampToValueAtTime(660, t + 0.8);
-          gain.gain.setValueAtTime(0.20, t);
-          gain.gain.setValueAtTime(0.25, t + 0.4);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
-          osc.start(); osc.stop(t + 1.0); break;
-        case 'hit':
-          osc.frequency.setValueAtTime(200, t); osc.type = 'sawtooth';
-          osc.frequency.linearRampToValueAtTime(80, t + 0.12);
-          gain.gain.setValueAtTime(0.22, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-          osc.start(); osc.stop(t + 0.15); break;
-        case 'hurt':
-          osc.frequency.setValueAtTime(300, t); osc.type = 'sawtooth';
-          osc.frequency.linearRampToValueAtTime(100, t + 0.2);
-          gain.gain.setValueAtTime(0.20, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-          osc.start(); osc.stop(t + 0.25);
-          playYowl(); // also yowl when hurt
+        }
+        case 'meow': {
+          // Rich meow with formants and harmonics
+          const pan = _pan(0);
+          pan.connect(dest);
+          const o = audioCtx.createOscillator();
+          const f1 = audioCtx.createBiquadFilter();
+          f1.type = 'bandpass'; f1.frequency.value = 550; f1.Q.value = 2;
+          const g = audioCtx.createGain();
+          o.connect(f1); f1.connect(g); g.connect(pan);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(680, t);
+          o.frequency.linearRampToValueAtTime(520, t + 0.12);
+          o.frequency.linearRampToValueAtTime(440, t + 0.3);
+          o.frequency.linearRampToValueAtTime(380, t + 0.42);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.20, t + 0.01);
+          g.gain.setValueAtTime(0.18, t + 0.15);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+          o.start(t); o.stop(t + 0.48);
+          // Harmonic
+          const o2 = audioCtx.createOscillator();
+          const g2 = audioCtx.createGain();
+          o2.connect(g2); g2.connect(pan);
+          o2.type = 'sine';
+          o2.frequency.setValueAtTime(680 * 1.5, t);
+          o2.frequency.linearRampToValueAtTime(380 * 1.5, t + 0.4);
+          g2.gain.setValueAtTime(0, t);
+          g2.gain.linearRampToValueAtTime(0.06, t + 0.01);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          o2.start(t); o2.stop(t + 0.38);
+          // Vibrato
+          const lfo = audioCtx.createOscillator();
+          const lfog = audioCtx.createGain();
+          lfo.frequency.value = 5;
+          lfog.gain.value = 25;
+          lfo.connect(lfog); lfog.connect(o.frequency);
+          lfo.start(t); lfo.stop(t + 0.48);
           break;
-        case 'swoosh':
-          osc.frequency.setValueAtTime(800, t); osc.type = 'sine';
-          osc.frequency.linearRampToValueAtTime(200, t + 0.15);
-          gain.gain.setValueAtTime(0.14, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-          osc.start(); osc.stop(t + 0.18); break;
-        case 'battle':
-          // Dramatic battle start — LOUD
-          osc.frequency.setValueAtTime(150, t); osc.type = 'sawtooth';
-          osc.frequency.linearRampToValueAtTime(400, t + 0.2);
-          osc.frequency.linearRampToValueAtTime(200, t + 0.5);
-          gain.gain.setValueAtTime(0.22, t);
-          gain.gain.setValueAtTime(0.25, t + 0.2);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-          osc.start(); osc.stop(t + 0.6);
-          playHiss(); // hiss when battle starts
+        }
+        case 'ceremony': {
+          // Dramatic rising chord with harmonics
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g); g.connect(dest);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(330, t);
+          o.frequency.linearRampToValueAtTime(550, t + 0.4);
+          o.frequency.linearRampToValueAtTime(660, t + 0.8);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.20, t + 0.02);
+          g.gain.setValueAtTime(0.25, t + 0.4);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+          o.start(t); o.stop(t + 1.05);
+          // Fifth harmony
+          const o2 = audioCtx.createOscillator();
+          const g2 = audioCtx.createGain();
+          o2.connect(g2); g2.connect(dest);
+          o2.type = 'sine';
+          o2.frequency.setValueAtTime(330 * 1.5, t);
+          o2.frequency.linearRampToValueAtTime(660 * 1.5, t + 0.8);
+          g2.gain.setValueAtTime(0, t);
+          g2.gain.linearRampToValueAtTime(0.08, t + 0.1);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+          o2.start(t); o2.stop(t + 0.95);
+          // Shimmer noise
+          const n = _noise(false);
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 3000; bp.Q.value = 2;
+          const ng = audioCtx.createGain();
+          n.connect(bp); bp.connect(ng); ng.connect(dest);
+          ng.gain.setValueAtTime(0, t + 0.3);
+          ng.gain.linearRampToValueAtTime(0.03, t + 0.5);
+          ng.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+          n.start(t + 0.3); n.stop(t + 0.95);
+          break;
+        }
+        case 'hit': {
+          // Impact: noise transient + tonal punch
+          const pan = _pan();
+          pan.connect(dest);
+          const o = audioCtx.createOscillator();
+          const lp = audioCtx.createBiquadFilter();
+          lp.type = 'lowpass'; lp.frequency.value = 300;
+          const g = audioCtx.createGain();
+          o.connect(lp); lp.connect(g); g.connect(pan);
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(220, t);
+          o.frequency.exponentialRampToValueAtTime(60, t + 0.10);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.22, t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+          o.start(t); o.stop(t + 0.16);
+          // Noise impact
+          const n = _noise(false);
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 0.5;
+          const ng = audioCtx.createGain();
+          n.connect(bp); bp.connect(ng); ng.connect(pan);
+          ng.gain.setValueAtTime(0, t);
+          ng.gain.linearRampToValueAtTime(0.10, t + 0.001);
+          ng.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          n.start(t); n.stop(t + 0.10);
+          break;
+        }
+        case 'hurt': {
+          // Impact + pain
+          const o = audioCtx.createOscillator();
+          const lp = audioCtx.createBiquadFilter();
+          lp.type = 'lowpass'; lp.frequency.value = 250;
+          const g = audioCtx.createGain();
+          o.connect(lp); lp.connect(g); g.connect(dest);
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(320, t);
+          o.frequency.exponentialRampToValueAtTime(80, t + 0.18);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.20, t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          o.start(t); o.stop(t + 0.25);
+          // Noise crack
+          const n = _noise(false);
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 2000; bp.Q.value = 0.5;
+          const ng = audioCtx.createGain();
+          n.connect(bp); bp.connect(ng); ng.connect(dest);
+          ng.gain.setValueAtTime(0, t);
+          ng.gain.linearRampToValueAtTime(0.08, t + 0.001);
+          ng.gain.exponentialRampToValueAtTime(0.001, t + 0.10);
+          n.start(t); n.stop(t + 0.12);
+          playYowl();
+          break;
+        }
+        case 'swoosh': {
+          // Filtered swoosh with noise
+          const pan = _pan();
+          pan.connect(dest);
+          const o = audioCtx.createOscillator();
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 600; bp.Q.value = 1;
+          const g = audioCtx.createGain();
+          o.connect(bp); bp.connect(g); g.connect(pan);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(900, t);
+          o.frequency.exponentialRampToValueAtTime(180, t + 0.15);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.14, t + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+          o.start(t); o.stop(t + 0.20);
+          // Wind noise layer
+          const n = _noise(false);
+          const nhp = audioCtx.createBiquadFilter();
+          nhp.type = 'highpass'; nhp.frequency.value = 1000;
+          const ng = audioCtx.createGain();
+          n.connect(nhp); nhp.connect(ng); ng.connect(pan);
+          ng.gain.setValueAtTime(0, t);
+          ng.gain.linearRampToValueAtTime(0.06, t + 0.005);
+          ng.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          n.start(t); n.stop(t + 0.14);
+          break;
+        }
+        case 'battle': {
+          // Dramatic battle start — multi-layer
+          const o = audioCtx.createOscillator();
+          const lp = audioCtx.createBiquadFilter();
+          lp.type = 'lowpass'; lp.frequency.value = 500;
+          const g = audioCtx.createGain();
+          o.connect(lp); lp.connect(g); g.connect(dest);
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(140, t);
+          o.frequency.linearRampToValueAtTime(420, t + 0.2);
+          o.frequency.linearRampToValueAtTime(180, t + 0.5);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.22, t + 0.01);
+          g.gain.setValueAtTime(0.25, t + 0.2);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+          o.start(t); o.stop(t + 0.7);
+          // Sub impact
+          const sub = audioCtx.createOscillator();
+          const sg = audioCtx.createGain();
+          sub.connect(sg); sg.connect(dest);
+          sub.type = 'sine';
+          sub.frequency.setValueAtTime(60, t);
+          sub.frequency.exponentialRampToValueAtTime(30, t + 0.3);
+          sg.gain.setValueAtTime(0, t);
+          sg.gain.linearRampToValueAtTime(0.12, t + 0.01);
+          sg.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          sub.start(t); sub.stop(t + 0.4);
+          // Noise impact
+          const n = _noise(false);
+          const nbp = audioCtx.createBiquadFilter();
+          nbp.type = 'bandpass'; nbp.frequency.value = 1000; nbp.Q.value = 0.5;
+          const ng = audioCtx.createGain();
+          n.connect(nbp); nbp.connect(ng); ng.connect(dest);
+          ng.gain.setValueAtTime(0, t);
+          ng.gain.linearRampToValueAtTime(0.08, t + 0.01);
+          ng.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          n.start(t); n.stop(t + 0.35);
+          playHiss();
           playHeartbeat();
           break;
-        case 'danger':
-          // Warning buzzer — LOUD
-          osc.frequency.setValueAtTime(440, t); osc.type = 'square';
-          osc.frequency.setValueAtTime(0, t + 0.15);
-          osc.frequency.setValueAtTime(440, t + 0.3);
-          gain.gain.setValueAtTime(0.16, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-          osc.start(); osc.stop(t + 0.5);
+        }
+        case 'danger': {
+          // Warning — filtered square wave pulse with noise
+          const o = audioCtx.createOscillator();
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass'; bp.frequency.value = 440; bp.Q.value = 3;
+          const g = audioCtx.createGain();
+          o.connect(bp); bp.connect(g); g.connect(dest);
+          o.type = 'square';
+          o.frequency.setValueAtTime(440, t);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.12, t + 0.01);
+          g.gain.linearRampToValueAtTime(0, t + 0.14);
+          g.gain.linearRampToValueAtTime(0.14, t + 0.30);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          o.start(t); o.stop(t + 0.55);
+          // Sub pulse
+          const sub = audioCtx.createOscillator();
+          const sg = audioCtx.createGain();
+          sub.connect(sg); sg.connect(dest);
+          sub.type = 'sine';
+          sub.frequency.value = 55;
+          sg.gain.setValueAtTime(0, t);
+          sg.gain.linearRampToValueAtTime(0.10, t + 0.01);
+          sg.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          sub.start(t); sub.stop(t + 0.25);
           playHeartbeat();
           break;
-        case 'eat':
-          // Happy munching sound
-          osc.frequency.setValueAtTime(300, t); osc.type = 'triangle';
-          osc.frequency.linearRampToValueAtTime(450, t + 0.1);
-          osc.frequency.linearRampToValueAtTime(350, t + 0.2);
-          osc.frequency.linearRampToValueAtTime(500, t + 0.3);
-          gain.gain.setValueAtTime(0.14, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-          osc.start(); osc.stop(t + 0.35);
-          playPurr(); // purr while eating
+        }
+        case 'eat': {
+          // Happy munching — crunchy with tone
+          const pan = _pan(0);
+          pan.connect(dest);
+          for (let i = 0; i < 3; i++) {
+            const d = i * 0.1;
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g); g.connect(pan);
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(280 + i * 60, t + d);
+            o.frequency.linearRampToValueAtTime(420 + i * 50, t + d + 0.06);
+            g.gain.setValueAtTime(0, t + d);
+            g.gain.linearRampToValueAtTime(0.10, t + d + 0.005);
+            g.gain.exponentialRampToValueAtTime(0.001, t + d + 0.09);
+            o.start(t + d); o.stop(t + d + 0.11);
+            // Crunch noise
+            const n = _noise(false);
+            const hp = audioCtx.createBiquadFilter();
+            hp.type = 'highpass'; hp.frequency.value = 2000;
+            const ng = audioCtx.createGain();
+            n.connect(hp); hp.connect(ng); ng.connect(pan);
+            ng.gain.setValueAtTime(0, t + d);
+            ng.gain.linearRampToValueAtTime(0.04, t + d + 0.003);
+            ng.gain.exponentialRampToValueAtTime(0.001, t + d + 0.05);
+            n.start(t + d); n.stop(t + d + 0.06);
+          }
+          playPurr();
           break;
+        }
         case 'drink':
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           playDrinkSound();
           break;
         case 'purr':
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           playPurr();
           break;
         case 'hiss':
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           playHiss();
           break;
         case 'splash':
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           playWaterSplash();
           break;
         case 'catch':
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           playPreyCatch();
           break;
         case 'thunder':
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           playThunderRumble();
           break;
-        case 'ambient':
-          // Randomly pick a forest ambient sound — many more varieties!
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+        case 'ambient': {
+          // Randomly pick a forest ambient sound
           const r = Math.random();
           if (r < 0.22)      playBirdTweet();
           else if (r < 0.35) playSongbird();
@@ -784,12 +1586,17 @@ window.onerror = function(msg, url, line, col, err) {
           else if (r < 0.82) playTwigSnap();
           else if (r < 0.86) playOwlHoot();
           else if (r < 0.89) playThunderRumble();
-          // else silence — natural pause
           break;
-        default:
-          osc.frequency.value = 200; osc.type = 'sine'; gain.gain.value = 0.08;
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-          osc.start(); osc.stop(t + 0.2);
+        }
+        default: {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g); g.connect(dest);
+          o.frequency.value = 200; o.type = 'sine';
+          g.gain.setValueAtTime(0.08, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          o.start(t); o.stop(t + 0.22);
+        }
       }
     } catch (e) {}
   }
@@ -1930,19 +2737,43 @@ window.onerror = function(msg, url, line, col, err) {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
+      const dest = _out();
+      const vol = Math.max(0.03, 0.14 - dist * 0.01);
+      // Engine rumble — low sawtooth with filter
       const osc = audioCtx.createOscillator();
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 200;
       const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.connect(lp); lp.connect(gain); gain.connect(dest);
       osc.type = 'sawtooth';
-      const vol = Math.max(0.02, 0.12 - dist * 0.01);
-      // Engine rumble → doppler whoosh
-      osc.frequency.setValueAtTime(80, t);
-      osc.frequency.linearRampToValueAtTime(120, t + 0.3);
-      osc.frequency.linearRampToValueAtTime(60, t + 0.8);
-      gain.gain.setValueAtTime(vol, t);
+      osc.frequency.setValueAtTime(75, t);
+      osc.frequency.linearRampToValueAtTime(130, t + 0.25);
+      osc.frequency.linearRampToValueAtTime(55, t + 0.9);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.05);
       gain.gain.linearRampToValueAtTime(vol * 1.5, t + 0.2);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
-      osc.start(); osc.stop(t + 1.0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+      osc.start(t); osc.stop(t + 1.15);
+      // Tire/road noise
+      const n = _noise(true);
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 400; bp.Q.value = 0.3;
+      const ng = audioCtx.createGain();
+      n.connect(bp); bp.connect(ng); ng.connect(dest);
+      ng.gain.setValueAtTime(0, t);
+      ng.gain.linearRampToValueAtTime(vol * 0.4, t + 0.1);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      n.start(t); n.stop(t + 0.85);
+      // Doppler whoosh — high noise
+      const n2 = _noise(false);
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 1500;
+      const ng2 = audioCtx.createGain();
+      n2.connect(hp); hp.connect(ng2); ng2.connect(dest);
+      ng2.gain.setValueAtTime(0, t + 0.1);
+      ng2.gain.linearRampToValueAtTime(vol * 0.3, t + 0.2);
+      ng2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      n2.start(t + 0.1); n2.stop(t + 0.55);
     } catch (e) {}
   }
 
@@ -4370,7 +5201,7 @@ window.onerror = function(msg, url, line, col, err) {
         try {
           const osc = audioCtx.createOscillator();
           const g = audioCtx.createGain();
-          osc.connect(g); g.connect(audioCtx.destination);
+          osc.connect(g); g.connect(_out());
           osc.type = 'sine';
           osc.frequency.value = 800 + Math.random() * 400;
           g.gain.value = 0.008;
@@ -7718,7 +8549,7 @@ window.onerror = function(msg, url, line, col, err) {
           const t = audioCtx.currentTime;
           const o = audioCtx.createOscillator();
           const g = audioCtx.createGain();
-          o.connect(g); g.connect(audioCtx.destination);
+          o.connect(g); g.connect(_out());
           o.type = 'sine';
           o.frequency.setValueAtTime(880, t);
           o.frequency.linearRampToValueAtTime(1100, t + 0.1);
@@ -8687,7 +9518,7 @@ window.onerror = function(msg, url, line, col, err) {
         const t = audioCtx.currentTime;
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
+        o.connect(g); g.connect(_out());
         o.type = 'sine';
         o.frequency.setValueAtTime(250, t);
         o.frequency.linearRampToValueAtTime(400, t + 0.12);
@@ -8731,7 +9562,7 @@ window.onerror = function(msg, url, line, col, err) {
             const t = audioCtx.currentTime;
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
+            o.connect(g); g.connect(_out());
             o.type = 'sine';
             o.frequency.setValueAtTime(400, t);
             o.frequency.linearRampToValueAtTime(250, t + 0.5);
