@@ -2463,9 +2463,9 @@ window.onerror = function(msg, url, line, col, err) {
       if (data.knownCats && data.knownCats.length > 0) {
         data.knownCats.forEach(n => knownCats.add(n));
       } else {
-        // Old save format - reveal all
+        // Old save format - reveal all known cats (NOT Yellowfang — story-locked)
         ['Bluestar','Lionheart','Graypaw','Whitestorm','Dustpaw','Sandpaw',
-         'Mousefur','Darkstripe','Ravenpaw','Spottedleaf','Tigerclaw','Yellowfang',
+         'Mousefur','Darkstripe','Ravenpaw','Spottedleaf','Tigerclaw',
          'Smudge','Princess'].forEach(n => knownCats.add(n));
       }
       // Update name labels for all known cats
@@ -3861,12 +3861,20 @@ window.onerror = function(msg, url, line, col, err) {
      NAMING CEREMONY (Clan Meeting at Highrock)
      ==================================================== */
   const KITTYPET_NAMES = ['Smudge', 'Princess'];
+  // Cats that should be hidden until their story arc triggers
+  // Yellowfang is ShadowClan — she only appears later when Firepaw finds her injured
+  const HIDDEN_UNTIL_STORY = ['Yellowfang'];
+
+  /** Check if a cat should NOT be at clan events (kittypets + story-locked cats) */
+  function shouldHideFromClan (name) {
+    return KITTYPET_NAMES.includes(name) || HIDDEN_UNTIL_STORY.includes(name);
+  }
 
   function startNamingCeremony () {
-    // Show ThunderClan cats sitting around Highrock (NOT kittypets!)
+    // Show ThunderClan cats sitting around Highrock (NOT kittypets or story-locked cats!)
     npcCats.forEach(c => {
-      if (KITTYPET_NAMES.includes(c.name)) {
-        c.group.visible = false; // kittypets stay at the house, not in camp
+      if (shouldHideFromClan(c.name)) {
+        c.group.visible = false;
       } else {
         c.group.visible = true;
       }
@@ -3876,7 +3884,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (bluestarCat) bluestarCat.group.position.set(-3, 3.3, -4);
 
     // Arrange clan cats in a semicircle facing highrock
-    const clanCats = npcCats.filter(c => !KITTYPET_NAMES.includes(c.name) && c.name !== 'Bluestar');
+    const clanCats = npcCats.filter(c => !shouldHideFromClan(c.name) && c.name !== 'Bluestar');
     clanCats.forEach((c, i) => {
       const angle = -0.8 + (i / (clanCats.length - 1)) * 1.6;
       const dist = 5 + Math.random();
@@ -3904,8 +3912,8 @@ window.onerror = function(msg, url, line, col, err) {
     playSound('ceremony');
     startCutscene(scenes, () => {
       // After ceremony → start training with Lionheart!
-      // Show clan cats but keep kittypets hidden (they're at the house)
-      npcCats.forEach(c => { c.group.visible = !KITTYPET_NAMES.includes(c.name); });
+      // Show clan cats but keep kittypets and story-locked cats hidden
+      npcCats.forEach(c => { c.group.visible = !shouldHideFromClan(c.name); });
       saveGame();
       startTraining();
     });
@@ -4140,9 +4148,10 @@ window.onerror = function(msg, url, line, col, err) {
         revealCatNames([
           'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
           'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
-          'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Yellowfang'
+          'Ravenpaw', 'Spottedleaf', 'Tigerclaw'
         ]);
-        npcCats.forEach(c => { c.group.visible = true; }); // all visible, placeCatsInCamp will position kittypets at house
+        // Show clan cats, hide story-locked cats (Yellowfang not yet in ThunderClan)
+        npcCats.forEach(c => { c.group.visible = !HIDDEN_UNTIL_STORY.includes(c.name); });
         placeCatsInCamp();
         initNPCAI(); // cats start living their lives (kittypets stay at house)
 
@@ -4227,7 +4236,7 @@ window.onerror = function(msg, url, line, col, err) {
       { name: 'Ravenpaw', x: DEN_SPOTS['Apprentices'].x + 2, z: DEN_SPOTS['Apprentices'].z - 1 },
       { name: 'Spottedleaf', x: DEN_SPOTS['Medicine'].x, z: DEN_SPOTS['Medicine'].z }, // In Medicine Den
       { name: 'Tigerclaw', x: DEN_SPOTS['Warriors'].x + 2, z: DEN_SPOTS['Warriors'].z },
-      { name: 'Yellowfang', x: DEN_SPOTS['Elders'].x, z: DEN_SPOTS['Elders'].z },
+      // Yellowfang NOT placed — she's ShadowClan and hasn't been found yet
       { name: 'Longtail', x: DEN_SPOTS['Warriors'].x - 2, z: DEN_SPOTS['Warriors'].z + 1 },
     ];
     campPositions.forEach(cp => {
@@ -4258,17 +4267,17 @@ window.onerror = function(msg, url, line, col, err) {
     player.position = { x: px, y: 0, z: pz };
     catGroup.position.set(px, 0, pz);
 
-    // Reveal all cats
+    // Reveal ThunderClan cat names (NOT Yellowfang — she hasn't appeared yet)
     revealCatNames([
       'Bluestar', 'Lionheart', 'Graypaw', 'Whitestorm',
       'Dustpaw', 'Sandpaw', 'Mousefur', 'Darkstripe',
-      'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Yellowfang'
+      'Ravenpaw', 'Spottedleaf', 'Tigerclaw'
     ]);
 
-    // show ThunderClan NPC cats in camp (NOT kittypets — they stay at the house)
+    // Show NPC cats — hide story-locked cats (Yellowfang), kittypets stay at house
     npcCats.forEach(c => {
-      if (KITTYPET_NAMES.includes(c.name)) {
-        c.group.visible = true; // visible but positioned at the house by placeCatsInCamp
+      if (HIDDEN_UNTIL_STORY.includes(c.name)) {
+        c.group.visible = false; // not in the story yet
       } else {
         c.group.visible = true;
       }
