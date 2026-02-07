@@ -5502,90 +5502,154 @@ window.onerror = function(msg, url, line, col, err) {
 
     const pName = player.name;
 
-    const scenes = [
+    const preScenes = [
       { narration: true, text: 'While hunting near the ShadowClan border, you catch a strange scent — not ThunderClan, not ShadowClan either...',
         camPos: { x: -36, y: 3, z: 18 }, camLook: { x: -42, y: 1, z: 15 } },
 
-      { narration: true, text: 'You push through the undergrowth and find a scraggly, battle-scarred she-cat lying on the ground. Her dark gray fur is matted and she looks exhausted.',
+      { narration: true, text: 'You push through the undergrowth and find a scraggly, battle-scarred she-cat crouching in the shadows. Her dark gray fur is matted and her eyes burn with fury.',
         camPos: { x: -40, y: 2, z: 17 }, camLook: { x: -42, y: 0.5, z: 15 } },
 
-      { speaker: '???', text: '"What are you staring at, kittypet? Never seen a real warrior before?"',
+      { speaker: '???', text: '"What are you staring at, kittypet? Get away from me before I claw your ears off!"',
         camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
 
-      { speaker: pName, text: '"I\'m not a kittypet! I\'m ' + pName + ' of ThunderClan. Who are you? You\'re injured..."',
+      { speaker: pName, text: '"I\'m not a kittypet! I\'m ' + pName + ' of ThunderClan. Who are you?"',
         camPos: { x: -39, y: 1.5, z: 16 }, camLook: { x: -38, y: 1, z: 15 } },
 
-      { speaker: '???', text: '"Hmph. ThunderClan. I don\'t need your help, youngster. Leave me be."',
+      { speaker: '???', text: '"ThunderClan?! You\'re trespassing near ShadowClan territory! I\'ll teach you to sneak up on a warrior!"',
         camPos: { x: -41, y: 1.5, z: 14 }, camLook: { x: -42, y: 0.8, z: 15 } },
 
-      { narration: true, text: 'But you can see she\'s badly hurt. Her flank has deep claw marks, and she hasn\'t eaten in days. Something about her feels... important.',
-        camPos: { x: -40, y: 2, z: 13 }, camLook: { x: -42, y: 0.5, z: 15 } },
-
-      { speaker: pName, text: '"You need help. At least let me bring you some prey."',
-        camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
-
-      { speaker: '???', text: '"...Fine. I suppose even a ThunderClan cat has some sense. The name is <strong>Yellowfang</strong>. I was a ShadowClan medicine cat... before Brokenstar drove me out."',
-        camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
-
-      { narration: true, text: 'Yellowfang! A ShadowClan medicine cat, cast out by her own leader. Her eyes burn with a fierce intelligence despite her wounds.',
-        camPos: { x: -42, y: 2.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
-
-      { speaker: 'Yellowfang', text: '"Brokenstar is a tyrant. He trains kits as warriors before they\'re six moons old. He drove out the elders. ShadowClan is not what it once was."',
-        camPos: { x: -41, y: 1.5, z: 14 }, camLook: { x: -42, y: 0.8, z: 15 } },
-
-      { speaker: pName, text: '"That\'s terrible! Come with me — Bluestar will want to hear about this."',
-        camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
-
-      { speaker: 'Yellowfang', text: '"Hmph. Take me to your leader then, kit. But I warn you — I don\'t suffer fools."',
-        camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
-
-      // Scene at camp
-      { narration: true, text: 'You bring Yellowfang back to ThunderClan camp. The Clan watches warily as the old she-cat limps through the entrance...',
-        camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
-
-      { speaker: 'Bluestar', text: '"' + pName + ', who is this? A ShadowClan cat in our camp?"',
-        camPos: { x: -2, y: 3.5, z: 0 }, camLook: { x: -3, y: 3.3, z: -4 } },
-
-      { speaker: pName, text: '"This is Yellowfang, a former ShadowClan medicine cat. Brokenstar drove her out. She\'s hurt and needs help."',
-        camPos: { x: 1, y: 1.5, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
-
-      { speaker: 'Bluestar', text: '"A medicine cat... exiled by Brokenstar? This is troubling news indeed. Very well — Yellowfang may stay, for now. ' + pName + ', you are responsible for her. Make sure she is fed and her wounds are tended."',
-        camPos: { x: -2, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
-
-      { speaker: 'Yellowfang', text: '"Don\'t expect me to be grateful, kit. But... thank you."',
-        camPos: { x: -8, y: 1.5, z: 4 }, camLook: { x: -9, y: 1, z: 3 } },
-
-      { narration: true, text: 'Yellowfang settles into the medicine den. Though grumpy, she begins to share her vast knowledge of herbs and healing. The Clan watches her carefully, but ' + pName + ' senses she can be trusted.',
-        camPos: { x: -7, y: 3, z: 6 }, camLook: { x: -9, y: 1, z: 3 } },
-
-      { narration: true, text: '<em>Yellowfang has joined ThunderClan as your responsibility. She stays in the medicine den and will help with healing. Explore the territory freely!</em>',
-        camPos: { x: 0, y: 8, z: 12 }, camLook: { x: 0, y: 2, z: 0 } },
+      { narration: true, text: 'The she-cat lunges at you, claws unsheathed! Despite her injuries, she fights with the ferocity of a cat twice her size!',
+        camPos: { x: -40, y: 2, z: 16 }, camLook: { x: -41, y: 1, z: 15 } },
     ];
 
-    revealCatName('Yellowfang');
+    startCutscene(preScenes, () => {
+      // Battle against Yellowfang!
+      startBattle({
+        enemyName: '??? (Rogue She-cat)',
+        enemyHP: 40,
+        enemyMaxHP: 40,
+        enemyAttack: 9,
+        enemyDefense: 2,
+        enemyFurColor: 0x666666,
+        enemyEyeColor: 0xffaa00,
+        enemyStripes: false,
+        expReward: 25,
+        onWin: function () {
+          // After winning, the story continues — she reveals who she is
+          gameState = 'cutscene';
+          const postScenes = [
+            { narration: true, text: 'The old she-cat collapses, panting heavily. Her wounds from before have reopened. She can barely stand.',
+              camPos: { x: -40, y: 2, z: 17 }, camLook: { x: -42, y: 0.5, z: 15 } },
 
-    startCutscene(scenes, () => {
-      gameState = 'playing';
-      // Yellowfang now stays in medicine den
-      if (yf) {
-        yf.group.visible = true;
-        yf.group.position.set(-9, 0, 3);
-        // Set her AI to medicine cat role
-        if (yf.ai) {
-          yf.ai.role = 'medicine';
-          yf.ai.task = 'idle';
-          yf.ai.timer = 5;
-          yf.ai.home = { x: -9, z: 3 };
-        }
-      }
-      // Remove Yellowfang from HIDDEN_UNTIL_STORY
-      placeCatsInCamp();
-      saveGame();
-      queueMessage('Narrator', 'Yellowfang has settled into the medicine den. You can talk to her anytime. Keep exploring the territory!');
-      // Show next chapter if there is one
-      if (storyChapter < STORY_CHAPTERS.length) {
-        showNextChapterButton();
-      }
+            { speaker: '???', text: '"...Alright, you win, kit. You fight well... for a kittypet."',
+              camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            { speaker: pName, text: '"I\'m NOT a kittypet! But you\'re hurt badly. Let me help you."',
+              camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            { speaker: '???', text: '"...Fine. I suppose even a ThunderClan cat has some sense. The name is <strong>Yellowfang</strong>. I was a ShadowClan medicine cat... before Brokenstar drove me out."',
+              camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            { narration: true, text: 'Yellowfang! A ShadowClan medicine cat, cast out by her own leader. Her eyes burn with a fierce intelligence despite her wounds.',
+              camPos: { x: -42, y: 2.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            { speaker: 'Yellowfang', text: '"Brokenstar is a tyrant. He trains kits as warriors before they\'re six moons old. He drove out the elders. ShadowClan is not what it once was."',
+              camPos: { x: -41, y: 1.5, z: 14 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            { speaker: pName, text: '"That\'s terrible! Come with me — Bluestar will want to hear about this."',
+              camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            { speaker: 'Yellowfang', text: '"Hmph. Take me to your leader then, kit. But I warn you — I don\'t suffer fools."',
+              camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+
+            // Scene at camp
+            { narration: true, text: 'You bring Yellowfang back to ThunderClan camp. The Clan watches warily as the old she-cat limps through the entrance...',
+              camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+
+            { speaker: 'Bluestar', text: '"' + pName + ', who is this? A ShadowClan cat in our camp?"',
+              camPos: { x: -2, y: 3.5, z: 0 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+            { speaker: pName, text: '"This is Yellowfang. She attacked me near the border, but I defeated her. She\'s a former ShadowClan medicine cat — Brokenstar drove her out."',
+              camPos: { x: 1, y: 1.5, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+            { speaker: 'Bluestar', text: '"A medicine cat... exiled by Brokenstar? This is troubling news indeed. Very well — Yellowfang may stay, for now. ' + pName + ', you are responsible for her. Make sure she is fed and her wounds are tended."',
+              camPos: { x: -2, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+
+            { speaker: 'Yellowfang', text: '"Don\'t expect me to be grateful, kit. But... thank you. You fight better than I expected."',
+              camPos: { x: -8, y: 1.5, z: 4 }, camLook: { x: -9, y: 1, z: 3 } },
+
+            { narration: true, text: 'Yellowfang settles into the medicine den. Though grumpy, she begins to share her vast knowledge of herbs and healing. The Clan watches her carefully, but ' + pName + ' senses she can be trusted.',
+              camPos: { x: -7, y: 3, z: 6 }, camLook: { x: -9, y: 1, z: 3 } },
+
+            { narration: true, text: '<em>Yellowfang has joined ThunderClan as your responsibility. She stays in the medicine den and will help with healing. Explore the territory freely!</em>',
+              camPos: { x: 0, y: 8, z: 12 }, camLook: { x: 0, y: 2, z: 0 } },
+          ];
+
+          revealCatName('Yellowfang');
+
+          startCutscene(postScenes, () => {
+            gameState = 'playing';
+            // Yellowfang now stays in medicine den
+            if (yf) {
+              yf.group.visible = true;
+              yf.group.position.set(-9, 0, 3);
+              if (yf.ai) {
+                yf.ai.role = 'medicine';
+                yf.ai.task = 'idle';
+                yf.ai.timer = 5;
+                yf.ai.home = { x: -9, z: 3 };
+              }
+            }
+            placeCatsInCamp();
+            saveGame();
+            queueMessage('Narrator', 'Yellowfang has settled into the medicine den. You can talk to her anytime. Keep exploring the territory!');
+            if (storyChapter < STORY_CHAPTERS.length) {
+              showNextChapterButton();
+            }
+          });
+        },
+        onLose: function () {
+          // If you lose, Yellowfang is too exhausted to keep fighting — story continues anyway
+          player.health = Math.floor(player.maxHealth * 0.4);
+          gameState = 'cutscene';
+          const loseScenes = [
+            { narration: true, text: 'The old she-cat pins you down — but then stumbles, too exhausted to continue. You both lie panting in the dirt.',
+              camPos: { x: -40, y: 2, z: 16 }, camLook: { x: -41, y: 0.5, z: 15 } },
+            { speaker: '???', text: '"Hmph... you\'re tougher than you look, kit. I\'m too injured to finish this fight anyway."',
+              camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+            { speaker: '???', text: '"...The name is <strong>Yellowfang</strong>. I was a ShadowClan medicine cat... before Brokenstar drove me out. I\'ve got nowhere left to go."',
+              camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
+            { speaker: pName, text: '"Come with me to ThunderClan. Bluestar will want to hear about Brokenstar."',
+              camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
+            { narration: true, text: 'You bring Yellowfang back to ThunderClan camp. Bluestar agrees to let her stay.',
+              camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+            { narration: true, text: '<em>Yellowfang has joined ThunderClan. She stays in the medicine den.</em>',
+              camPos: { x: 0, y: 8, z: 12 }, camLook: { x: 0, y: 2, z: 0 } },
+          ];
+
+          revealCatName('Yellowfang');
+
+          startCutscene(loseScenes, () => {
+            gameState = 'playing';
+            if (yf) {
+              yf.group.visible = true;
+              yf.group.position.set(-9, 0, 3);
+              if (yf.ai) {
+                yf.ai.role = 'medicine';
+                yf.ai.task = 'idle';
+                yf.ai.timer = 5;
+                yf.ai.home = { x: -9, z: 3 };
+              }
+            }
+            placeCatsInCamp();
+            saveGame();
+            queueMessage('Narrator', 'Yellowfang has settled into the medicine den. Keep exploring!');
+            if (storyChapter < STORY_CHAPTERS.length) {
+              showNextChapterButton();
+            }
+          });
+        },
+      });
     });
   }
 
