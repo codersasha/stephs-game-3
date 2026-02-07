@@ -1756,6 +1756,17 @@ body.touch-device #den-leave-btn {
   box-shadow: 0 0 20px rgba(204, 51, 0, 0.5);
 }
 
+.battle-surrender-btn {
+  background: linear-gradient(180deg, #555555, #333333);
+  border-color: #888888;
+  color: #ddccbb;
+}
+
+.battle-surrender-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #666666, #444444);
+  box-shadow: 0 0 20px rgba(136, 136, 136, 0.4);
+}
+
 @keyframes battleShake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-6px); }

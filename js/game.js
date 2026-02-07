@@ -45,6 +45,7 @@ window.onerror = function(msg, url, line, col, err) {
   const battleAttackBtn = $('battle-attack-btn');
   const battleDodgeBtn  = $('battle-dodge-btn');
   const battleFierceBtn = $('battle-fierce-btn');
+  const battleSurrenderBtn = $('battle-surrender-btn');
   const battlePlayerName = $('battle-player-name');
   const battleEnemyName  = $('battle-enemy-name');
   const battlePlayerHP   = $('battle-player-hp');
@@ -5844,14 +5845,10 @@ window.onerror = function(msg, url, line, col, err) {
             { narration: true, text: 'The ' + bp.clan + ' warriors overpower you and chase you back to the border!' },
             { speaker: leaderName, text: '"And STAY OUT! Next time you won\'t get off so easy!"' },
           ];
-          player.position = { x: 0, y: 0, z: 0 };
-          catGroup.position.set(0, 0, 0);
-          player.health = Math.max(15, Math.floor(player.maxHealth * 0.3));
           startCutscene(s2, () => {
-            gameState = 'playing';
             bp.spotted = false;
             bp.spotCooldown = 45;
-            queueMessage('Narrator', 'You wake up back at ThunderClan camp, bruised but alive. Stay away from enemy borders!');
+            respawnAtMedicineDen();
           });
         },
       });
@@ -7740,6 +7737,7 @@ window.onerror = function(msg, url, line, col, err) {
     battleAttackBtn.disabled = !on;
     battleDodgeBtn.disabled = !on;
     battleFierceBtn.disabled = !on;
+    battleSurrenderBtn.disabled = !on;
   }
 
   function battlePlayerAction (action) {
@@ -7925,17 +7923,66 @@ window.onerror = function(msg, url, line, col, err) {
       currentBattle = null;
       if (won && b.onWin) b.onWin();
       else if (!won && b.onLose) b.onLose();
-      else {
+      else if (!won) {
+        // Default loss: respawn at medicine cat den with Spottedleaf healing you
+        respawnAtMedicineDen();
+      } else {
         gameState = 'playing';
       }
       saveGame();
     }, 1800);
   }
 
+  /**
+   * Respawn the player at the Medicine Cat den after losing a battle.
+   * Spottedleaf heals you and gives reassuring words.
+   */
+  function respawnAtMedicineDen () {
+    gameState = 'playing';
+
+    // Restore some health (Spottedleaf healed you)
+    player.health = Math.max(Math.floor(player.maxHealth * 0.5), player.health);
+
+    // Teleport player to the Medicine Den
+    const medDen = DEN_SPOTS['Medicine'];
+    if (catGroup) {
+      catGroup.position.set(medDen.x, 0, medDen.z);
+    }
+    // Reset camera direction to face out of the den
+    playerYaw = 0;
+    playerPitch = 0;
+
+    // Make sure Spottedleaf is visible and near the player
+    const spottedleaf = npcCats.find(c => c.name === 'Spottedleaf');
+    if (spottedleaf) {
+      spottedleaf.group.visible = true;
+      spottedleaf.group.position.set(medDen.x + 1.5, 0, medDen.z + 1);
+    }
+
+    // Spottedleaf speaks to the player
+    setTimeout(() => {
+      queueMessage('Spottedleaf', 'You\'re alright, thank StarClan! Be a little more careful out there, okay?', () => {
+        queueMessage('Spottedleaf', 'I\'ve treated your wounds with herbs. Rest a moment before you head out again.', () => {
+          // Fully restore after the dialogue
+          player.health = player.maxHealth;
+          saveGame();
+        });
+      });
+    }, 300);
+  }
+
   // Wire up battle buttons
   battleAttackBtn.addEventListener('click', () => battlePlayerAction('attack'));
   battleDodgeBtn.addEventListener('click', () => battlePlayerAction('dodge'));
   battleFierceBtn.addEventListener('click', () => battlePlayerAction('fierce'));
+  battleSurrenderBtn.addEventListener('click', () => {
+    if (!currentBattle || !currentBattle.playerTurn) return;
+    enableBattleButtons(false);
+    addBattleLog('<strong>You surrender and back away...</strong>', 'battle-log-hit');
+    playSound('hurt');
+    // Treat surrender as a loss — player keeps remaining HP (not killed)
+    setTimeout(() => endBattle(false), 800);
+  });
 
   /* ====================================================
      GRAYPAW FIGHT (uses new battle system)
@@ -9261,7 +9308,7 @@ window.onerror = function(msg, url, line, col, err) {
       return;
     }
 
-    // --- ELDER (Yellowfang): stays in camp, eats, drinks, rests ---
+    // --- ELDER (Yellowfang): stays in camp ALWAYS, eats, rests, walks around camp ---
     if (role === 'elder') {
       if (roll < 0.40) {
         ai.task = 'rest';
@@ -9271,17 +9318,18 @@ window.onerror = function(msg, url, line, col, err) {
         ai.task = 'eat';
         ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
         ai.timer = 10;
-      } else if (roll < 0.80) {
-        // Walk around camp slowly
+      } else if (roll < 0.85) {
+        // Walk around camp slowly — ONLY within camp clearing
         ai.task = 'patrol';
         const angle = Math.random() * Math.PI * 2;
-        const dist = 3 + Math.random() * 6;
+        const dist = 2 + Math.random() * 5; // max 7 units from center — stays inside camp
         ai.target = { x: Math.sin(angle) * dist, z: Math.cos(angle) * dist };
         ai.timer = 10;
       } else {
-        ai.task = 'drink';
-        ai.target = { x: WATER_SPOT.x + (Math.random()-0.5)*4, z: WATER_SPOT.z + (Math.random()-0.5)*4 };
-        ai.timer = 15;
+        // Idle near den
+        ai.task = 'idle';
+        ai.target = { x: DEN_SPOTS['Elders'].x + (Math.random()-0.5)*3, z: DEN_SPOTS['Elders'].z + (Math.random()-0.5)*3 };
+        ai.timer = 8 + Math.random() * 10;
       }
       return;
     }
