@@ -4332,8 +4332,10 @@ window.onerror = function(msg, url, line, col, err) {
     borderPatrols = [];
 
     // Each patrol is a GROUP of cats walking the same path together
+    // Multiple patrols per clan — different routes, compositions, and speeds
     const patrolDefs = [
-      // ShadowClan patrol (2 cats)
+      // ===== SHADOWCLAN PATROLS (3 patrols — dark, sneaky fighters) =====
+      // Patrol 1: border guard (2 cats walk along the ThunderClan border)
       { clan: 'ShadowClan',
         cats: [
           { name: 'ShadowClan Warrior', fur: 0x333333, belly: 0x444444, eyeColor: 0xffcc00, stripes: 0, size: 1.1 },
@@ -4342,8 +4344,28 @@ window.onerror = function(msg, url, line, col, err) {
         path: [{ x: -66, z: -40 }, { x: -66, z: -10 }, { x: -66, z: 20 }, { x: -66, z: 40 }, { x: -66, z: 20 }, { x: -66, z: -10 }],
         speed: 2.5,
       },
+      // Patrol 2: deep territory sweep (3 cats, wider route through ShadowClan land)
+      { clan: 'ShadowClan',
+        cats: [
+          { name: 'Blackfoot', fur: 0x111111, belly: 0x222222, eyeColor: 0xffaa11, stripes: 0, size: 1.15 },
+          { name: 'Clawface', fur: 0x5a4a3a, belly: 0x6a5a4a, eyeColor: 0xddaa33, stripes: 2, stripeColor: 0x3a2a1a, size: 1.1 },
+          { name: 'ShadowClan Apprentice', fur: 0x444444, belly: 0x555555, eyeColor: 0xccbb33, stripes: 0, size: 0.8 },
+        ],
+        path: [{ x: -80, z: -35 }, { x: -75, z: -5 }, { x: -80, z: 25 }, { x: -90, z: 45 }, { x: -100, z: 20 }, { x: -95, z: -15 }, { x: -85, z: -35 }],
+        speed: 2.2,
+      },
+      // Patrol 3: fast scout pair near Thunderpath
+      { clan: 'ShadowClan',
+        cats: [
+          { name: 'ShadowClan Scout', fur: 0x3a3a3a, belly: 0x4a4a4a, eyeColor: 0xeedd22, stripes: 0, size: 0.85 },
+          { name: 'ShadowClan Hunter', fur: 0x484838, belly: 0x585848, eyeColor: 0xffbb33, stripes: 4, stripeColor: 0x222211, size: 0.95 },
+        ],
+        path: [{ x: -68, z: 35 }, { x: -70, z: 10 }, { x: -68, z: -20 }, { x: -72, z: -45 }, { x: -70, z: -20 }, { x: -68, z: 10 }],
+        speed: 3.0,
+      },
 
-      // RiverClan patrol (2 cats)
+      // ===== RIVERCLAN PATROLS (3 patrols — sleek, well-fed cats) =====
+      // Patrol 1: river border guard (2 cats)
       { clan: 'RiverClan',
         cats: [
           { name: 'RiverClan Warrior', fur: 0x6688aa, belly: 0x88aacc, eyeColor: 0x44cccc, stripes: 0, size: 1.0 },
@@ -4352,8 +4374,28 @@ window.onerror = function(msg, url, line, col, err) {
         path: [{ x: 82, z: -30 }, { x: 82, z: 0 }, { x: 82, z: 25 }, { x: 82, z: 40 }, { x: 82, z: 25 }, { x: 82, z: 0 }],
         speed: 2.5,
       },
+      // Patrol 2: deep RiverClan territory sweep (3 cats near sunning rocks & river)
+      { clan: 'RiverClan',
+        cats: [
+          { name: 'Oakheart', fur: 0x7a5533, belly: 0x8a6543, eyeColor: 0xddaa33, stripes: 0, size: 1.2 },
+          { name: 'Loudbelly', fur: 0x887755, belly: 0x998866, eyeColor: 0x44cc44, stripes: 3, stripeColor: 0x665533, size: 1.15 },
+          { name: 'RiverClan Apprentice', fur: 0x7799bb, belly: 0x99bbdd, eyeColor: 0x55ccee, stripes: 0, size: 0.8 },
+        ],
+        path: [{ x: 90, z: -25 }, { x: 95, z: 5 }, { x: 100, z: 30 }, { x: 105, z: 10 }, { x: 100, z: -15 }, { x: 95, z: -30 }],
+        speed: 2.3,
+      },
+      // Patrol 3: upstream scouts (2 cats patrolling near the border crossing)
+      { clan: 'RiverClan',
+        cats: [
+          { name: 'Silverstream', fur: 0xaaaabc, belly: 0xccccdd, eyeColor: 0x66aaee, stripes: 2, stripeColor: 0x888899, size: 0.95 },
+          { name: 'RiverClan Guard', fur: 0x556688, belly: 0x778899, eyeColor: 0x44bbbb, stripes: 0, size: 1.05 },
+        ],
+        path: [{ x: 85, z: -45 }, { x: 88, z: -20 }, { x: 85, z: 5 }, { x: 80, z: -10 }, { x: 83, z: -35 }],
+        speed: 2.8,
+      },
 
-      // WindClan patrol (2 cats — WindClan is faster)
+      // ===== WINDCLAN PATROLS (3 patrols — fast, lean runners) =====
+      // Patrol 1: moor border runners (2 cats, fast)
       { clan: 'WindClan',
         cats: [
           { name: 'WindClan Runner', fur: 0xbbaa77, belly: 0xddcc99, eyeColor: 0xddbb33, stripes: 2, stripeColor: 0x887744, size: 0.9 },
@@ -4361,6 +4403,25 @@ window.onerror = function(msg, url, line, col, err) {
         ],
         path: [{ x: -30, z: -65 }, { x: -5, z: -65 }, { x: 20, z: -65 }, { x: 45, z: -65 }, { x: 20, z: -65 }, { x: -5, z: -65 }],
         speed: 3.5,
+      },
+      // Patrol 2: wider moor sweep (3 cats, cover the whole moor)
+      { clan: 'WindClan',
+        cats: [
+          { name: 'Mudclaw', fur: 0x8b6b4a, belly: 0x9b7b5a, eyeColor: 0xddaa33, stripes: 3, stripeColor: 0x5a4a2a, size: 1.05 },
+          { name: 'Onewhisker', fur: 0xbbaa88, belly: 0xddcc99, eyeColor: 0xddaa33, stripes: 0, size: 0.9 },
+          { name: 'WindClan Apprentice', fur: 0xccbb99, belly: 0xddccaa, eyeColor: 0xeedd44, stripes: 0, size: 0.75 },
+        ],
+        path: [{ x: -40, z: -75 }, { x: -10, z: -80 }, { x: 25, z: -78 }, { x: 50, z: -75 }, { x: 30, z: -68 }, { x: 0, z: -70 }, { x: -25, z: -72 }],
+        speed: 3.8,
+      },
+      // Patrol 3: eastern moor sentries (2 cats patrolling where WindClan meets Fourtrees)
+      { clan: 'WindClan',
+        cats: [
+          { name: 'Deadfoot', fur: 0x333333, belly: 0x444444, eyeColor: 0xddaa33, stripes: 0, size: 0.9 },
+          { name: 'WindClan Warrior', fur: 0x997755, belly: 0xbb9977, eyeColor: 0xccbb22, stripes: 2, stripeColor: 0x775533, size: 1.0 },
+        ],
+        path: [{ x: 35, z: -68 }, { x: 50, z: -70 }, { x: 60, z: -65 }, { x: 50, z: -60 }, { x: 40, z: -63 }],
+        speed: 3.2,
       },
     ];
 
@@ -6113,7 +6174,7 @@ window.onerror = function(msg, url, line, col, err) {
      Bluestar assigns a patrol to chase them out!
      ==================================================== */
   let intruderTimer = 0;          // seconds until next intruder event
-  let intruderCooldown = 120;     // minimum seconds between intruder events
+  let intruderCooldown = 80;      // minimum seconds between intruder events (more frequent patrols)
   let intruderActive = false;     // is there an active intruder to chase?
   let intruderCats = [];          // { group, name, clan, x, z, fur, eye, stripes, stripeColor }
   let intruderPatrolAssigned = false; // has Bluestar assigned the patrol?
@@ -6131,14 +6192,18 @@ window.onerror = function(msg, url, line, col, err) {
 
     // Pick a random enemy clan
     const clanDef = INTRUDER_CLANS[Math.floor(Math.random() * INTRUDER_CLANS.length)];
-    const numCats = 1 + Math.floor(Math.random() * 2); // 1-2 intruders
+    const numCats = 1 + Math.floor(Math.random() * 3); // 1-3 intruders
 
     // Spawn positions in ThunderClan territory (away from camp, near borders)
     const spawnPoints = [
-      { x: -30 + Math.random() * 15, z: -20 + Math.random() * 15 },  // near ShadowClan border
-      { x: 35 + Math.random() * 15,  z: -10 + Math.random() * 15 },  // near RiverClan border
+      { x: -35 + Math.random() * 15, z: -25 + Math.random() * 15 },  // near ShadowClan border (north)
+      { x: -30 + Math.random() * 10, z: 15 + Math.random() * 15 },   // near ShadowClan border (south)
+      { x: 35 + Math.random() * 15,  z: -15 + Math.random() * 15 },  // near RiverClan border
+      { x: 40 + Math.random() * 10,  z: 20 + Math.random() * 15 },   // near Sunningrocks
       { x: -10 + Math.random() * 20, z: -35 + Math.random() * 10 },  // near WindClan border
-      { x: 15 + Math.random() * 15,  z: 15 + Math.random() * 15  },  // in the forest
+      { x: 20 + Math.random() * 15,  z: -30 + Math.random() * 10 },  // near Fourtrees
+      { x: 15 + Math.random() * 15,  z: 15 + Math.random() * 15 },   // deep in the forest
+      { x: -15 + Math.random() * 10, z: 25 + Math.random() * 10 },   // south forest
     ];
     const spawnArea = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
 
@@ -6345,7 +6410,7 @@ window.onerror = function(msg, url, line, col, err) {
   function finishIntruderPatrol () {
     intruderActive = false;
     intruderPatrolAssigned = false;
-    intruderCooldown = 90 + Math.random() * 120; // 1.5-3.5 minutes until next event
+    intruderCooldown = 60 + Math.random() * 90; // 1-2.5 minutes until next event (more frequent)
     intruderTimer = 0;
     intruderArea = null;
 
