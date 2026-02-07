@@ -3112,19 +3112,28 @@ window.onerror = function(msg, url, line, col, err) {
       }
     });
 
-    // Right-click drag: look around (camera control without hiding cursor)
-    let isRightDragging = false;
+    // Right-click drag OR left-click drag: look around (camera control)
+    let isDragging = false;
+    let lastMouseX = 0, lastMouseY = 0;
     renderer.domElement.addEventListener('mousedown', (e) => {
-      if (e.button === 2 && gameState === 'playing') { isRightDragging = true; }
+      if (gameState === 'playing') {
+        isDragging = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
     });
     document.addEventListener('mouseup', (e) => {
-      if (e.button === 2) { isRightDragging = false; }
+      isDragging = false;
     });
     renderer.domElement.addEventListener('contextmenu', (e) => { e.preventDefault(); }); // prevent right-click menu
     document.addEventListener('mousemove', e => {
-      if (isRightDragging) {
-        cameraAngleY -= e.movementX * 0.003;
-        cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + e.movementY * 0.003));
+      if (isDragging && gameState === 'playing') {
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        cameraAngleY -= dx * 0.004;
+        cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + dy * 0.004));
       }
     });
 
