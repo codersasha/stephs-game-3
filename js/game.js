@@ -5070,6 +5070,52 @@ window.onerror = function(msg, url, line, col, err) {
         '"Stick together. We\'re stronger as a patrol!"',
       ];
       line = patrolLines[Math.floor(Math.random() * patrolLines.length)];
+    } else if ((npc.name === 'Spottedleaf' || npc.name === 'Yellowfang') && player.health < player.maxHealth) {
+      // Medicine cat healing — if player is hurt, offer to heal
+      const isMedCat = npc.name === 'Spottedleaf' || (npc.name === 'Yellowfang' && npc.ai && npc.ai.role === 'medicine');
+      if (isMedCat) {
+        const pName = player.name || 'Firepaw';
+        const hpPercent = Math.round((player.health / player.maxHealth) * 100);
+
+        // Make the cat face the player
+        npc.group.lookAt(player.position.x, 0, player.position.z);
+        const dx2 = npc.group.position.x - player.position.x;
+        const dz2 = npc.group.position.z - player.position.z;
+        catGroup.rotation.y = Math.atan2(dx2, dz2);
+
+        if (hpPercent < 30) {
+          // Very hurt
+          queueMessage(displayName, '"Great StarClan, ' + pName + '! You look terrible! Hold still — let me treat those wounds right away."', () => {
+            queueMessage(displayName, '"Here, chew these herbs. Cobwebs for the bleeding, marigold for infection..."', () => {
+              const healed = player.maxHealth - player.health;
+              player.health = player.maxHealth;
+              playSound('eat');
+              queueMessage('Narrator', npc.name + ' carefully treats your wounds with herbs. You feel much better! (+' + healed + ' HP)');
+            });
+          });
+        } else if (hpPercent < 70) {
+          // Moderately hurt
+          queueMessage(displayName, '"You\'ve got some scratches there, ' + pName + '. Come, let me patch you up."', () => {
+            const healed = player.maxHealth - player.health;
+            player.health = player.maxHealth;
+            playSound('eat');
+            queueMessage('Narrator', npc.name + ' applies herbs to your wounds. Fully healed! (+' + healed + ' HP)');
+          });
+        } else {
+          // Just a little hurt
+          queueMessage(displayName, '"Just a few scrapes? Here, let me fix that up quickly."', () => {
+            const healed = player.maxHealth - player.health;
+            player.health = player.maxHealth;
+            playSound('eat');
+            queueMessage('Narrator', npc.name + ' treats your minor wounds. Good as new! (+' + healed + ' HP)');
+          });
+        }
+        playCatVoice(npc.name);
+        return;
+      }
+      // Yellowfang as elder — just normal dialogue
+      const lines = catDialogue[npc.name] || ['"..."'];
+      line = lines[Math.floor(Math.random() * lines.length)];
     } else if (npc.name === 'Smudge' || npc.name === 'Princess') {
       line = getKittypetDialogue(npc.name);
     } else {
