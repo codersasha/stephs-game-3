@@ -4529,7 +4529,7 @@ window.onerror = function(msg, url, line, col, err) {
     { id: 1,  name: "Redtail's Death",           trigger: 'triggerRedtailEvent' },
     { id: 2,  name: 'Journey to Mothermouth',    trigger: 'triggerMothermouthJourney' },
     { id: 3,  name: 'Yellowfang',                trigger: 'triggerYellowfangEncounter' },
-    { id: 4,  name: 'ShadowClan Attacks',         trigger: 'triggerShadowClanAttack' },
+    { id: 4,  name: 'Driving Out Brokenstar',      trigger: 'triggerDrivingOutBrokenstar' },
     { id: 5,  name: 'Spottedleaf\'s Warning',     trigger: 'triggerSpottedleafWarning' },
     { id: 6,  name: 'Ravenpaw\'s Secret',          trigger: 'triggerRavenpawSecret' },
     { id: 7,  name: 'Ravenpaw Leaves',            trigger: 'triggerRavenpawLeaves' },
@@ -4580,7 +4580,7 @@ window.onerror = function(msg, url, line, col, err) {
     // Call the trigger function by name
     const triggerFn = {
       triggerRedtailEvent, triggerMothermouthJourney, triggerYellowfangEncounter,
-      triggerShadowClanAttack, triggerSpottedleafWarning, triggerRavenpawSecret,
+      triggerDrivingOutBrokenstar, triggerSpottedleafWarning, triggerRavenpawSecret,
       triggerRavenpawLeaves, triggerFireAndIce, triggerWindClanRescue,
       triggerTigerclawTreachery, triggerTigerclawExile, triggerWarriorCeremony,
       triggerDangerousPath, triggerDogPack, triggerBluestarLastLife,
@@ -4820,6 +4820,7 @@ window.onerror = function(msg, url, line, col, err) {
       onWin: opts.onWin,
       onLose: opts.onLose,
       clan: opts.clan,
+      retreatOnFirstWin: opts.retreatOnFirstWin || false, // if true, beating 1 cat = all retreat
     };
 
     gameState = 'battle';
@@ -4915,11 +4916,15 @@ window.onerror = function(msg, url, line, col, err) {
         e.hp = 0;
         addBattleLog('<strong>' + e.name + '</strong> is defeated!', 'battle-log-player');
 
-        // Check if all enemies are defeated
-        const allDefeated = patrolBattleData.enemies.every(en => en.defeated);
+        // Check if all enemies are defeated (or retreat on first win)
+        const allDefeated = patrolBattleData.retreatOnFirstWin || patrolBattleData.enemies.every(en => en.defeated);
         if (allDefeated) {
           // Won the entire patrol fight!
-          addBattleLog('<strong>All ' + patrolBattleData.clan + ' patrol cats are defeated!</strong>', 'battle-log-fierce');
+          if (patrolBattleData.retreatOnFirstWin) {
+            addBattleLog('<strong>The ' + patrolBattleData.clan + ' cats see their warrior fall and RETREAT!</strong>', 'battle-log-fierce');
+          } else {
+            addBattleLog('<strong>All ' + patrolBattleData.clan + ' patrol cats are defeated!</strong>', 'battle-log-fierce');
+          }
           player = GameLogic.addExperience(player, patrolBattleData.expReward);
           player.battlesWon = (player.battlesWon || 0) + patrolBattleData.enemies.length;
           player.health = Math.min(player.maxHealth, player.health + Math.floor(player.maxHealth * 0.3));
@@ -5393,11 +5398,15 @@ window.onerror = function(msg, url, line, col, err) {
               camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
             { narration: true, text: 'Tigerclaw says nothing. He watches Bluestar being carried into the medicine den. His amber eyes are unreadable.',
               camPos: { x: 5, y: 2.5, z: -3 }, camLook: { x: 6, y: 1.2, z: -4 } },
-            { narration: true, text: '<em>Fire alone will save our Clan.</em> The prophecy burns in your mind. Bluestar grows weaker. ShadowClan grows bolder. The Clan needs you now more than ever.',
-              camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+            // ShadowClan attack as you arrive!
+            { narration: true, text: 'But as you catch your breath, yowls of alarm ring through the camp! Dark shapes are pouring through the entrance!',
+              camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+            { speaker: 'Whitestorm', text: '"ShadowClan! They\'re raiding the camp while Bluestar is wounded! Warriors, FIGHT!"',
+              camPos: { x: 3, y: 2, z: 2 }, camLook: { x: 4, y: 1, z: 1 } },
+            { narration: true, text: 'Brokenstar\'s warriors have chosen the worst possible moment to attack — with Bluestar barely alive in the medicine den! You must defend the camp!',
+              camPos: { x: 0, y: 4, z: 8 }, camLook: { x: 0, y: 1, z: -2 } },
           ];
           startCutscene(postBattleScenes, () => {
-            gameState = 'playing';
             mothermouthTriggered = true;
             setDayMode();
             if (bs) { bs.group.position.set(-9, 0, 5); }
@@ -5406,9 +5415,52 @@ window.onerror = function(msg, url, line, col, err) {
             if (rp) { rp.group.position.set(4, 0, 5); }
             player.position = { x: 2, y: 0, z: 3 };
             catGroup.position.set(2, 0, 3);
-            placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality. Explore freely, and press "Next Chapter" when you\'re ready.');
-            showNextChapterButton();
+
+            // Launch the ShadowClan patrol battle — pick which cat to fight!
+            const scEnemies = [
+              { name: 'Clawface', hp: 55, maxHP: 55, atk: 11, def: 3, fur: 0x6b5b3a, eye: 0xddcc00, stripes: true, stripeColor: 0x3a2a1a, defeated: false },
+              { name: 'Blackfoot', hp: 60, maxHP: 60, atk: 13, def: 4, fur: 0x222222, eye: 0xffcc33, stripes: false, stripeColor: 0, defeated: false },
+              { name: 'Boulder', hp: 50, maxHP: 50, atk: 10, def: 5, fur: 0x888888, eye: 0xaacc44, stripes: false, stripeColor: 0, defeated: false },
+              { name: 'Russetfur', hp: 45, maxHP: 45, atk: 12, def: 3, fur: 0x994422, eye: 0xddaa33, stripes: false, stripeColor: 0, defeated: false },
+            ];
+
+            startPatrolBattle({
+              clan: 'ShadowClan',
+              enemies: scEnemies,
+              expReward: 50,
+              retreatOnFirstWin: true, // beat ONE cat and they ALL retreat!
+              onWin: function () {
+                gameState = 'cutscene';
+                const victoryScenes = [
+                  { narration: true, text: 'The ShadowClan raiders see their warrior fall and panic! They flee into the forest, leaving ThunderClan\'s camp behind!',
+                    camPos: { x: 0, y: 6, z: 8 }, camLook: { x: 0, y: 1, z: -10 } },
+                  { narration: true, text: 'Yellowfang fought alongside ThunderClan, proving her loyalty. The Clan is shaken but safe.',
+                    camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -8, y: 1, z: 3 } },
+                  { narration: true, text: '<em>Fire alone will save our Clan.</em> The prophecy burns in your mind. Bluestar grows weaker. ShadowClan grows bolder. The Clan needs you now more than ever.',
+                    camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+                ];
+                startCutscene(victoryScenes, () => {
+                  gameState = 'playing';
+                  placeCatsInCamp(); saveGame();
+                  queueMessage('Narrator', 'ShadowClan has been driven off! Bluestar rests in the medicine den. Explore freely, and press "Next Chapter" when ready.');
+                  showNextChapterButton();
+                });
+              },
+              onLose: function () {
+                player.health = Math.floor(player.maxHealth * 0.4);
+                gameState = 'cutscene';
+                const loseScenes = [
+                  { narration: true, text: 'You are knocked down, but your Clanmates rally and drive ShadowClan away! The camp is saved.',
+                    camPos: { x: 0, y: 4, z: 5 }, camLook: { x: 0, y: 1, z: 0 } },
+                ];
+                startCutscene(loseScenes, () => {
+                  gameState = 'playing';
+                  placeCatsInCamp(); saveGame();
+                  queueMessage('Narrator', 'The ShadowClan raiders have retreated. You are bruised but alive. Explore freely!');
+                  showNextChapterButton();
+                });
+              },
+            });
           });
         },
         onLose: function () {
@@ -5540,70 +5592,76 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      CHAPTER 4: SHADOWCLAN ATTACKS
      ==================================================== */
-  function triggerShadowClanAttack () {
+  function triggerDrivingOutBrokenstar () {
     gameState = 'cutscene';
     const pName = player.name || 'apprentice';
     const bs = npcCats.find(c => c.name === 'Bluestar');
-    const tc = npcCats.find(c => c.name === 'Tigerclaw');
     const yf = npcCats.find(c => c.name === 'Yellowfang');
     if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
-    if (tc) { tc.group.visible = true; tc.group.position.set(5, 0, -2); }
 
     const preScenes = [
-      { narration: true, text: 'A yowl of alarm rings through the camp! Cats leap to their paws, eyes wide with fear...',
-        camPos: { x: 0, y: 6, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
-      { speaker: 'Tigerclaw', text: '"ShadowClan! They\'re attacking the camp! Warriors, defend the nursery!"',
-        camPos: { x: 6, y: 2, z: -1 }, camLook: { x: 5, y: 1, z: -2 } },
-      { narration: true, text: 'Dark shapes pour through the camp entrance! ShadowClan warriors led by Brokenstar\'s fiercest fighters are raiding ThunderClan!',
-        camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 } },
-      { speaker: 'Bluestar', text: '"ThunderClan, to me! We will not let them take our kits! Fight with everything you have!"',
+      { speaker: 'Bluestar', text: '"Brokenstar has attacked us one too many times. We march on ShadowClan today. ThunderClan will end his reign of terror!"',
         camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Yellowfang', text: '"I know Brokenstar\'s weaknesses. He was my leader once — I know how he fights. Let me guide you."',
+        camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -8, y: 1, z: 3 } },
+      { narration: true, text: 'ThunderClan crosses the border into ShadowClan territory! With Yellowfang leading the way, you storm into ShadowClan\'s camp!',
+        camPos: { x: -50, y: 6, z: -20 }, camLook: { x: -60, y: 1, z: -25 } },
+      { narration: true, text: 'Brokenstar\'s loyal warriors rush to defend him! But many ShadowClan cats are tired of Brokenstar\'s cruelty — they refuse to fight for him!',
+        camPos: { x: -55, y: 4, z: -22 }, camLook: { x: -58, y: 1, z: -25 } },
     ];
 
     startCutscene(preScenes, () => {
-      // Launch the ShadowClan battle with your Clanmates fighting alongside you!
+      // Boss battle against Brokenstar with your Clanmates!
       startBattle({
-        enemyName: 'ShadowClan Warrior',
-        enemyHP: 70,
-        enemyMaxHP: 70,
-        enemyAttack: 12,
-        enemyDefense: 4,
-        enemyFurColor: 0x333333,
-        enemyEyeColor: 0xddcc00,
+        enemyName: 'Brokenstar',
+        enemyHP: 85,
+        enemyMaxHP: 85,
+        enemyAttack: 14,
+        enemyDefense: 5,
+        enemyFurColor: 0x4a3520,
+        enemyEyeColor: 0xffaa00,
         enemyStripes: true,
-        enemyStripeColor: 0x111111,
-        expReward: 40,
+        enemyStripeColor: 0x221100,
+        expReward: 50,
         allies: [
-          { name: 'Tigerclaw', attack: 15, phrases: ['ShadowClan filth!', 'Get out of our camp!', 'I\'ll rip you apart!'] },
-          { name: 'Yellowfang', attack: 10, phrases: ['I know your tricks, ShadowClan!', 'I fight for ThunderClan now!', 'You won\'t take this camp!'] },
-          { name: 'Graypaw', attack: 8, phrases: ['For ThunderClan!', 'You won\'t get past me!', 'Take THAT!'] },
-          { name: 'Lionheart', attack: 13, phrases: ['Warriors, hold the line!', 'Protect the nursery!', 'Stand firm!'] },
+          { name: 'Yellowfang', attack: 11, phrases: ['Your cruelty ends today, Brokenstar!', 'I should have stopped you long ago!', 'ShadowClan deserves better!'] },
+          { name: 'Whitestorm', attack: 12, phrases: ['For ThunderClan!', 'Stand down, Brokenstar!', 'Your time is over!'] },
+          { name: 'Graypaw', attack: 8, phrases: ['We\'re taking you DOWN!', 'You can\'t bully the Clans anymore!', 'For the kits you stole!'] },
         ],
         onWin: function () {
           gameState = 'cutscene';
           const postScenes = [
-            { narration: true, text: 'The ShadowClan raiders are driven back! They flee into the forest, leaving ThunderClan bruised but victorious.',
-              camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 1, z: -10 } },
-            { narration: true, text: 'Yellowfang fought fiercely against her old Clanmates! She has proven her loyalty to ThunderClan beyond any doubt!',
-              camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -8, y: 1, z: 3 } },
-            { speaker: 'Bluestar', text: '"Brokenstar grows too bold. We must deal with him before he destroys all the Clans. ' + pName + ', you fought bravely today."',
+            { narration: true, text: 'Brokenstar is defeated! Yellowfang rakes her claws across his eyes, blinding him! He yowls in agony and rage!',
+              camPos: { x: -56, y: 2, z: -24 }, camLook: { x: -58, y: 0.5, z: -25 } },
+            { speaker: 'Yellowfang', text: '"You will never lead again, Brokenstar. Your cruelty has earned you nothing but suffering."',
+              camPos: { x: -57, y: 2, z: -24 }, camLook: { x: -58, y: 0.8, z: -25 } },
+            { narration: true, text: 'Brokenstar is driven into exile, blind and broken. ShadowClan\'s remaining warriors thank ThunderClan for freeing them from his tyranny.',
+              camPos: { x: -55, y: 5, z: -22 }, camLook: { x: -58, y: 1, z: -25 } },
+            { speaker: 'Bluestar', text: '"Brokenstar is gone. ShadowClan is free. And ' + pName + ', you proved yourself a true warrior today."',
               camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
-            { narration: true, text: '<em>ThunderClan has survived the attack, but Brokenstar\'s ShadowClan grows more dangerous every day...</em>',
-              camPos: { x: 0, y: 10, z: 10 }, camLook: { x: 0, y: 2, z: 0 } },
+            { narration: true, text: '<em>Brokenstar has been defeated and exiled! The forest is safer now — but Tigerclaw watches everything with hungry, ambitious eyes...</em>',
+              camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
           ];
           startCutscene(postScenes, () => {
             gameState = 'playing';
             placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'ShadowClan has been driven off! Your Clanmates fought bravely alongside you. Keep exploring!');
+            queueMessage('Narrator', 'Brokenstar has been defeated and blinded! ShadowClan is free. But be careful — darkness still lurks within your own Clan...');
             showNextChapterButton();
           });
         },
         onLose: function () {
           player.health = Math.floor(player.maxHealth * 0.5);
-          queueMessage('Narrator', 'You are knocked down, but your Clanmates pull you to safety. The ShadowClan raiders retreat. You survived!');
-          gameState = 'playing';
-          placeCatsInCamp(); saveGame();
-          showNextChapterButton();
+          gameState = 'cutscene';
+          const loseScenes = [
+            { narration: true, text: 'You stumble, but Yellowfang and Whitestorm finish the fight! Brokenstar is driven out!',
+              camPos: { x: -55, y: 3, z: -22 }, camLook: { x: -58, y: 1, z: -25 } },
+          ];
+          startCutscene(loseScenes, () => {
+            gameState = 'playing';
+            placeCatsInCamp(); saveGame();
+            queueMessage('Narrator', 'Brokenstar has been defeated! ShadowClan is free. Explore the territory.');
+            showNextChapterButton();
+          });
         },
       });
     });
