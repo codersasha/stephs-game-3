@@ -5613,7 +5613,7 @@ window.onerror = function(msg, url, line, col, err) {
     'Spottedleaf':'🌸', 'Whitestorm': '⚪', 'Graypaw':    '🐺',
     'Ravenpaw':   '🖤', 'Dustpaw':    '🟤', 'Sandpaw':    '🟡',
     'Darkstripe': '🐱', 'Longtail':   '🐱', 'Yellowfang': '🟠',
-    'Smudge':     '🐱', 'Princess':   '👑', 'Narrator':   '📖',
+    'Smudge':     '🐱', 'Princess':   '👑', 'Cloudkit':   '☁️', 'Narrator':   '📖',
   };
 
   function startCutscene (scenes, onDone) {
@@ -5936,18 +5936,20 @@ window.onerror = function(msg, url, line, col, err) {
     { id: 6,  name: 'Spottedleaf\'s Warning',     trigger: 'triggerSpottedleafWarning' },
     { id: 7,  name: 'Ravenpaw\'s Secret',          trigger: 'triggerRavenpawSecret' },
     { id: 8,  name: 'Ravenpaw Leaves',            trigger: 'triggerRavenpawLeaves' },
-    { id: 9,  name: 'Fire and Ice',               trigger: 'triggerFireAndIce' },
-    { id: 10, name: 'Bring Back WindClan',         trigger: 'triggerWindClanRescue' },
-    { id: 11, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
-    { id: 12, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
-    { id: 13, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
-    { id: 14, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
-    { id: 15, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
-    { id: 16, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
-    { id: 17, name: 'Firestar\'s Leadership',       trigger: 'triggerFirestarLeadership' },
-    { id: 18, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
-    { id: 19, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
-    { id: 20, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
+    { id: 9,  name: 'Princess & Cloudkit',         trigger: 'triggerPrincessCloudkit' },
+    { id: 10, name: 'Fire and Ice',               trigger: 'triggerFireAndIce' },
+    { id: 11, name: 'Bring Back WindClan',         trigger: 'triggerWindClanRescue' },
+    { id: 12, name: 'Rogues Attack',               trigger: 'triggerRoguesAttack' },
+    { id: 13, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
+    { id: 14, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
+    { id: 15, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
+    { id: 16, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
+    { id: 17, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
+    { id: 18, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
+    { id: 19, name: 'Firestar\'s Leadership',       trigger: 'triggerFirestarLeadership' },
+    { id: 20, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
+    { id: 21, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
+    { id: 22, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
   ];
 
   function showNextChapterButton () {
@@ -7703,7 +7705,92 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CHAPTER 8: FIRE AND ICE
+     CHAPTER 9: PRINCESS & CLOUDKIT
+     After Ravenpaw leaves, you visit your sister Princess
+     at the Twoleg fence. She gives you her firstborn kit,
+     Cloudkit, to be raised as a ThunderClan warrior.
+     ==================================================== */
+  function triggerPrincessCloudkit () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const princess = npcCats.find(c => c.name === 'Princess');
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+
+    // Move Princess to the fence area
+    if (princess) {
+      princess.group.visible = true;
+      princess.group.position.set(-3, 0, 82);
+    }
+
+    const scenes = [
+      { narration: true, text: 'With Ravenpaw safely hidden at Barley\'s barn, you decide to visit the Twoleg fence. You haven\'t seen your sister Princess in a long time...',
+        camPos: { x: 5, y: 4, z: 75 }, camLook: { x: -3, y: 1, z: 82 },
+        onShow: function () { setDayMode(); } },
+      { narration: true, text: 'You squeeze through the gap in the fence. Princess is already there waiting, a tiny bundle of white fluff wriggling at her paws.',
+        camPos: { x: -1, y: 2, z: 80 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { speaker: 'Princess', text: '"' + pName + '! Oh, I\'m so glad you\'re here! I\'ve been waiting and waiting — I have something SO important to tell you!"',
+        camPos: { x: -2, y: 1.5, z: 81 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { speaker: 'Princess', text: '"Look! This is my firstborn kit! He\'s the most precious thing in the world to me. I named him Cloudkit because of his beautiful white fur."',
+        camPos: { x: -3, y: 1, z: 82 }, camLook: { x: -3, y: 0.3, z: 82.5 } },
+      { narration: true, text: 'A tiny white kit with bright blue eyes blinks up at you. He mews softly, batting at your whiskers with a tiny paw.',
+        camPos: { x: -2.5, y: 0.8, z: 82 }, camLook: { x: -3, y: 0.3, z: 82.5 } },
+      { speaker: 'Princess', text: '"' + pName + '... I know this is a lot to ask, but... I want him to have the life YOU have. I want him to be a warrior."',
+        camPos: { x: -2, y: 1.5, z: 81 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { speaker: 'Princess', text: '"I\'ve heard your stories about the Clans, the forest, the warrior code. Cloudkit deserves to be more than a kittypet. Please, take him to ThunderClan!"',
+        camPos: { x: -2, y: 1.5, z: 81 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { speaker: pName, text: '"Princess... are you sure? Life in the Clan isn\'t easy. There are battles, and hunger, and danger."',
+        camPos: { x: 0, y: 1.5, z: 80 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { speaker: 'Princess', text: '"I\'m sure. He has the heart of a warrior — I can see it already. Promise me you\'ll watch over him, ' + pName + '."',
+        camPos: { x: -2, y: 1.5, z: 81 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { speaker: pName, text: '"I promise, Princess. I\'ll raise him as my own kin. Cloudkit will be the finest warrior ThunderClan has ever seen."',
+        camPos: { x: 0, y: 1.5, z: 80 }, camLook: { x: -3, y: 0.5, z: 82 } },
+      { narration: true, text: 'Princess licks Cloudkit one last time, then gently nudges him toward you. The tiny kit stumbles forward on shaky legs.',
+        camPos: { x: -2, y: 1, z: 81 }, camLook: { x: -3, y: 0.3, z: 82 } },
+      { speaker: 'Princess', text: '"Be brave, my darling. ' + pName + ' will take care of you. I love you, little one."',
+        camPos: { x: -3, y: 1, z: 82 }, camLook: { x: -3, y: 0.3, z: 82.5 } },
+      { narration: true, text: 'You carefully pick up Cloudkit by the scruff and carry him through the fence gap. He squeaks in surprise but doesn\'t struggle.',
+        camPos: { x: 2, y: 3, z: 78 }, camLook: { x: -2, y: 1, z: 82 } },
+      { narration: true, text: 'You carry Cloudkit all the way back to camp. Some warriors look skeptical at the kittypet kit, but you\'re determined.',
+        camPos: { x: 0, y: 5, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
+      { speaker: 'Bluestar', text: '"A kittypet kit? You want ThunderClan to raise a kittypet\'s kit? ... Very well, ' + pName + '. If you vouch for him, Cloudkit may stay."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"He will be placed in the nursery with Brindleface to nurse him. When he is old enough, he will train as an apprentice."',
+        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: 'Cloudkit is placed in the nursery! Brindleface agrees to nurse him alongside her own kits. He blinks his blue eyes around the den, already looking brave.',
+        camPos: { x: -8, y: 3, z: 5 }, camLook: { x: -8, y: 0.5, z: 5 } },
+      { narration: true, text: '<em>Cloudkit has joined ThunderClan! Your sister\'s kit will grow up as a forest cat, just as you did. But not everyone in the Clan is happy about it...</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      // Add Cloudkit to the nursery — create a tiny white kit NPC
+      const cloudkit = makeBookCat({
+        name: 'Cloudkit', fur: 0xffffff, belly: 0xffffff,
+        eyeColor: 0x66aaee, earInner: 0xffbbbb, noseColor: 0xffaabb,
+        size: 0.40, whiteChest: false, whitePaws: false, stripes: 0, longFur: true
+      }, -7.8, 4.8);
+      npcCats.push(cloudkit);
+      knownCats.add('Cloudkit');
+      // Add dialogue for Cloudkit
+      catDialogue['Cloudkit'] = [
+        '"Mew! Mew mew!"',
+        '"Is this the forest? It\'s so BIG!"',
+        '"I\'m gonna be the BEST warrior ever!"',
+        '"' + pName + '! ' + pName + '! Watch me pounce!"',
+        '"When do I get to fight? I wanna fight!"',
+        '"The other kits said I smell like Twoleg. Do I?"',
+      ];
+      // Add voice profile
+      catVoiceProfiles['Cloudkit'] = { base: 600, end: 520, dur: 0.22, type: 'sine', vol: 0.13, vibrato: 6 };
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Cloudkit has joined ThunderClan! Visit him in the nursery. Princess will miss him, but she knows this is the right choice.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 10: FIRE AND ICE
      ==================================================== */
   function triggerFireAndIce () {
     gameState = 'cutscene';
@@ -7761,7 +7848,85 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CHAPTER 10: TIGERCLAW'S TREACHERY
+     CHAPTER 12: ROGUES ATTACK
+     Rogues and loners attack ThunderClan camp! After you
+     defeat one rogue, the chapter ends and leads into
+     Tigerclaw's Treachery.
+     ==================================================== */
+  function triggerRoguesAttack () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    const lvl = player.level || 1;
+    const scenes = [
+      { narration: true, text: 'Strange scents have been drifting through ThunderClan territory for days — the sharp reek of rogues and loners. Something is wrong.',
+        camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
+      { narration: true, text: 'One night, the warning yowl sounds! Rogues and loners are pouring through the gorse tunnel into the camp!',
+        camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 },
+        onShow: function () { setNightMode(); playSound('danger'); } },
+      { speaker: 'Bluestar', text: '"ThunderClan, FIGHT! Rogues in the camp! Defend the nursery! Protect the elders!"',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: 'Snarling, battle-scarred rogues swarm the clearing! You can see mangy loners slashing at your Clanmates! You leap into the fray!',
+        camPos: { x: 5, y: 3, z: 5 }, camLook: { x: 3, y: 1, z: 2 } },
+      { speaker: '???', text: '"Give up, forest cats! This camp is OURS now!"',
+        camPos: { x: 8, y: 2, z: 3 }, camLook: { x: 6, y: 1, z: 2 } },
+    ];
+
+    startCutscene(scenes, () => {
+      // First battle: fight a rogue
+      const rogueEnemies = [
+        { name: 'Rogue', hp: 65 + lvl * 7, maxHP: 65 + lvl * 7, atk: 12 + lvl * 2, def: 4 + lvl,
+          fur: 0x6a5a3a, eye: 0xddaa33, stripes: 0, defeated: false },
+        { name: 'Loner', hp: 55 + lvl * 6, maxHP: 55 + lvl * 6, atk: 10 + lvl * 2, def: 3 + lvl,
+          fur: 0x888888, eye: 0x77aa33, stripes: 2, stripeColor: 0x555555, defeated: false },
+      ];
+
+      startPatrolBattle({
+        clan: 'Rogues',
+        enemies: rogueEnemies,
+        expReward: 50 + lvl * 8,
+        retreatOnFirstWin: true,  // Beat one and the chapter progresses
+        onWin: function () {
+          const postScenes = [
+            { narration: true, text: 'You drive back the rogues! They scatter and flee into the darkness. But something about this attack felt... organized.',
+              camPos: { x: 0, y: 4, z: 2 }, camLook: { x: 3, y: 1, z: -2 } },
+            { speaker: 'Bluestar', text: '"These rogues were too well-coordinated. Someone was leading them. Someone who KNOWS our camp..."',
+              camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+            { speaker: 'Bluestar', text: '"I fear there is a traitor in our midst. Stay alert, ' + pName + '. I have a terrible feeling about this."',
+              camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+            { narration: true, text: '<em>The rogues have been driven off, but Bluestar suspects someone inside ThunderClan is behind the attack. The truth is about to be revealed...</em>',
+              camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+          ];
+          startCutscene(postScenes, () => {
+            gameState = 'playing'; setDayMode();
+            player.health = player.maxHealth;
+            placeCatsInCamp(); saveGame();
+            queueMessage('Narrator', 'The rogue attack has been repelled, but who sent them? Bluestar suspects treachery from within. The next chapter will reveal the truth...');
+            showNextChapterButton();
+          });
+        },
+        onLose: function () {
+          const loseScenes = [
+            { narration: true, text: 'The rogues overpower you, but your Clanmates rally and drive them out!' },
+            { speaker: 'Bluestar', text: '"Get ' + pName + ' to the medicine den! The rogues are retreating!"' },
+          ];
+          startCutscene(loseScenes, () => {
+            respawnAtMedicineDen();
+            storyChapter--;
+            saveGame();
+            showNextChapterButton();
+          });
+        },
+      });
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 13: TIGERCLAW'S TREACHERY
+     After the rogue attack, you discover Tigerclaw was behind it.
+     He attacks Bluestar directly! You must fight him!
      ==================================================== */
   function triggerTigerclawTreachery () {
     gameState = 'cutscene';
@@ -7771,31 +7936,43 @@ window.onerror = function(msg, url, line, col, err) {
     if (tc) { tc.group.visible = true; tc.group.position.set(5, 0, -2); }
     if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
 
+    const lvl = player.level || 1;
     const preScenes = [
-      { narration: true, text: 'You discover that Tigerclaw has been plotting in secret. He has been leading rogues into ThunderClan territory, planning to overthrow Bluestar!',
-        camPos: { x: 0, y: 5, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
-      { narration: true, text: 'One night, Tigerclaw leads a band of rogues directly into the ThunderClan camp! Cats scatter in terror!',
-        camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 },
+      { narration: true, text: 'You\'ve been watching Tigerclaw closely since the rogue attack. Late one night, you follow him into the forest...',
+        camPos: { x: 10, y: 3, z: 15 }, camLook: { x: 5, y: 1, z: 10 },
         onShow: function () { setNightMode(); } },
-      { speaker: 'Tigerclaw', text: '"It\'s time, Bluestar! I should have been leader long ago. ThunderClan needs a STRONG leader — not a weak old she-cat!"',
+      { narration: true, text: 'You catch him meeting the same rogues in secret! He\'s giving them orders — telling them where the camp\'s weak points are!',
+        camPos: { x: 8, y: 2, z: 12 }, camLook: { x: 5, y: 1, z: 10 } },
+      { speaker: 'Tigerclaw', text: '"Next time, hit the camp from the south. The elders\' den is unguarded. Once Bluestar is dead, I will be leader, and you will all have a place in ThunderClan."',
+        camPos: { x: 6, y: 2, z: 10 }, camLook: { x: 5, y: 1.2, z: 10 } },
+      { narration: true, text: 'You\'ve heard enough! You race back to camp to warn Bluestar — but Tigerclaw has spotted you!',
+        camPos: { x: 3, y: 3, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
+      { narration: true, text: 'By the time you reach camp, Tigerclaw is already there, leading another wave of rogues straight through the entrance!',
+        camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 },
+        onShow: function () { playSound('danger'); } },
+      { speaker: 'Tigerclaw', text: '"It\'s OVER, Bluestar! I should have been leader long ago! ThunderClan needs a STRONG leader — not a weak old she-cat!"',
         camPos: { x: 6, y: 2.5, z: -1 }, camLook: { x: 5, y: 1.2, z: -2 } },
-      { narration: true, text: 'Tigerclaw lunges at Bluestar! You throw yourself between them to defend your leader!',
+      { narration: true, text: 'Tigerclaw lunges at Bluestar, claws unsheathed! You throw yourself between them to defend your leader!',
         camPos: { x: 2, y: 2, z: -3 }, camLook: { x: 0, y: 1, z: -4 } },
+      { speaker: pName, text: '"NO, Tigerclaw! I won\'t let you hurt Bluestar! I SAW you with the rogues — you\'re a TRAITOR!"',
+        camPos: { x: 1, y: 2, z: 1 }, camLook: { x: 5, y: 1.2, z: -2 } },
+      { speaker: 'Tigerclaw', text: '"You meddling fool! I\'ll kill you first, then Bluestar! NOBODY can stop me!"',
+        camPos: { x: 6, y: 2.5, z: -1 }, camLook: { x: 5, y: 1.2, z: -2 } },
     ];
 
     startCutscene(preScenes, () => {
-      // Battle against Tigerclaw with your Clanmates!
+      // Battle against Tigerclaw!
       startBattle({
         enemyName: 'Tigerclaw',
-        enemyHP: 100,
-        enemyMaxHP: 100,
-        enemyAttack: 18,
-        enemyDefense: 6,
+        enemyHP: 110 + lvl * 5,
+        enemyMaxHP: 110 + lvl * 5,
+        enemyAttack: 18 + lvl,
+        enemyDefense: 7 + lvl,
         enemyFurColor: 0x5a3a1a,
         enemyEyeColor: 0xffaa11,
         enemyStripes: true,
         enemyStripeColor: 0x221100,
-        expReward: 60,
+        expReward: 80,
         allies: [
           { name: 'Whitestorm', attack: 12, phrases: ['Traitor!', 'You won\'t touch Bluestar!', 'ThunderClan stands together!'] },
           { name: 'Graypaw', attack: 9, phrases: ['How COULD you, Tigerclaw?!', 'We trusted you!', 'For ThunderClan!'] },
@@ -7804,22 +7981,26 @@ window.onerror = function(msg, url, line, col, err) {
         onWin: function () {
           gameState = 'cutscene';
           const postScenes = [
-            { narration: true, text: 'Tigerclaw and his rogues are defeated! He stands surrounded by ThunderClan warriors, his treachery exposed for all to see.',
+            { narration: true, text: 'Tigerclaw crashes to the ground, bleeding and gasping! His rogues flee into the night! He is surrounded by ThunderClan warriors.',
               camPos: { x: 0, y: 4, z: 2 }, camLook: { x: 3, y: 1, z: -2 } },
+            { speaker: 'Tigerclaw', text: '"This... isn\'t... over... I will return, and when I do, all of you will PAY!"',
+              camPos: { x: 5, y: 1.5, z: -1 }, camLook: { x: 5, y: 0.5, z: -2 } },
+            { narration: true, text: 'The Clan stares in shock. Tigerclaw — their deputy, their strongest warrior — is a murderer and a traitor.',
+              camPos: { x: 0, y: 5, z: 5 }, camLook: { x: 0, y: 1, z: 0 } },
           ];
           startCutscene(postScenes, () => {
             gameState = 'playing'; setDayMode();
             placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'Tigerclaw\'s treachery has been exposed! He tried to kill Bluestar and take over ThunderClan. His fate is in Bluestar\'s paws now.');
+            queueMessage('Narrator', 'Tigerclaw\'s treachery has been fully exposed! He led the rogues, he murdered Redtail, and he tried to kill Bluestar. Now Bluestar must decide his fate...');
             showNextChapterButton();
           });
         },
         onLose: function () {
-          // Can't really lose this — story continues regardless
+          // Story continues regardless — you can't lose this fight
           player.health = Math.floor(player.maxHealth * 0.5);
           gameState = 'playing'; setDayMode();
           placeCatsInCamp(); saveGame();
-          queueMessage('Narrator', 'You are wounded, but your Clanmates subdue Tigerclaw. His treachery is exposed!');
+          queueMessage('Narrator', 'You fought bravely, but your Clanmates finish the fight. Tigerclaw is subdued! His treachery is exposed!');
           showNextChapterButton();
         },
       });
@@ -7827,7 +8008,8 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CHAPTER 11: TIGERCLAW'S EXILE
+     CHAPTER 14: TIGERCLAW'S EXILE (BANISHED)
+     Bluestar banishes Tigerclaw from ThunderClan forever.
      ==================================================== */
   function triggerTigerclawExile () {
     gameState = 'cutscene';
@@ -9851,7 +10033,7 @@ window.onerror = function(msg, url, line, col, err) {
     'Whitestorm': '#cccccc', 'Dustpaw': '#7a5533', 'Sandpaw': '#ddbb88',
     'Mousefur': '#8b6b4a', 'Darkstripe': '#555566', 'Ravenpaw': '#2a2a2a',
     'Spottedleaf': '#aa6633', 'Tigerclaw': '#5a3a1a', 'Yellowfang': '#555555',
-    'Longtail': '#ccbb99', 'Smudge': '#333333', 'Princess': '#ccaa77',
+    'Longtail': '#ccbb99', 'Smudge': '#333333', 'Princess': '#ccaa77', 'Cloudkit': '#ffffff',
     // Queens
     'Frostfur': '#dddddd', 'Brindleface': '#999999', 'Goldenflower': '#ddaa55',
     // Kits
@@ -9998,7 +10180,7 @@ window.onerror = function(msg, url, line, col, err) {
   const TWOLEG_HOUSE_SPOT = { x: 0, z: 83 };
 
   const QUEEN_NAMES = ['Frostfur', 'Brindleface', 'Goldenflower'];
-  const KIT_NAMES = ['Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit'];
+  const KIT_NAMES = ['Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit', 'Cloudkit'];
 
   function getDenForCat (name) {
     if (KITTYPET_NAMES.includes(name)) return TWOLEG_HOUSE_SPOT;
