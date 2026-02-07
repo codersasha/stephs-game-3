@@ -4526,10 +4526,25 @@ window.onerror = function(msg, url, line, col, err) {
   let chapterReady = false; // true when the player can advance
 
   const STORY_CHAPTERS = [
-    { id: 1, name: "Redtail's Death",        trigger: 'triggerRedtailEvent' },
-    { id: 2, name: 'Journey to Mothermouth', trigger: 'triggerMothermouthJourney' },
-    { id: 3, name: 'Yellowfang',             trigger: 'triggerYellowfangEncounter' },
-    // Future chapters go here...
+    { id: 1,  name: "Redtail's Death",           trigger: 'triggerRedtailEvent' },
+    { id: 2,  name: 'Journey to Mothermouth',    trigger: 'triggerMothermouthJourney' },
+    { id: 3,  name: 'Yellowfang',                trigger: 'triggerYellowfangEncounter' },
+    { id: 4,  name: 'ShadowClan Attacks',         trigger: 'triggerShadowClanAttack' },
+    { id: 5,  name: 'Spottedleaf\'s Warning',     trigger: 'triggerSpottedleafWarning' },
+    { id: 6,  name: 'Ravenpaw\'s Secret',          trigger: 'triggerRavenpawSecret' },
+    { id: 7,  name: 'Ravenpaw Leaves',            trigger: 'triggerRavenpawLeaves' },
+    { id: 8,  name: 'Fire and Ice',               trigger: 'triggerFireAndIce' },
+    { id: 9,  name: 'Bring Back WindClan',         trigger: 'triggerWindClanRescue' },
+    { id: 10, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
+    { id: 11, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
+    { id: 12, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
+    { id: 13, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
+    { id: 14, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
+    { id: 15, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
+    { id: 16, name: 'Firestar\'s Leadership',       trigger: 'triggerFirestarLeadership' },
+    { id: 17, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
+    { id: 18, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
+    { id: 19, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
   ];
 
   function showNextChapterButton () {
@@ -4563,12 +4578,16 @@ window.onerror = function(msg, url, line, col, err) {
     saveGame();
 
     // Call the trigger function by name
-    switch (chapter.trigger) {
-      case 'triggerRedtailEvent':           triggerRedtailEvent(); break;
-      case 'triggerMothermouthJourney':      triggerMothermouthJourney(); break;
-      case 'triggerYellowfangEncounter':     triggerYellowfangEncounter(); break;
-      default: break;
-    }
+    const triggerFn = {
+      triggerRedtailEvent, triggerMothermouthJourney, triggerYellowfangEncounter,
+      triggerShadowClanAttack, triggerSpottedleafWarning, triggerRavenpawSecret,
+      triggerRavenpawLeaves, triggerFireAndIce, triggerWindClanRescue,
+      triggerTigerclawTreachery, triggerTigerclawExile, triggerWarriorCeremony,
+      triggerDangerousPath, triggerDogPack, triggerBluestarLastLife,
+      triggerFirestarLeadership, triggerTigerClanRises, triggerBloodClanArrives,
+      triggerScourge,
+    }[chapter.trigger];
+    if (triggerFn) triggerFn();
   }
 
   function startExploring () {
@@ -5509,6 +5528,579 @@ window.onerror = function(msg, url, line, col, err) {
       if (storyChapter < STORY_CHAPTERS.length) {
         showNextChapterButton();
       }
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 4: SHADOWCLAN ATTACKS
+     ==================================================== */
+  function triggerShadowClanAttack () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    const tc = npcCats.find(c => c.name === 'Tigerclaw');
+    const yf = npcCats.find(c => c.name === 'Yellowfang');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+    if (tc) { tc.group.visible = true; tc.group.position.set(5, 0, -2); }
+
+    const scenes = [
+      { narration: true, text: 'A yowl of alarm rings through the camp! Cats leap to their paws, eyes wide with fear...',
+        camPos: { x: 0, y: 6, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
+      { speaker: 'Tigerclaw', text: '"ShadowClan! They\'re attacking the camp! Warriors, defend the nursery!"',
+        camPos: { x: 6, y: 2, z: -1 }, camLook: { x: 5, y: 1, z: -2 } },
+      { narration: true, text: 'Dark shapes pour through the camp entrance! ShadowClan warriors led by Brokenstar\'s fiercest fighters are raiding ThunderClan!',
+        camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 } },
+      { speaker: 'Bluestar', text: '"ThunderClan, to me! We will not let them take our kits! Fight with everything you have!"',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: 'You throw yourself into the battle alongside your Clanmates! Claws flash and yowls split the air!',
+        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 0, y: 1, z: 0 } },
+      { narration: true, text: 'Yellowfang fights fiercely against her old Clanmates! She proves her loyalty to ThunderClan beyond any doubt!',
+        camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -8, y: 1, z: 3 } },
+      { narration: true, text: 'The ShadowClan raiders are driven back! They flee into the forest, leaving ThunderClan bruised but victorious.',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 1, z: -10 } },
+      { speaker: 'Bluestar', text: '"Brokenstar grows too bold. We must deal with him before he destroys all the Clans. ' + pName + ', you fought bravely today."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: '<em>ThunderClan has survived the attack, but Brokenstar\'s ShadowClan grows more dangerous every day...</em>',
+        camPos: { x: 0, y: 10, z: 10 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'ShadowClan has been driven off. The Clan is shaken but alive. Keep exploring!');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 5: SPOTTEDLEAF'S WARNING
+     ==================================================== */
+  function triggerSpottedleafWarning () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const scenes = [
+      { narration: true, text: 'Late one night, you dream of walking through a misty forest. The stars above shine brighter than you\'ve ever seen...',
+        camPos: { x: 0, y: 3, z: 0 }, camLook: { x: 5, y: 2, z: -5 },
+        onShow: function () { setNightMode(); } },
+      { speaker: 'Spottedleaf', text: '"' + pName + '... can you hear me? I need to warn you."',
+        camPos: { x: -8, y: 2, z: 4 }, camLook: { x: -10, y: 1, z: 3 } },
+      { speaker: 'Spottedleaf', text: '"Beware a warrior you think you can trust. There is darkness in the heart of ThunderClan... a darkness that has already killed."',
+        camPos: { x: -9, y: 2, z: 5 }, camLook: { x: -10, y: 1.5, z: 3 } },
+      { speaker: 'Spottedleaf', text: '"Trust Ravenpaw. He saw the truth at Sunningrocks. Listen to what he has to tell you, ' + pName + '."',
+        camPos: { x: -7, y: 2.5, z: 4 }, camLook: { x: -10, y: 1, z: 3 } },
+      { narration: true, text: 'The dream fades. You wake in the apprentices\' den, heart pounding. Spottedleaf\'s warning echoes in your mind...',
+        camPos: { x: 6, y: 2, z: 5 }, camLook: { x: 7, y: 1, z: 6 },
+        onShow: function () { setDayMode(); } },
+      { narration: true, text: '<em>Spottedleaf has spoken from StarClan. You must find Ravenpaw and learn what really happened at Sunningrocks...</em>',
+        camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; setDayMode();
+      saveGame();
+      queueMessage('Narrator', 'Spottedleaf has warned you from StarClan. Talk to Ravenpaw when you can — he knows the truth about what happened at Sunningrocks.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 6: RAVENPAW'S SECRET
+     ==================================================== */
+  function triggerRavenpawSecret () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const rp = npcCats.find(c => c.name === 'Ravenpaw');
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+    if (rp) { rp.group.visible = true; rp.group.position.set(8, 0, 8); }
+    if (gp) { gp.group.visible = true; gp.group.position.set(player.position.x + 2, 0, player.position.z); }
+
+    const scenes = [
+      { narration: true, text: 'You find Ravenpaw alone near the edge of camp. He looks more nervous than usual, glancing around fearfully.',
+        camPos: { x: 10, y: 2, z: 9 }, camLook: { x: 8, y: 1, z: 8 } },
+      { speaker: pName, text: '"Ravenpaw, I need to talk to you. What really happened at Sunningrocks? What did you see?"',
+        camPos: { x: 9, y: 2, z: 8 }, camLook: { x: 8, y: 1, z: 8 } },
+      { speaker: 'Ravenpaw', text: '"I-I... ' + pName + ', you have to promise not to tell anyone. Especially not Tigerclaw."',
+        camPos: { x: 9, y: 1.8, z: 9 }, camLook: { x: 8, y: 1, z: 8 } },
+      { speaker: 'Ravenpaw', text: '"At Sunningrocks... Oakheart didn\'t kill Redtail. They were fighting, but then rocks fell and crushed Oakheart."',
+        camPos: { x: 8.5, y: 1.5, z: 8.5 }, camLook: { x: 8, y: 1, z: 8 } },
+      { speaker: 'Ravenpaw', text: '"Redtail was alive after that. He was standing there, looking at Oakheart\'s body... and then..."',
+        camPos: { x: 8, y: 1.5, z: 9 }, camLook: { x: 8, y: 1, z: 8 } },
+      { speaker: 'Ravenpaw', text: '"...Tigerclaw killed Redtail. I SAW it, ' + pName + '! Tigerclaw murdered Redtail and claimed Oakheart did it!"',
+        camPos: { x: 8, y: 1.8, z: 8.5 }, camLook: { x: 8, y: 1.2, z: 8 } },
+      { speaker: 'Graypaw', text: '"WHAT?! Tigerclaw killed Redtail?! But... but he\'s our own Clanmate! That\'s... that\'s murder!"',
+        camPos: { x: player.position.x + 3, y: 2, z: player.position.z }, camLook: { x: player.position.x + 2, y: 1, z: player.position.z } },
+      { speaker: 'Ravenpaw', text: '"He did it so HE could become deputy. And now he\'s deputy... and I\'m the only witness. He\'ll kill me too if he finds out I told you!"',
+        camPos: { x: 8, y: 1.5, z: 8 }, camLook: { x: 8, y: 1, z: 8 } },
+      { narration: true, text: '<em>The terrible truth is revealed. Tigerclaw murdered Redtail to become deputy. Ravenpaw is in danger — you must protect him.</em>',
+        camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Ravenpaw has told you the terrible truth — Tigerclaw murdered Redtail. You need to get Ravenpaw somewhere safe before Tigerclaw silences him.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 7: RAVENPAW LEAVES
+     ==================================================== */
+  function triggerRavenpawLeaves () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const rp = npcCats.find(c => c.name === 'Ravenpaw');
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+
+    const scenes = [
+      { narration: true, text: 'Under cover of darkness, you and Graypaw sneak Ravenpaw out of camp. Tigerclaw must not know he is leaving.',
+        camPos: { x: 0, y: 4, z: 15 }, camLook: { x: 0, y: 1, z: 25 },
+        onShow: function () { setNightMode(); } },
+      { speaker: 'Graypaw', text: '"Where will he go? He can\'t stay in the forest — Tigerclaw will find him."',
+        camPos: { x: 2, y: 2, z: 18 }, camLook: { x: 1, y: 1, z: 20 } },
+      { speaker: pName, text: '"Remember the barn cat who helped us fight the rats on the way to Mothermouth? Barley! Ravenpaw can live with him."',
+        camPos: { x: 0, y: 2, z: 20 }, camLook: { x: -1, y: 1, z: 22 } },
+      { speaker: 'Ravenpaw', text: '"Thank you, ' + pName + '. Thank you, Graypaw. I\'ll miss ThunderClan... but I\'ll be safe with Barley."',
+        camPos: { x: -1, y: 2, z: 22 }, camLook: { x: 0, y: 1, z: 24 } },
+      { narration: true, text: 'You escort Ravenpaw through the forest and across the moor until you reach the old Twoleg barn. Barley is there, and he welcomes Ravenpaw warmly.',
+        camPos: { x: -55, y: 5, z: -70 }, camLook: { x: -50, y: 2, z: -68 } },
+      { speaker: 'Ravenpaw', text: '"Goodbye, friends. Expose Tigerclaw for what he is. The Clan deserves to know the truth."',
+        camPos: { x: -52, y: 2, z: -69 }, camLook: { x: -50, y: 1, z: -68 } },
+      { narration: true, text: 'You and Graypaw make the long journey back to ThunderClan territory as dawn breaks.',
+        camPos: { x: -15, y: 8, z: -30 }, camLook: { x: 0, y: 2, z: 0 },
+        onShow: function () { setDayMode(); } },
+      { narration: true, text: '<em>Ravenpaw is safe with Barley at the barn. But Tigerclaw remains in camp, deputy of ThunderClan, his terrible secret still hidden...</em>',
+        camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; setDayMode();
+      if (rp) { rp.group.visible = false; rp.group.position.set(-50, 0, -68); }
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Ravenpaw is safe at Barley\'s barn. Now you must find a way to expose Tigerclaw\'s treachery to the Clan.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 8: FIRE AND ICE
+     ==================================================== */
+  function triggerFireAndIce () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    const scenes = [
+      { speaker: 'Bluestar', text: '"' + pName + ', I have an important mission for you. WindClan was driven from their territory by ShadowClan moons ago."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"The forest needs four Clans. Without WindClan, the balance is broken. You and Graypaw must find them and bring them home."',
+        camPos: { x: -2, y: 3, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"Tigerclaw will not approve of this mission. Do it quietly and quickly. The Clans are counting on you."',
+        camPos: { x: 0, y: 3.5, z: 0 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: '<em>Bluestar has given you your most important mission yet — find WindClan and bring them back to the forest!</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Bluestar has sent you on a mission to find and rescue WindClan. The journey will be dangerous, but the forest needs all four Clans.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 9: BRING BACK WINDCLAN
+     ==================================================== */
+  function triggerWindClanRescue () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const gp = npcCats.find(c => c.name === 'Graypaw');
+    if (gp) { gp.group.visible = true; gp.group.position.set(player.position.x + 2, 0, player.position.z); }
+
+    const scenes = [
+      { narration: true, text: 'You and Graypaw travel far beyond the Clan territories, following the faintest traces of WindClan scent.',
+        camPos: { x: -30, y: 8, z: -70 }, camLook: { x: -50, y: 3, z: -90 } },
+      { narration: true, text: 'After a long and exhausting journey, you find WindClan huddled in an abandoned Twoleg tunnel — starving, cold, and afraid.',
+        camPos: { x: -50, y: 4, z: -85 }, camLook: { x: -55, y: 2, z: -88 } },
+      { speaker: 'Graypaw', text: '"We found them, ' + pName + '! Look at them — they\'re so thin. We have to convince them to come home."',
+        camPos: { x: -48, y: 2, z: -83 }, camLook: { x: -50, y: 1, z: -85 } },
+      { narration: true, text: 'After much persuading, Tallstar, WindClan\'s leader, agrees. WindClan follows you home across the moors.',
+        camPos: { x: -40, y: 10, z: -75 }, camLook: { x: -30, y: 2, z: -60 } },
+      { narration: true, text: 'WindClan returns to their territory at last! Tallstar dips his head to you in gratitude.',
+        camPos: { x: -35, y: 6, z: -55 }, camLook: { x: -30, y: 2, z: -50 } },
+      { narration: true, text: '"ThunderClan has earned WindClan\'s friendship this day," Tallstar declares. "We will not forget this kindness."',
+        camPos: { x: -32, y: 3, z: -52 }, camLook: { x: -35, y: 1.5, z: -55 } },
+      { narration: true, text: '<em>WindClan has returned! The forest has four Clans once more. You and Graypaw are heroes.</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'WindClan has returned to the forest! You\'ve earned the friendship of another Clan. But Tigerclaw\'s ambition still threatens ThunderClan from within.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 10: TIGERCLAW'S TREACHERY
+     ==================================================== */
+  function triggerTigerclawTreachery () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const tc = npcCats.find(c => c.name === 'Tigerclaw');
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (tc) { tc.group.visible = true; tc.group.position.set(5, 0, -2); }
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    const scenes = [
+      { narration: true, text: 'You discover that Tigerclaw has been plotting in secret. He has been leading rogues into ThunderClan territory, planning to overthrow Bluestar!',
+        camPos: { x: 0, y: 5, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
+      { narration: true, text: 'One night, Tigerclaw leads a band of rogues directly into the ThunderClan camp! Cats scatter in terror!',
+        camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 },
+        onShow: function () { setNightMode(); } },
+      { speaker: 'Tigerclaw', text: '"It\'s time, Bluestar! I should have been leader long ago. ThunderClan needs a STRONG leader — not a weak old she-cat!"',
+        camPos: { x: 6, y: 2.5, z: -1 }, camLook: { x: 5, y: 1.2, z: -2 } },
+      { narration: true, text: 'Tigerclaw lunges at Bluestar! His massive claws flash in the moonlight as he tries to kill his own leader!',
+        camPos: { x: 2, y: 2, z: -3 }, camLook: { x: 0, y: 1, z: -4 } },
+      { narration: true, text: 'You throw yourself between them! Fighting with all your strength, you help drive Tigerclaw back!',
+        camPos: { x: 1, y: 2, z: -2 }, camLook: { x: 3, y: 1, z: -3 } },
+      { narration: true, text: 'The rogues are defeated. Tigerclaw stands surrounded by ThunderClan warriors, his treachery exposed for all to see.',
+        camPos: { x: 0, y: 4, z: 2 }, camLook: { x: 3, y: 1, z: -2 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; setDayMode();
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Tigerclaw\'s treachery has been exposed! He tried to kill Bluestar and take over ThunderClan. His fate is in Bluestar\'s paws now.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 11: TIGERCLAW'S EXILE
+     ==================================================== */
+  function triggerTigerclawExile () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const tc = npcCats.find(c => c.name === 'Tigerclaw');
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (tc) { tc.group.visible = true; tc.group.position.set(3, 0, 2); }
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    const scenes = [
+      { speaker: 'Bluestar', text: '"Tigerclaw, you have betrayed ThunderClan in the worst way possible. You murdered Redtail. You tried to murder me."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"I exile you from ThunderClan! If any warrior sees you on our territory after today, they have my permission to kill you."',
+        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Tigerclaw', text: '"You\'ll regret this, Bluestar. ALL of you will regret this! I will have my revenge — and I will be leader. Of a Clan far more powerful than ThunderClan!"',
+        camPos: { x: 4, y: 2, z: 3 }, camLook: { x: 3, y: 1.2, z: 2 } },
+      { narration: true, text: 'Tigerclaw turns and stalks out of camp, his tail lashing. Several cats — Darkstripe among them — follow him into exile.',
+        camPos: { x: 0, y: 4, z: 10 }, camLook: { x: 0, y: 1, z: 20 } },
+      { speaker: 'Bluestar', text: '"' + pName + '... you have saved my life and exposed a traitor. ThunderClan owes you everything."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: '<em>Tigerclaw has been exiled from ThunderClan! But his threat of revenge hangs in the air like storm clouds...</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      if (tc) { tc.group.visible = false; tc.group.position.set(-200, 0, -200); }
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Tigerclaw has been exiled! He swore revenge. But for now, ThunderClan is safe — and Bluestar says you deserve a reward...');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 12: WARRIOR CEREMONY
+     ==================================================== */
+  function triggerWarriorCeremony () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const warName = pName.replace(/paw$/, 'heart');
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    const scenes = [
+      { narration: true, text: 'Bluestar calls a Clan meeting from the Highrock. All of ThunderClan gathers, their eyes shining.',
+        camPos: { x: 0, y: 4, z: 3 }, camLook: { x: -3, y: 3.5, z: -4 } },
+      { speaker: 'Bluestar', text: '"I call upon my warrior ancestors to look down on this apprentice. ' + pName + ' has trained hard to understand the ways of your noble code, and I commend them to you as a warrior in return."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
+      { speaker: 'Bluestar', text: '"' + pName + ', do you promise to uphold the warrior code and to protect and defend this Clan, even at the cost of your life?"',
+        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: 0, y: 1.2, z: 2 } },
+      { speaker: pName, text: '"I do."',
+        camPos: { x: 1, y: 2, z: 3 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"Then by the powers of StarClan, I give you your warrior name. ' + pName + ', from this moment on you will be known as <strong>' + warName + '</strong>."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.5, z: -4 } },
+      { speaker: 'Bluestar', text: '"StarClan honors your courage and your loyalty, and we welcome you as a full warrior of ThunderClan."',
+        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.5, z: -4 } },
+      { narration: true, text: '"' + warName.toUpperCase() + '! ' + warName.toUpperCase() + '!" The Clan chants your new name! You are a WARRIOR at last!',
+        camPos: { x: 0, y: 5, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+      { speaker: 'Graypaw', text: '"YES! ' + warName + '! That\'s the best name EVER! I hope I get my warrior name soon too!"',
+        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
+      { narration: true, text: '<em>You are ' + warName + ' now — a full warrior of ThunderClan! Your apprenticeship is over. But the challenges ahead will be greater than ever...</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    playSound('ceremony');
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      // Update player name to warrior name
+      player.name = warName;
+      playerNameEl.textContent = warName;
+      player.level = (player.level || 1) + 2;
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'You are ' + warName + ', warrior of ThunderClan! But Tigerclaw is still out there, and danger lurks on every path...');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 13: A DANGEROUS PATH
+     ==================================================== */
+  function triggerDangerousPath () {
+    gameState = 'cutscene';
+    const pName = player.name || 'warrior';
+    const scenes = [
+      { narration: true, text: 'Dark times fall upon the forest. A pack of savage dogs has been sighted in ThunderClan territory — huge, vicious beasts that kill without mercy.',
+        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 0, y: 1, z: -5 } },
+      { narration: true, text: 'Worse still, you discover a trail of dead rabbits leading from ShadowClan territory straight to the ThunderClan camp — someone is LURING the dogs here!',
+        camPos: { x: 15, y: 3, z: 20 }, camLook: { x: 10, y: 0.5, z: 15 } },
+      { narration: true, text: '<em>Tigerclaw.</em> Even in exile, he plots to destroy ThunderClan. He is leading the dog pack right to your camp!',
+        camPos: { x: 30, y: 4, z: -25 }, camLook: { x: 25, y: 1, z: -30 } },
+      { speaker: 'Bluestar', text: '"We must lead the dogs away from camp. ' + pName + ', organize a relay of cats to lure them toward the gorge!"',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: '<em>You must save the Clan from Tigerclaw\'s terrible plan. The dog pack must be stopped!</em>',
+        camPos: { x: 0, y: 10, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Tigerclaw is luring a dog pack to ThunderClan\'s camp! You must organize a plan to lead them away. The Clan\'s survival depends on it.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 14: THE DOG PACK
+     ==================================================== */
+  function triggerDogPack () {
+    gameState = 'cutscene';
+    const pName = player.name || 'warrior';
+    const scenes = [
+      { narration: true, text: 'The plan is set! A relay of ThunderClan\'s fastest cats will lure the dog pack along a trail, one by one, leading them toward the river gorge!',
+        camPos: { x: 0, y: 6, z: 10 }, camLook: { x: 20, y: 1, z: 30 } },
+      { narration: true, text: 'The howling of dogs echoes through the forest! The pack charges toward camp — but the relay cats spring into action!',
+        camPos: { x: 15, y: 4, z: 20 }, camLook: { x: 20, y: 1, z: 25 } },
+      { narration: true, text: 'One by one, each cat runs as fast as they can before the next takes over. The dogs follow, snarling and snapping at every tail!',
+        camPos: { x: 30, y: 5, z: 10 }, camLook: { x: 40, y: 1, z: 5 } },
+      { narration: true, text: 'You are the last cat in the relay — the anchor! The dogs barrel toward you, their eyes wild with bloodlust!',
+        camPos: { x: 60, y: 3, z: -5 }, camLook: { x: 65, y: 1, z: -8 } },
+      { narration: true, text: 'You run with everything you have! The gorge is just ahead — you can hear the river roaring below!',
+        camPos: { x: 68, y: 3, z: -10 }, camLook: { x: 72, y: 1, z: -12 } },
+      { narration: true, text: 'At the very last moment, you leap aside! The lead dog tries to stop — but the pack behind pushes them over the edge! The dogs tumble into the gorge!',
+        camPos: { x: 73, y: 5, z: -10 }, camLook: { x: 75, y: -2, z: -12 } },
+      { narration: true, text: 'The dog pack is gone! But as you catch your breath, you see Bluestar standing at the edge of the gorge — she pushed the last dog off, but she\'s slipping!',
+        camPos: { x: 74, y: 3, z: -11 }, camLook: { x: 75, y: 0, z: -12 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'The dog pack has been defeated! But Bluestar is in danger at the gorge edge...');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 15: BLUESTAR'S LAST LIFE
+     ==================================================== */
+  function triggerBluestarLastLife () {
+    gameState = 'cutscene';
+    const pName = player.name || 'warrior';
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+
+    const scenes = [
+      { narration: true, text: 'Bluestar clings to the edge of the gorge! The river rages far below! You rush to help her — but she\'s already falling!',
+        camPos: { x: 74, y: 2, z: -11 }, camLook: { x: 75, y: -1, z: -12 } },
+      { narration: true, text: 'Bluestar plunges into the freezing water! You dive in after her, swimming with all your strength to pull her to shore!',
+        camPos: { x: 75, y: 1, z: -11 }, camLook: { x: 75, y: -3, z: -12 } },
+      { narration: true, text: 'You drag Bluestar onto the riverbank. She coughs weakly. Her eyes are fading...',
+        camPos: { x: 76, y: 1.5, z: -10 }, camLook: { x: 75, y: 0.3, z: -11 } },
+      { speaker: 'Bluestar', text: '"' + pName + '... you saved the Clan. You are the fire that StarClan promised. I always knew."',
+        camPos: { x: 75, y: 1, z: -10.5 }, camLook: { x: 75, y: 0.3, z: -11 } },
+      { speaker: 'Bluestar', text: '"Tell ThunderClan... I am proud of every one of them. You will lead them well... Firestar."',
+        camPos: { x: 75.5, y: 1, z: -10.5 }, camLook: { x: 75, y: 0.3, z: -11 } },
+      { narration: true, text: 'Bluestar closes her eyes for the last time. StarClan comes to take her home. The greatest leader ThunderClan has ever known is gone.',
+        camPos: { x: 75, y: 3, z: -10 }, camLook: { x: 75, y: 0, z: -11 } },
+      { narration: true, text: '<em>Bluestar is dead. She used her last life to save her Clan. ThunderClan needs a new leader — and she chose you.</em>',
+        camPos: { x: 0, y: 10, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+      if (bs) { bs.group.visible = false; }
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Bluestar has died saving her Clan. She named you as the next leader of ThunderClan. You must travel to the Moonstone to receive your nine lives.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 16: FIRESTAR'S LEADERSHIP
+     ==================================================== */
+  function triggerFirestarLeadership () {
+    gameState = 'cutscene';
+    const pName = player.name || 'warrior';
+    const leaderName = pName.replace(/heart$|paw$/, 'star');
+
+    const scenes = [
+      { narration: true, text: 'You travel to the Moonstone one final time — but this time, you go as ThunderClan\'s leader.',
+        camPos: { x: -65, y: 8, z: -85 }, camLook: { x: -80, y: 5, z: -97 },
+        onShow: function () { setNightMode(); } },
+      { narration: true, text: 'You press your nose to the shimmering stone and fall into a deep dream. Nine starry cats appear before you — the spirits of StarClan.',
+        camPos: { x: -80, y: 2, z: -96.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
+      { narration: true, text: 'One by one, they touch their nose to yours and give you a life. Courage. Loyalty. Compassion. Strength. Justice. Wisdom. Love. Endurance. Hope.',
+        camPos: { x: -80, y: 3, z: -96 }, camLook: { x: -80, y: 1.5, z: -97 } },
+      { narration: true, text: 'Bluestar is the last. She steps forward, her starry fur gleaming with pride.',
+        camPos: { x: -80, y: 2, z: -96 }, camLook: { x: -80, y: 1, z: -97 } },
+      { speaker: 'Bluestar', text: '"With this life I give you nobility, certainty, and faith. Use it well as you lead your Clan through the hardest battles yet to come."',
+        camPos: { x: -81, y: 1.5, z: -96 }, camLook: { x: -80, y: 0.8, z: -97 } },
+      { speaker: 'Bluestar', text: '"I hail you by your new name, <strong>' + leaderName + '</strong>. Your old life is no more. You have received the nine lives of a leader."',
+        camPos: { x: -80, y: 2, z: -96 }, camLook: { x: -80, y: 1, z: -97 } },
+      { narration: true, text: '"' + leaderName.toUpperCase() + '! ' + leaderName.toUpperCase() + '!" The voices of StarClan ring through the cavern like thunder!',
+        camPos: { x: -80, y: 4, z: -95 }, camLook: { x: -80, y: 1.5, z: -97 } },
+      { narration: true, text: '<em>You are ' + leaderName + ' now — leader of ThunderClan, with nine lives granted by StarClan. But the greatest battle is still to come...</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 },
+        onShow: function () { setDayMode(); } },
+    ];
+    playSound('ceremony');
+    startCutscene(scenes, () => {
+      gameState = 'playing'; setDayMode();
+      player.name = leaderName;
+      playerNameEl.textContent = leaderName;
+      player.level = (player.level || 1) + 3;
+      player.maxHealth = 200; player.health = 200;
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'You are ' + leaderName + ', leader of ThunderClan with nine lives! But Tigerclaw — now called Tigerstar — is building an army...');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 17: TIGERCLAN RISES
+     ==================================================== */
+  function triggerTigerClanRises () {
+    gameState = 'cutscene';
+    const pName = player.name || 'leader';
+    const scenes = [
+      { narration: true, text: 'Terrible news reaches ThunderClan. Tigerclaw has become <strong>Tigerstar</strong>, leader of ShadowClan! He received nine lives from StarClan\'s darkest spirits.',
+        camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+      { narration: true, text: 'Tigerstar has united ShadowClan and RiverClan under his rule, calling his empire <strong>TigerClan</strong>. He demands that ThunderClan and WindClan join — or be destroyed.',
+        camPos: { x: -60, y: 8, z: -10 }, camLook: { x: -78, y: 2, z: 0 } },
+      { narration: true, text: 'At a Gathering at Fourtrees, Tigerstar reveals his plan. He wants to rule the entire forest under one Clan — HIS Clan.',
+        camPos: { x: -43, y: 4, z: -43 }, camLook: { x: -45, y: 1.5, z: -45 } },
+      { narration: true, text: 'You refuse. "The forest needs four Clans," you declare. "We will NEVER join TigerClan!"',
+        camPos: { x: -44, y: 2.5, z: -44 }, camLook: { x: -45, y: 2, z: -45 } },
+      { narration: true, text: 'Tigerstar\'s eyes narrow with rage. "Then you have chosen to die, ' + pName + '. I will bring a force so powerful that not even StarClan can save you."',
+        camPos: { x: -46, y: 2.5, z: -46 }, camLook: { x: -45, y: 1.5, z: -45 } },
+      { narration: true, text: '<em>Tigerstar has threatened all-out war. He speaks of bringing cats from beyond the forest — a terrifying Clan of rogues called BloodClan...</em>',
+        camPos: { x: 0, y: 10, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Tigerstar has formed TigerClan and threatens to destroy you. He\'s bringing a force called BloodClan from Twolegplace. Prepare for the biggest battle the forest has ever seen.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 18: BLOODCLAN ARRIVES
+     ==================================================== */
+  function triggerBloodClanArrives () {
+    gameState = 'cutscene';
+    const pName = player.name || 'leader';
+    const scenes = [
+      { narration: true, text: 'At Fourtrees, Tigerstar presents his secret weapon: <strong>BloodClan</strong>, a vicious group of Twolegplace cats led by a small but terrifying cat named <strong>Scourge</strong>.',
+        camPos: { x: -43, y: 5, z: -43 }, camLook: { x: -45, y: 1.5, z: -45 } },
+      { narration: true, text: 'Scourge is small and black with one white paw. His collar is studded with the teeth and claws of the cats he has killed. His ice-blue eyes show no mercy.',
+        camPos: { x: -46, y: 2, z: -44 }, camLook: { x: -47, y: 0.8, z: -45 } },
+      { narration: true, text: 'Tigerstar commands Scourge to attack ThunderClan. But Scourge does not take orders.',
+        camPos: { x: -46, y: 2.5, z: -45 }, camLook: { x: -47, y: 1, z: -45 } },
+      { narration: true, text: 'With a single blow of his reinforced claws, <strong>Scourge kills Tigerstar</strong> — ripping through all nine of his lives at once! The forest has never seen anything like it.',
+        camPos: { x: -45, y: 2, z: -44.5 }, camLook: { x: -45, y: 0.3, z: -45 } },
+      { narration: true, text: 'Scourge turns his cold gaze on the four Clans. "I am the leader here now. You have three days to leave the forest — or BloodClan will take it by force."',
+        camPos: { x: -47, y: 2, z: -44 }, camLook: { x: -46, y: 1, z: -45 } },
+      { narration: true, text: '<em>Tigerstar is dead, killed by the very monster he unleashed. Now BloodClan threatens to destroy ALL the Clans. The forest\'s only hope is for every Clan to unite as one — under your leadership.</em>',
+        camPos: { x: 0, y: 10, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    startCutscene(scenes, () => {
+      gameState = 'playing'; placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Scourge has killed Tigerstar and threatens to take the forest. You must unite ALL four Clans — ThunderClan, WindClan, RiverClan, and ShadowClan — to fight BloodClan together. This is the final battle.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 19: THE FINAL BATTLE — SCOURGE
+     ==================================================== */
+  function triggerScourge () {
+    gameState = 'cutscene';
+    const pName = player.name || 'leader';
+    const scenes = [
+      { narration: true, text: 'The day has come. All four Clans stand together at Fourtrees — ThunderClan, WindClan, RiverClan, and ShadowClan, united against BloodClan.',
+        camPos: { x: -43, y: 8, z: -43 }, camLook: { x: -45, y: 1, z: -45 } },
+      { narration: true, text: 'Hundreds of BloodClan cats pour out of the undergrowth. They are vicious, scarred, and fearless. Their reinforced claws glint in the sunlight.',
+        camPos: { x: -50, y: 4, z: -40 }, camLook: { x: -48, y: 1, z: -42 } },
+      { narration: true, text: '"LionClan, ATTACK!" you yowl. The united Clans charge! The biggest battle the forest has ever known has begun!',
+        camPos: { x: -45, y: 3, z: -43 }, camLook: { x: -47, y: 1, z: -45 } },
+      { narration: true, text: 'Cats clash on every side! The forest rings with yowls and shrieks! BloodClan fights dirty, but the Clan cats fight with the courage of StarClan!',
+        camPos: { x: -44, y: 5, z: -44 }, camLook: { x: -46, y: 1, z: -46 } },
+      { narration: true, text: 'You fight your way through the chaos until you stand face to face with Scourge himself. His ice-blue eyes burn with hatred.',
+        camPos: { x: -46, y: 2, z: -45.5 }, camLook: { x: -47, y: 0.8, z: -45 } },
+      { speaker: 'Scourge', text: '"I killed Tigerstar with one blow. You will be no different."',
+        camPos: { x: -47, y: 1.5, z: -45 }, camLook: { x: -47, y: 0.8, z: -45 } },
+      { narration: true, text: 'Scourge strikes! His dog-tooth claws tear through your flesh — you lose a life! But you get back up. You have nine lives. He only has one.',
+        camPos: { x: -46, y: 1.5, z: -45 }, camLook: { x: -46.5, y: 0.5, z: -45 } },
+    ];
+    startCutscene(scenes, () => {
+      // Start the final boss battle against Scourge!
+      startBattle({
+        enemyName: 'Scourge',
+        enemyHP: 150,
+        enemyMaxHP: 150,
+        enemyAttack: 25,
+        enemyDefense: 8,
+        enemyFurColor: 0x111111,
+        enemyEyeColor: 0x66ccff,
+        enemyStripes: false,
+        expReward: 500,
+        onWin: function () {
+          // VICTORY!
+          gameState = 'cutscene';
+          const finalScenes = [
+            { narration: true, text: 'With a final, mighty blow, you strike Scourge down! He crumples to the ground — defeated! Without their leader, BloodClan panics!',
+              camPos: { x: -46, y: 2, z: -45 }, camLook: { x: -47, y: 0.3, z: -45 } },
+            { narration: true, text: '"BloodClan, RETREAT!" the remaining BloodClan cats yowl. They scatter and flee! The battle is over!',
+              camPos: { x: -44, y: 5, z: -43 }, camLook: { x: -48, y: 1, z: -46 } },
+            { narration: true, text: '"' + pName.toUpperCase() + '! ' + pName.toUpperCase() + '!" All four Clans chant your name! You have saved the forest!',
+              camPos: { x: -45, y: 6, z: -45 }, camLook: { x: -45, y: 2, z: -45 } },
+            { narration: true, text: 'The Clans celebrate together. For the first time in moons, the forest is at peace. Four Clans, standing side by side.',
+              camPos: { x: -45, y: 10, z: -45 }, camLook: { x: -45, y: 2, z: -45 } },
+            { narration: true, text: '<strong>You did it.</strong> From a kittypet named Rusty to the leader who saved the entire forest. The prophecy has been fulfilled.',
+              camPos: { x: 0, y: 15, z: 20 }, camLook: { x: 0, y: 2, z: 0 } },
+            { narration: true, text: '<span class="prophecy">"Fire alone will save our Clan."</span><br><br>And you did.',
+              camPos: { x: 0, y: 25, z: 40 }, camLook: { x: 0, y: 5, z: 0 } },
+            { narration: true, text: '<strong>CONGRATULATIONS!</strong><br><br><em>You have completed Warrior Cats: Into the Wild — The Prophecy Begins!</em><br><br>Thank you for playing!',
+              camPos: { x: 0, y: 30, z: 55 }, camLook: { x: 0, y: 0, z: 0 } },
+          ];
+          startCutscene(finalScenes, () => {
+            gameState = 'playing';
+            placeCatsInCamp(); saveGame();
+            queueMessage('Narrator', 'Congratulations! You have defeated Scourge and saved the forest! The prophecy is fulfilled. You can continue to explore and enjoy the territory as ' + pName + ', leader of ThunderClan!');
+          });
+        },
+        onLose: function () {
+          // If you lose, you still win story-wise (you have 9 lives!)
+          gameState = 'cutscene';
+          const retryScenes = [
+            { narration: true, text: 'You fall... but StarClan is with you. Energy surges through your body as one of your nine lives is restored! You leap back to your paws!',
+              camPos: { x: -46, y: 2, z: -45 }, camLook: { x: -46, y: 1, z: -45 } },
+          ];
+          player.health = player.maxHealth;
+          startCutscene(retryScenes, () => {
+            // Let them fight Scourge again
+            triggerScourge();
+          });
+        },
+      });
     });
   }
 
