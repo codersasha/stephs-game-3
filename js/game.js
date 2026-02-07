@@ -5058,9 +5058,22 @@ window.onerror = function(msg, url, line, col, err) {
 
     const displayName = knownCats.has(npc.name) ? npc.name : '???';
 
-    // Dynamic dialogue for Smudge and Princess
+    // Dynamic dialogue based on context
     let line;
-    if (npc.name === 'Smudge' || npc.name === 'Princess') {
+    if (intruderActive && clanPatrollers.includes(npc.name) && npc.ai && npc.ai.task === 'intruder_patrol') {
+      // On intruder patrol — context-specific dialogue
+      const patrolLines = [
+        '"Stay alert! I can smell them nearby. Those trespassers won\'t get away!"',
+        '"Bluestar sent us for a reason. Let\'s find those intruders and drive them out!"',
+        '"I think they went this way. Keep your eyes peeled!"',
+        '"No enemy cat sets paw on ThunderClan territory and gets away with it!"',
+        '"We\'ll show them what happens when you mess with ThunderClan!"',
+        '"I\'ve got their scent. They\'re close — be ready for a fight!"',
+        '"This is OUR territory. Time to remind them of that!"',
+        '"Stick together. We\'re stronger as a patrol!"',
+      ];
+      line = patrolLines[Math.floor(Math.random() * patrolLines.length)];
+    } else if (npc.name === 'Smudge' || npc.name === 'Princess') {
       line = getKittypetDialogue(npc.name);
     } else {
       const lines = catDialogue[npc.name] || ['"..."'];
@@ -5971,6 +5984,8 @@ window.onerror = function(msg, url, line, col, err) {
   let intruderActive = false;     // is there an active intruder to chase?
   let intruderCats = [];          // { group, name, clan, x, z, fur, eye, stripes, stripeColor }
   let intruderPatrolAssigned = false; // has Bluestar assigned the patrol?
+  let intruderArea = null;        // { x, z } — where the intruders are, so clan cats can head there
+  let clanPatrollers = [];        // names of ThunderClan cats assigned to help patrol
 
   const INTRUDER_CLANS = [
     { clan: 'ShadowClan', names: ['Blackfoot', 'Clawface', 'Boulder'], fur: [0x222222, 0x5a4a3a, 0x666666], eye: [0xffaa11, 0xddaa33, 0xeedd33] },
@@ -6034,19 +6049,42 @@ window.onerror = function(msg, url, line, col, err) {
 
     intruderActive = true;
     intruderPatrolAssigned = false;
+    intruderArea = { x: spawnArea.x, z: spawnArea.z };
+
+    // Pick ThunderClan warriors and apprentices to help patrol
+    const patrolCandidates = ['Dustpaw', 'Sandpaw', 'Whitestorm', 'Mousefur', 'Darkstripe', 'Longtail', 'Lionheart', 'Tigerclaw'];
+    const numHelpers = 2 + Math.floor(Math.random() * 2); // 2-3 helpers
+    const shuffled = patrolCandidates.sort(() => Math.random() - 0.5);
+    clanPatrollers = shuffled.slice(0, numHelpers);
 
     // Bluestar announces the intruder patrol
     const clanName = clanDef.clan;
     const intruderCount = numCats === 1 ? 'a ' + clanName + ' cat' : numCats + ' ' + clanName + ' cats';
-    queueMessage('Bluestar', 'I\'ve received word that ' + intruderCount + ' has been spotted trespassing in our territory! ' +
-      (player.name || 'Firepaw') + ', I\'m sending you on patrol. Find them and chase them out!', () => {
-      queueMessage('Bluestar', 'They were last seen in the forest. Go now — and show them that ThunderClan defends its borders!', () => {
+    const helperNames = clanPatrollers.join(', ');
+    const pName = player.name || 'Firepaw';
+    queueMessage('Bluestar', 'I\'ve received word that ' + intruderCount + ' has been spotted trespassing in our territory!', () => {
+      queueMessage('Bluestar', pName + ', ' + helperNames + ' — I\'m sending you all on patrol. Find them and drive them out! ThunderClan defends its borders!', () => {
         intruderPatrolAssigned = true;
+
+        // Send the helper cats toward the intruder area
+        clanPatrollers.forEach(name => {
+          const npc = npcCats.find(c => c.name === name);
+          if (npc && npc.ai) {
+            npc.ai.task = 'intruder_patrol';
+            npc.ai.target = {
+              x: spawnArea.x + (Math.random() - 0.5) * 8,
+              z: spawnArea.z + (Math.random() - 0.5) * 8
+            };
+            npc.ai.timer = 120; // keep patrolling for a long time
+            npc.group.visible = true;
+          }
+        });
+
         // Show a hint about where to go
         const area = spawnArea.x < -15 ? 'near the ShadowClan border' :
                      spawnArea.x > 30 ? 'near the RiverClan border' :
                      spawnArea.z < -25 ? 'near the WindClan border' : 'deep in the forest';
-        queueMessage('Narrator', 'Bluestar has sent you on an intruder patrol! Look for the ' + clanName + ' cats ' + area + '. Get close and press E (or ACT) to confront them.');
+        queueMessage('Narrator', 'Bluestar has sent a patrol! ' + helperNames + ' and you are heading ' + area + '. Look for the ' + clanName + ' cats and press E (or ACT) to confront them.');
       });
     });
   }
@@ -6176,6 +6214,7 @@ window.onerror = function(msg, url, line, col, err) {
     intruderPatrolAssigned = false;
     intruderCooldown = 90 + Math.random() * 120; // 1.5-3.5 minutes until next event
     intruderTimer = 0;
+    intruderArea = null;
 
     // Remove intruder cat meshes from scene
     intruderCats.forEach(ic => {
@@ -6183,13 +6222,24 @@ window.onerror = function(msg, url, line, col, err) {
     });
     intruderCats = [];
 
+    // Send clan patrollers back to normal duties
+    clanPatrollers.forEach(name => {
+      const npc = npcCats.find(c => c.name === name);
+      if (npc && npc.ai && npc.ai.task === 'intruder_patrol') {
+        npc.ai.task = 'patrol';
+        npc.ai.target = { x: (Math.random()-0.5) * 10, z: (Math.random()-0.5) * 10 };
+        npc.ai.timer = 10 + Math.random() * 8;
+      }
+    });
+    clanPatrollers = [];
+
     // Bluestar congratulates
     const pName = player.name || 'Firepaw';
-    queueMessage('Bluestar', 'Well done, ' + pName + '! You\'ve driven the intruders out of our territory. ThunderClan is safe thanks to you.', () => {
-      queueMessage('Bluestar', 'You\'ve proven yourself a true defender of the Clan. I\'m proud of you.', () => {
+    queueMessage('Bluestar', 'Well done, ' + pName + '! The patrol was a success — you\'ve all driven the intruders out of our territory!', () => {
+      queueMessage('Bluestar', 'ThunderClan is safe thanks to your bravery. I\'m proud of every one of you.', () => {
         // Bonus XP for completing the patrol
         player = GameLogic.addExperience(player, 50);
-        queueMessage('Narrator', 'Patrol complete! +50 experience. Bluestar is pleased with you.');
+        queueMessage('Narrator', 'Patrol complete! +50 experience. Bluestar is pleased with the whole patrol.');
         saveGame();
       });
     });
@@ -9477,6 +9527,7 @@ window.onerror = function(msg, url, line, col, err) {
       case 'patrol': return 'On patrol';
       case 'hunt':  return 'Hunting';
       case 'idle':  return 'Resting';
+      case 'intruder_patrol': return 'Chasing intruders \u2694\uFE0F';
       default:      return 'Resting';
     }
   }
@@ -9608,6 +9659,19 @@ window.onerror = function(msg, url, line, col, err) {
     const ai = c.ai;
     const role = ai.role;
     const roll = Math.random();
+
+    // If intruders are active and this cat is assigned to help, keep patrolling
+    if (intruderActive && intruderArea && clanPatrollers.includes(c.name)) {
+      ai.task = 'intruder_patrol';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 3 + Math.random() * 6;
+      ai.target = {
+        x: intruderArea.x + Math.cos(angle) * dist,
+        z: intruderArea.z + Math.sin(angle) * dist
+      };
+      ai.timer = 8 + Math.random() * 8;
+      return;
+    }
 
     // --- LEADER (Bluestar): ALWAYS stays in camp — never leaves! ---
     if (role === 'leader') {
@@ -9961,6 +10025,37 @@ window.onerror = function(msg, url, line, col, err) {
             if (dToP2 < 12) playPurr();
           }
           if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 3 + Math.random() * 5; ai.target = null; }
+          break;
+
+        case 'intruder_patrol':
+          // Clan cats heading toward intruder area to help defend
+          if (!intruderActive) {
+            // Intruders gone — head back to normal duties
+            ai.task = 'patrol';
+            ai.target = { x: (Math.random()-0.5) * 10, z: (Math.random()-0.5) * 10 };
+            ai.timer = 10 + Math.random() * 8;
+            break;
+          }
+          if (ai.target) {
+            walkNPCToTarget(c, dt);
+            if (isNPCNearTarget(c, 3)) {
+              // Arrived near intruder area — patrol around it
+              c._walking = false;
+              ai.target = null;
+              ai.timer = 5 + Math.random() * 5;
+            }
+          } else {
+            // Circle around the intruder area on guard
+            if (ai.timer <= 0 && intruderArea) {
+              const angle = Math.random() * Math.PI * 2;
+              const dist = 4 + Math.random() * 6;
+              ai.target = {
+                x: intruderArea.x + Math.cos(angle) * dist,
+                z: intruderArea.z + Math.sin(angle) * dist
+              };
+              ai.timer = 6 + Math.random() * 6;
+            }
+          }
           break;
       }
     });
