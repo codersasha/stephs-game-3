@@ -99,6 +99,15 @@ window.onerror = function(msg, url, line, col, err) {
   let emoteBubbleTimer = 0;
   const EMOTE_ICONS = { happy: '😊', sad: '😢', angry: '😠', nervous: '😨', sit: '🐱', sleep: '💤' };
 
+  /* ---------- swimming ---------- */
+  let isSwimming = false;
+  let swimBobTime = 0;
+  let swimSplashTimer = 0;
+  const SWIM_SPEED_MULT = 0.5;  // swimming is slower
+  const SWIM_BOB_AMP = 0.08;    // how much the camera bobs up/down
+  const SWIM_BOB_FREQ = 3.5;    // bobbing speed
+  const SWIM_Y = -0.25;         // how deep the cat sinks in water
+
   /* ---------- helpers ---------- */
   // CapsuleGeometry doesn't exist in Three.js r128, so we build one manually
   function makeCapsuleMesh (radius, halfLength, radSeg, heightSeg, material) {
@@ -418,6 +427,37 @@ window.onerror = function(msg, url, line, col, err) {
       g.gain.setValueAtTime(0.15, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
       noise.start(t); noise.stop(t + 0.3);
+    } catch (e) {}
+  }
+
+  /** Swimming stroke splash — lighter, rhythmic paddle sound */
+  function playSwimSplash () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 0.2;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass'; filter.frequency.value = 800 + Math.random() * 600; filter.Q.value = 0.4;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.08, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      noise.start(t); noise.stop(t + 0.2);
+      // Add a subtle drip tone
+      const o = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o.connect(g2); g2.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(600 + Math.random() * 400, t);
+      o.frequency.exponentialRampToValueAtTime(200, t + 0.1);
+      g2.gain.setValueAtTime(0.04, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      o.start(t); o.stop(t + 0.12);
     } catch (e) {}
   }
 
@@ -3054,8 +3094,8 @@ window.onerror = function(msg, url, line, col, err) {
       }
       // Escape to close map
       if (e.key === 'Escape' && !$('map-overlay').classList.contains('hidden')) closeMap();
-      // SPACE to jump
-      if (e.key === ' ' && gameState === 'playing' && isOnGround && !messageBox.classList.contains('visible')) {
+      // SPACE to jump (can't jump while swimming)
+      if (e.key === ' ' && gameState === 'playing' && isOnGround && !isSwimming && !messageBox.classList.contains('visible')) {
         playerJump();
       }
       // Number keys for emotes (1-6)
@@ -3246,7 +3286,7 @@ window.onerror = function(msg, url, line, col, err) {
     // Jump button
     const bJump = $('btn-jump');
     if (bJump) {
-      bJump.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); if (gameState === 'playing' && isOnGround) playerJump(); });
+      bJump.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); if (gameState === 'playing' && isOnGround && !isSwimming) playerJump(); });
     }
 
     // Emote buttons
@@ -6683,6 +6723,17 @@ window.onerror = function(msg, url, line, col, err) {
     renderer.render(scene, camera);
   }
 
+  /** Check if position is in water (river or stream). */
+  function isInWater (pos) {
+    const px = pos.x, pz = pos.z;
+    // River: centered at x=75, width 8 (x from 71 to 79), full z range
+    if (px > 71 && px < 79 && pz > -100 && pz < 100) return 'river';
+    // Stream near camp: circular area around WATER_SPOT
+    const sdx = px - WATER_SPOT.x, sdz = pz - WATER_SPOT.z;
+    if (Math.sqrt(sdx * sdx + sdz * sdz) < 5) return 'stream';
+    return false;
+  }
+
   /** Check if position collides with a rock (circle check).
    *  Only blocks if the player is at ground level (not jumping over the rock). */
   function checkRockCollision (pos) {
@@ -6781,6 +6832,29 @@ window.onerror = function(msg, url, line, col, err) {
     // First-person: cat always faces where camera looks (cameraAngleY)
     catGroup.rotation.y = cameraAngleY + Math.PI;
 
+    // Check if player is in water
+    const waterZone = isInWater(player.position);
+    const wasSwimming = isSwimming;
+    isSwimming = !!waterZone;
+
+    // Entering/exiting water feedback
+    if (isSwimming && !wasSwimming) {
+      playWaterSplash();
+      $('swim-indicator').classList.remove('hidden');
+      // Only show the message on the first time entering each water body
+      if (waterZone === 'river' && !player._swamRiver) {
+        player._swamRiver = true;
+        queueMessage('Narrator', '"You wade into the river! The current pulls at your paws. Swimming is slower than running — be careful!"');
+      } else if (waterZone === 'stream' && !player._swamStream) {
+        player._swamStream = true;
+        queueMessage('Narrator', '"You step into the cool stream water. You can swim around!"');
+      }
+    }
+    if (!isSwimming && wasSwimming) {
+      playLeafCrunch();
+      $('swim-indicator').classList.add('hidden');
+    }
+
     if (moving) {
       const angle = Math.atan2(dx, dz) + cameraAngleY;
       const dir = GameLogic.normalizeDirection({ x: Math.sin(angle), z: Math.cos(angle) });
@@ -6789,14 +6863,30 @@ window.onerror = function(msg, url, line, col, err) {
         spd = player.sprintSpeed;
         player = GameLogic.useEnergy(player, dt * 15);
       }
+      // Swimming slows you down
+      if (isSwimming) {
+        spd *= SWIM_SPEED_MULT;
+        // Use energy while swimming
+        player = GameLogic.useEnergy(player, dt * 8);
+      }
       const np = GameLogic.calculateMovement(player.position, dir, spd, dt);
       const cp = GameLogic.clampPosition(np, GameLogic.getForestBounds());
       if (!GameLogic.checkCollisions(cp, trees, 1.2) && !checkWallCollision(cp) && !checkRockCollision(cp)) {
         player.position = cp;
       }
-      animateCatLegs(dt, true, spd / player.speed);
+      // Swimming leg animation is slower
+      animateCatLegs(dt, true, isSwimming ? 0.4 : spd / player.speed);
     } else {
       animateCatLegs(dt, false, 1);
+    }
+
+    // Swimming splash sounds
+    if (isSwimming && moving) {
+      swimSplashTimer -= dt;
+      if (swimSplashTimer <= 0) {
+        swimSplashTimer = 0.6 + Math.random() * 0.4;
+        playSwimSplash();
+      }
     }
 
     // Out of bounds warning
@@ -6873,6 +6963,20 @@ window.onerror = function(msg, url, line, col, err) {
       if (shouldFall) {
         isOnGround = false;
       }
+    }
+
+    // --- SWIMMING Y OFFSET ---
+    if (isSwimming && !isJumping) {
+      swimBobTime += dt * SWIM_BOB_FREQ;
+      // Sink down into the water + gentle bob
+      const targetY = SWIM_Y + Math.sin(swimBobTime) * SWIM_BOB_AMP;
+      playerY += (targetY - playerY) * Math.min(1, dt * 6);
+      // Can't jump while swimming (reset)
+      isOnGround = true;
+    } else if (!isJumping && isOnGround && playerY < 0) {
+      // Rising back out of water to ground level
+      playerY += dt * 2;
+      if (playerY > 0) playerY = 0;
     }
 
     // --- EMOTE EFFECTS ---
@@ -7029,7 +7133,7 @@ window.onerror = function(msg, url, line, col, err) {
     const headForwardZ = -Math.cos(cameraAngleY) * 0.35;
     const camX = px + headForwardX;
     const camZ = pz + headForwardZ;
-    const camY = eyeHeight + playerY; // add jump height
+    const camY = eyeHeight + playerY + (isSwimming ? Math.sin(swimBobTime) * SWIM_BOB_AMP : 0); // add jump height + swim bob
 
     // Look direction: forward based on cameraAngleY, pitch from cameraAngleX
     const lookDist = 10;

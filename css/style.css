@@ -1204,6 +1204,32 @@ html, body {
 }
 
 /* ========================================
+   Swimming Indicator
+   ======================================== */
+#swim-indicator {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  background: rgba(30, 80, 130, 0.75);
+  border: 1px solid rgba(100, 180, 255, 0.5);
+  border-radius: 20px;
+  padding: 6px 18px;
+  color: #88ccff;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  font-family: 'Georgia', serif;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  pointer-events: none;
+  animation: swimPulse 2s ease-in-out infinite;
+}
+#swim-indicator.hidden { display: none; }
+@keyframes swimPulse {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) translateY(0); }
+  50% { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+}
+
+/* ========================================
    Interaction Hint
    ======================================== */
 #interact-hint {
