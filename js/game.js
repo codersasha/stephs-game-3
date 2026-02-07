@@ -1292,6 +1292,46 @@ window.onerror = function(msg, url, line, col, err) {
     // Elders' Den - on the far side of camp
     makeDen("Elders' Den", -6, -7, 2.2, 2.5);
 
+    // Prisoner Den - a small, enclosed den on the edge of camp for captives
+    const prisDen = new THREE.Group();
+    // Tighter, darker dome — more like a cage of brambles
+    const prisDome = new THREE.Mesh(
+      new THREE.SphereGeometry(1.4, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshPhongMaterial({ color: 0x5a4a30, shininess: 1 })
+    );
+    prisDome.castShadow = true;
+    prisDen.add(prisDome);
+    // Thick bramble thorns woven around it
+    for (let bt = 0; bt < 10; bt++) {
+      const thorn = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.02, 1.2 + Math.random() * 0.4, 4),
+        new THREE.MeshPhongMaterial({ color: 0x4a3a20 })
+      );
+      const ta2 = (bt / 10) * Math.PI * 2;
+      thorn.position.set(Math.cos(ta2) * 1.3, 0.5 + Math.random() * 0.4, Math.sin(ta2) * 1.3);
+      thorn.rotation.z = (Math.random() - 0.5) * 0.6;
+      thorn.rotation.x = (Math.random() - 0.5) * 0.4;
+      prisDen.add(thorn);
+    }
+    // Small dark entrance
+    const prisEntrance = new THREE.Mesh(
+      new THREE.CircleGeometry(0.35, 8),
+      new THREE.MeshBasicMaterial({ color: 0x080808 })
+    );
+    prisEntrance.position.set(0, 0.3, 1.35);
+    prisDen.add(prisEntrance);
+    // Dirt ground patch
+    const prisDirt = new THREE.Mesh(
+      new THREE.CircleGeometry(1.8, 10),
+      new THREE.MeshPhongMaterial({ color: 0x5a4a3a, shininess: 1 })
+    );
+    prisDirt.rotation.x = -Math.PI / 2; prisDirt.position.y = 0.01;
+    prisDen.add(prisDirt);
+    const prisLabel = makeNameLabel("Prisoner Den", 2.0);
+    prisDen.add(prisLabel);
+    prisDen.position.set(10, 0, 6);
+    scene.add(prisDen);
+
     // Fresh-kill pile (center of camp)
     const killPile = new THREE.Group();
     const pileMat = new THREE.MeshPhongMaterial({ color: 0x8a6a4a });
@@ -5572,16 +5612,19 @@ window.onerror = function(msg, url, line, col, err) {
             { speaker: pName, text: '"This is Yellowfang. She attacked me near the border, but I defeated her. She\'s a former ShadowClan medicine cat — Brokenstar drove her out."',
               camPos: { x: 1, y: 1.5, z: 2 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-            { speaker: 'Bluestar', text: '"A medicine cat... exiled by Brokenstar? This is troubling news indeed. Very well — Yellowfang may stay, for now. ' + pName + ', you are responsible for her. Make sure she is fed and her wounds are tended."',
+            { speaker: 'Bluestar', text: '"A medicine cat... exiled by Brokenstar? This is troubling news. But she is still a ShadowClan cat. She will stay in the <strong>prisoner den</strong> until we can be sure of her loyalty."',
               camPos: { x: -2, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-            { speaker: 'Yellowfang', text: '"Don\'t expect me to be grateful, kit. But... thank you. You fight better than I expected."',
-              camPos: { x: -8, y: 1.5, z: 4 }, camLook: { x: -9, y: 1, z: 3 } },
+            { speaker: 'Bluestar', text: '"' + pName + ', you captured her — so you are responsible for her. Make sure she is fed and her wounds are tended. But she stays in the prisoner den."',
+              camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-            { narration: true, text: 'Yellowfang settles into the medicine den. Though grumpy, she begins to share her vast knowledge of herbs and healing. The Clan watches her carefully, but ' + pName + ' senses she can be trusted.',
-              camPos: { x: -7, y: 3, z: 6 }, camLook: { x: -9, y: 1, z: 3 } },
+            { speaker: 'Yellowfang', text: '"A prisoner, am I? Hmph. I\'ve been through worse. At least your camp is drier than sleeping under a bush."',
+              camPos: { x: 10, y: 2, z: 7 }, camLook: { x: 10, y: 1, z: 6 } },
 
-            { narration: true, text: '<em>Yellowfang has joined ThunderClan as your responsibility. She stays in the medicine den and will help with healing. Explore the territory freely!</em>',
+            { narration: true, text: 'Yellowfang is led to the prisoner den — a small, bramble-walled den at the edge of camp. She curls up inside, her eyes watchful but weary.',
+              camPos: { x: 11, y: 3, z: 8 }, camLook: { x: 10, y: 0.5, z: 6 } },
+
+            { narration: true, text: '<em>Yellowfang is being held in the prisoner den. You are responsible for feeding her and caring for her wounds. Visit her often — she may have valuable information about ShadowClan.</em>',
               camPos: { x: 0, y: 8, z: 12 }, camLook: { x: 0, y: 2, z: 0 } },
           ];
 
@@ -5589,20 +5632,20 @@ window.onerror = function(msg, url, line, col, err) {
 
           startCutscene(postScenes, () => {
             gameState = 'playing';
-            // Yellowfang now stays in medicine den
+            // Yellowfang stays in the prisoner den at first
             if (yf) {
               yf.group.visible = true;
-              yf.group.position.set(-9, 0, 3);
+              yf.group.position.set(10, 0, 6);
               if (yf.ai) {
-                yf.ai.role = 'medicine';
+                yf.ai.role = 'elder'; // stays put, doesn't wander far
                 yf.ai.task = 'idle';
                 yf.ai.timer = 5;
-                yf.ai.home = { x: -9, z: 3 };
+                yf.ai.home = { x: 10, z: 6 };
               }
             }
             placeCatsInCamp();
             saveGame();
-            queueMessage('Narrator', 'Yellowfang has settled into the medicine den. You can talk to her anytime. Keep exploring the territory!');
+            queueMessage('Narrator', 'Yellowfang is in the prisoner den. Visit her to feed her and learn about ShadowClan. Keep exploring the territory!');
             if (storyChapter < STORY_CHAPTERS.length) {
               showNextChapterButton();
             }
@@ -5621,10 +5664,10 @@ window.onerror = function(msg, url, line, col, err) {
               camPos: { x: -41, y: 1.5, z: 16 }, camLook: { x: -42, y: 0.8, z: 15 } },
             { speaker: pName, text: '"Come with me to ThunderClan. Bluestar will want to hear about Brokenstar."',
               camPos: { x: -39, y: 1.5, z: 15 }, camLook: { x: -42, y: 0.8, z: 15 } },
-            { narration: true, text: 'You bring Yellowfang back to ThunderClan camp. Bluestar agrees to let her stay.',
+            { narration: true, text: 'You bring Yellowfang back to ThunderClan camp. Bluestar orders her held in the prisoner den until her loyalty can be proven.',
               camPos: { x: 0, y: 5, z: 10 }, camLook: { x: 0, y: 1, z: 0 } },
-            { narration: true, text: '<em>Yellowfang has joined ThunderClan. She stays in the medicine den.</em>',
-              camPos: { x: 0, y: 8, z: 12 }, camLook: { x: 0, y: 2, z: 0 } },
+            { narration: true, text: '<em>Yellowfang is being held in the prisoner den. You are responsible for caring for her.</em>',
+              camPos: { x: 11, y: 3, z: 8 }, camLook: { x: 10, y: 0.5, z: 6 } },
           ];
 
           revealCatName('Yellowfang');
@@ -5633,17 +5676,17 @@ window.onerror = function(msg, url, line, col, err) {
             gameState = 'playing';
             if (yf) {
               yf.group.visible = true;
-              yf.group.position.set(-9, 0, 3);
+              yf.group.position.set(10, 0, 6);
               if (yf.ai) {
-                yf.ai.role = 'medicine';
+                yf.ai.role = 'elder';
                 yf.ai.task = 'idle';
                 yf.ai.timer = 5;
-                yf.ai.home = { x: -9, z: 3 };
+                yf.ai.home = { x: 10, z: 6 };
               }
             }
             placeCatsInCamp();
             saveGame();
-            queueMessage('Narrator', 'Yellowfang has settled into the medicine den. Keep exploring!');
+            queueMessage('Narrator', 'Yellowfang is in the prisoner den. Visit her to feed her. Keep exploring!');
             if (storyChapter < STORY_CHAPTERS.length) {
               showNextChapterButton();
             }
@@ -5703,13 +5746,29 @@ window.onerror = function(msg, url, line, col, err) {
               camPos: { x: -55, y: 5, z: -22 }, camLook: { x: -58, y: 1, z: -25 } },
             { speaker: 'Bluestar', text: '"Brokenstar is gone. ShadowClan is free. And ' + pName + ', you proved yourself a true warrior today."',
               camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
-            { narration: true, text: '<em>Brokenstar has been defeated and exiled! The forest is safer now — but Tigerclaw watches everything with hungry, ambitious eyes...</em>',
+            { speaker: 'Bluestar', text: '"Yellowfang — you have proven your loyalty to ThunderClan beyond any doubt. You fought against your own Clan to do what was right."',
+              camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+            { speaker: 'Bluestar', text: '"You are no longer a prisoner. From this day forward, you are ThunderClan\'s <strong>medicine cat</strong>. The medicine den is yours."',
+              camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+            { speaker: 'Yellowfang', text: '"...Thank you, Bluestar. I won\'t let ThunderClan down. I may be grumpy, but I know my herbs."',
+              camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -10, y: 1, z: 3 } },
+            { narration: true, text: '<em>Yellowfang has been freed from the prisoner den and is now ThunderClan\'s official medicine cat! Brokenstar is exiled, but Tigerclaw watches everything with hungry, ambitious eyes...</em>',
               camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
           ];
           startCutscene(postScenes, () => {
             gameState = 'playing';
+            // Move Yellowfang from prisoner den to medicine den!
+            if (yf) {
+              yf.group.position.set(-10, 0, 3);
+              if (yf.ai) {
+                yf.ai.role = 'medicine';
+                yf.ai.task = 'idle';
+                yf.ai.timer = 5;
+                yf.ai.home = { x: -10, z: 3 };
+              }
+            }
             placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'Brokenstar has been defeated and blinded! ShadowClan is free. But be careful — darkness still lurks within your own Clan...');
+            queueMessage('Narrator', 'Yellowfang is now ThunderClan\'s medicine cat! She has moved from the prisoner den to the medicine den. Visit her for healing!');
             showNextChapterButton();
           });
         },
@@ -5722,8 +5781,18 @@ window.onerror = function(msg, url, line, col, err) {
           ];
           startCutscene(loseScenes, () => {
             gameState = 'playing';
+            // Move Yellowfang to medicine den after proving loyalty
+            if (yf) {
+              yf.group.position.set(-10, 0, 3);
+              if (yf.ai) {
+                yf.ai.role = 'medicine';
+                yf.ai.task = 'idle';
+                yf.ai.timer = 5;
+                yf.ai.home = { x: -10, z: 3 };
+              }
+            }
             placeCatsInCamp(); saveGame();
-            queueMessage('Narrator', 'Brokenstar has been defeated! ShadowClan is free. Explore the territory.');
+            queueMessage('Narrator', 'Brokenstar is defeated! Yellowfang is now ThunderClan\'s medicine cat!');
             showNextChapterButton();
           });
         },
@@ -7571,7 +7640,9 @@ window.onerror = function(msg, url, line, col, err) {
         // Yellowfang is only visible after her encounter
         c.group.visible = !!yellowfangEncounterTriggered;
         if (yellowfangEncounterTriggered) {
-          c.group.position.set(-9, 0, 3); // medicine den
+          // She starts in the prisoner den; moves to medicine den after proving loyalty
+          const yfHome = (c.ai && c.ai.home) || DEN_SPOTS['Prisoner'];
+          c.group.position.set(yfHome.x, 0, yfHome.z);
         }
       } else if (HIDDEN_UNTIL_STORY.includes(c.name)) {
         c.group.visible = false;
@@ -7857,6 +7928,7 @@ window.onerror = function(msg, url, line, col, err) {
     'Medicine': { x: -10, z: 3 },
     'Nursery': { x: -8, z: 5 },
     'Elders': { x: -6, z: -7 },
+    'Prisoner': { x: 10, z: 6 },
   };
 
   // Assign rank-based dens (kittypets get the Twoleg house as their "den")
@@ -7868,7 +7940,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (apprentices.includes(name)) return DEN_SPOTS['Apprentices'];
     if (name === 'Bluestar') return DEN_SPOTS['Leader'];
     if (name === 'Spottedleaf') return DEN_SPOTS['Medicine'];
-    if (name === 'Yellowfang') return DEN_SPOTS['Elders'];
+    if (name === 'Yellowfang') return DEN_SPOTS['Prisoner'];
     return DEN_SPOTS['Warriors'];
   }
 
@@ -8923,6 +8995,7 @@ window.onerror = function(msg, url, line, col, err) {
       { name: 'Apprentices', ...DEN_SPOTS['Apprentices'] },
       { name: 'Nursery', x: -8, z: 5 },
       { name: 'Elders', ...DEN_SPOTS['Elders'] },
+      { name: 'Prisoner', ...DEN_SPOTS['Prisoner'] },
     ];
     dens.forEach(d => {
       const p = toMap(d.x, d.z);
