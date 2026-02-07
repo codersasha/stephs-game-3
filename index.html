@@ -168,7 +168,18 @@
     <div class="action-buttons">
       <button class="action-btn" id="btn-sprint">RUN</button>
       <button class="action-btn" id="btn-action">ACT</button>
+      <button class="action-btn" id="btn-jump">JUMP</button>
     </div>
+  </div>
+
+  <!-- Emote Menu -->
+  <div id="emote-bar" class="hidden">
+    <button class="emote-btn" data-emote="happy" title="Happy">&#128578;</button>
+    <button class="emote-btn" data-emote="sad" title="Sad">&#128546;</button>
+    <button class="emote-btn" data-emote="angry" title="Angry">&#128544;</button>
+    <button class="emote-btn" data-emote="nervous" title="Nervous">&#128552;</button>
+    <button class="emote-btn" data-emote="sit" title="Sit Down">&#128049;</button>
+    <button class="emote-btn" data-emote="sleep" title="Sleep">&#128564;</button>
   </div>
 
   <!-- Battle Screen -->
@@ -206,6 +217,9 @@
   <div id="interact-hint" class="hidden">
     <span id="interact-hint-text">Press E to talk</span>
   </div>
+
+  <!-- Emote Bubble (shows above player when emoting) -->
+  <div id="emote-bubble" class="hidden"></div>
 
   <!-- Map Overlay -->
   <div id="map-overlay" class="hidden">

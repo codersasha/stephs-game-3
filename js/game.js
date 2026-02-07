@@ -85,6 +85,20 @@ window.onerror = function(msg, url, line, col, err) {
   let joystickInput = { x: 0, z: 0 };
   let isMobile = false;
 
+  /* ---------- jumping ---------- */
+  let playerY = 0;        // current vertical position
+  let playerVY = 0;       // vertical velocity
+  let isJumping = false;
+  let isOnGround = true;
+  const GRAVITY = -18;
+  const JUMP_FORCE = 7;
+
+  /* ---------- emotes ---------- */
+  let currentEmote = null;    // 'happy' | 'sad' | 'angry' | 'nervous' | 'sit' | 'sleep' | null
+  let emoteTimer = 0;
+  let emoteBubbleTimer = 0;
+  const EMOTE_ICONS = { happy: '😊', sad: '😢', angry: '😠', nervous: '😨', sit: '🐱', sleep: '💤' };
+
   /* ---------- helpers ---------- */
   // CapsuleGeometry doesn't exist in Three.js r128, so we build one manually
   function makeCapsuleMesh (radius, halfLength, radSeg, heightSeg, material) {
@@ -862,6 +876,7 @@ window.onerror = function(msg, url, line, col, err) {
       const obj = makeRock(r);
       obj.position.set(r.x, 0, r.z);
       scene.add(obj);
+      rockObjects.push({ mesh: obj, data: r });
     });
 
     /* grass */
@@ -3039,6 +3054,15 @@ window.onerror = function(msg, url, line, col, err) {
       }
       // Escape to close map
       if (e.key === 'Escape' && !$('map-overlay').classList.contains('hidden')) closeMap();
+      // SPACE to jump
+      if (e.key === ' ' && gameState === 'playing' && isOnGround && !messageBox.classList.contains('visible')) {
+        playerJump();
+      }
+      // Number keys for emotes (1-6)
+      if (gameState === 'playing') {
+        const emoteKeys = { '1': 'happy', '2': 'sad', '3': 'angry', '4': 'nervous', '5': 'sit', '6': 'sleep' };
+        if (emoteKeys[e.key]) triggerEmote(emoteKeys[e.key]);
+      }
     });
     window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
 
@@ -3218,6 +3242,18 @@ window.onerror = function(msg, url, line, col, err) {
     bSprint.addEventListener('touchstart', e => { e.preventDefault(); if (player) player.isSprinting = true; });
     bSprint.addEventListener('touchend', e => { e.preventDefault(); if (player) player.isSprinting = false; });
     bAction.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); talkToNearestCat(); });
+
+    // Jump button
+    const bJump = $('btn-jump');
+    if (bJump) {
+      bJump.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); if (gameState === 'playing' && isOnGround) playerJump(); });
+    }
+
+    // Emote buttons
+    document.querySelectorAll('.emote-btn').forEach(btn => {
+      btn.addEventListener('click', () => { initAudio(); triggerEmote(btn.dataset.emote); });
+      btn.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); triggerEmote(btn.dataset.emote); });
+    });
   }
 
   /* ====================================================
@@ -4033,6 +4069,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = 'Rusty';
+    $('emote-bar').classList.remove('hidden');
 
     if (isMobile) mobileControls.classList.add('visible');
 
@@ -5591,6 +5628,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
+    $('emote-bar').classList.remove('hidden');
     if (isMobile) mobileControls.classList.add('visible');
     startForestAmbience();
 
@@ -5944,6 +5982,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
+    $('emote-bar').classList.remove('hidden');
 
     if (isMobile) mobileControls.classList.add('visible');
 
@@ -6644,6 +6683,31 @@ window.onerror = function(msg, url, line, col, err) {
     renderer.render(scene, camera);
   }
 
+  /** Check if position collides with a rock (circle check).
+   *  Only blocks if the player is at ground level (not jumping over the rock). */
+  function checkRockCollision (pos) {
+    if (playerY > 0.5) return false; // jumping over it
+    const px = pos.x, pz = pos.z;
+    const pr = 0.4;
+    for (const ro of rockObjects) {
+      const rx = ro.mesh.position.x, rz = ro.mesh.position.z;
+      const rs = (ro.data.scale || 1) * 0.8; // collision radius based on scale
+      const ddx = px - rx, ddz = pz - rz;
+      if (ddx * ddx + ddz * ddz < (pr + rs) * (pr + rs)) {
+        return true;
+      }
+    }
+    // Highrock collision
+    if (highrock) {
+      const hx = highrock.position.x, hz = highrock.position.z;
+      const ddx = px - hx, ddz = pz - hz;
+      if (ddx * ddx + ddz * ddz < (pr + 1.8) * (pr + 1.8) && playerY < 2.0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** Check if position collides with walls (AABB box check).
    *  Garden fence walls only block in 'house' phase.
    *  House walls ALWAYS block (you enter through the cat flap gap). */
@@ -6701,6 +6765,19 @@ window.onerror = function(msg, url, line, col, err) {
 
     const moving = Math.abs(dx) > 0.1 || Math.abs(dz) > 0.1;
 
+    // Moving cancels sit/sleep emote
+    if (moving && (currentEmote === 'sit' || currentEmote === 'sleep')) {
+      cancelEmote();
+    }
+
+    // If still sitting/sleeping (no input), freeze movement
+    if ((currentEmote === 'sit' || currentEmote === 'sleep') && !moving) {
+      animateCatLegs(dt, false, 0);
+      if (emoteBubbleTimer > 0) { emoteBubbleTimer -= dt; if (emoteBubbleTimer <= 0) $('emote-bubble').classList.add('hidden'); }
+      catGroup.position.set(player.position.x, playerY, player.position.z);
+      return;
+    }
+
     // First-person: cat always faces where camera looks (cameraAngleY)
     catGroup.rotation.y = cameraAngleY + Math.PI;
 
@@ -6714,7 +6791,7 @@ window.onerror = function(msg, url, line, col, err) {
       }
       const np = GameLogic.calculateMovement(player.position, dir, spd, dt);
       const cp = GameLogic.clampPosition(np, GameLogic.getForestBounds());
-      if (!GameLogic.checkCollisions(cp, trees, 1.2) && !checkWallCollision(cp)) {
+      if (!GameLogic.checkCollisions(cp, trees, 1.2) && !checkWallCollision(cp) && !checkRockCollision(cp)) {
         player.position = cp;
       }
       animateCatLegs(dt, true, spd / player.speed);
@@ -6730,7 +6807,180 @@ window.onerror = function(msg, url, line, col, err) {
     }
 
     if (!player.isSprinting) player = GameLogic.recoverEnergy(player, dt * 5);
-    catGroup.position.set(player.position.x, 0, player.position.z);
+
+    // --- JUMPING PHYSICS ---
+    if (isJumping || !isOnGround) {
+      playerVY += GRAVITY * dt;
+      playerY += playerVY * dt;
+
+      // Check landing on objects (rocks, dens, highrock, etc.)
+      let landHeight = 0; // default ground
+      // Check rocks
+      for (const ro of rockObjects) {
+        const rx = ro.mesh.position.x, rz = ro.mesh.position.z;
+        const rs = ro.data.scale;
+        const ddx = player.position.x - rx, ddz = player.position.z - rz;
+        const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dist < rs * 1.2) {
+          const topY = rs * 0.8; // approximate top of rock
+          if (playerY <= topY && playerY >= topY - 0.5) {
+            landHeight = Math.max(landHeight, topY);
+          }
+        }
+      }
+      // Check highrock
+      if (highrock) {
+        const hx = highrock.position.x, hz = highrock.position.z;
+        const ddx = player.position.x - hx, ddz = player.position.z - hz;
+        const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dist < 2.5) {
+          landHeight = Math.max(landHeight, 2.5);
+        }
+      }
+
+      if (playerY <= landHeight) {
+        playerY = landHeight;
+        playerVY = 0;
+        isJumping = false;
+        isOnGround = true;
+        // Landing sound
+        playLeafCrunch();
+      }
+    }
+
+    // If player walks off a raised surface, start falling
+    if (isOnGround && playerY > 0) {
+      let shouldFall = true;
+      // Check if still on a rock
+      for (const ro of rockObjects) {
+        const rx = ro.mesh.position.x, rz = ro.mesh.position.z;
+        const rs = ro.data.scale;
+        const ddx = player.position.x - rx, ddz = player.position.z - rz;
+        const dist = Math.sqrt(ddx * ddx + ddz * ddz);
+        if (dist < rs * 1.2 && Math.abs(playerY - rs * 0.8) < 0.3) {
+          shouldFall = false;
+          break;
+        }
+      }
+      // Check highrock
+      if (highrock) {
+        const hx = highrock.position.x, hz = highrock.position.z;
+        const ddx = player.position.x - hx, ddz = player.position.z - hz;
+        if (Math.sqrt(ddx * ddx + ddz * ddz) < 2.5 && Math.abs(playerY - 2.5) < 0.5) {
+          shouldFall = false;
+        }
+      }
+      if (shouldFall) {
+        isOnGround = false;
+      }
+    }
+
+    // --- EMOTE EFFECTS ---
+    if (currentEmote === 'sit' || currentEmote === 'sleep') {
+      // Can't move while sitting/sleeping — freeze movement but keep camera
+      // Just skip the position update (already handled above)
+    }
+    if (emoteBubbleTimer > 0) {
+      emoteBubbleTimer -= dt;
+      if (emoteBubbleTimer <= 0) {
+        $('emote-bubble').classList.add('hidden');
+      }
+    }
+
+    catGroup.position.set(player.position.x, playerY, player.position.z);
+  }
+
+  /* ====================================================
+     JUMPING
+     ==================================================== */
+  function playerJump () {
+    if (!isOnGround || isJumping) return;
+    // Cancel sit/sleep emote on jump
+    if (currentEmote === 'sit' || currentEmote === 'sleep') {
+      cancelEmote();
+    }
+    isJumping = true;
+    isOnGround = false;
+    playerVY = JUMP_FORCE;
+    // Jump sound
+    try {
+      if (audioCtx) {
+        const t = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(250, t);
+        o.frequency.linearRampToValueAtTime(400, t + 0.12);
+        g.gain.setValueAtTime(0.12, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        o.start(t); o.stop(t + 0.18);
+      }
+    } catch (e) {}
+  }
+
+  /* ====================================================
+     EMOTES
+     ==================================================== */
+  function triggerEmote (emote) {
+    // If same emote, toggle off
+    if (currentEmote === emote) {
+      cancelEmote();
+      return;
+    }
+
+    currentEmote = emote;
+    emoteTimer = 0;
+
+    // Show bubble
+    const bubble = $('emote-bubble');
+    bubble.textContent = EMOTE_ICONS[emote] || '';
+    bubble.classList.remove('hidden');
+    emoteBubbleTimer = 3; // show for 3 seconds
+
+    // Highlight the active button
+    document.querySelectorAll('.emote-btn').forEach(btn => {
+      btn.classList.toggle('active-emote', btn.dataset.emote === emote);
+    });
+
+    // Play appropriate sound
+    switch (emote) {
+      case 'happy': playPurr(); break;
+      case 'sad':
+        try {
+          if (audioCtx) {
+            const t = audioCtx.currentTime;
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(400, t);
+            o.frequency.linearRampToValueAtTime(250, t + 0.5);
+            g.gain.setValueAtTime(0.12, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+            o.start(t); o.stop(t + 0.65);
+          }
+        } catch (e) {}
+        break;
+      case 'angry': playHiss(); break;
+      case 'nervous': playHeartbeat(); break;
+      case 'sit': playLeafCrunch(); break;
+      case 'sleep': playPurr(); break;
+    }
+
+    // For non-persistent emotes, auto-cancel after a few seconds
+    if (emote !== 'sit' && emote !== 'sleep') {
+      setTimeout(() => {
+        if (currentEmote === emote) cancelEmote();
+      }, 5000);
+    }
+  }
+
+  function cancelEmote () {
+    currentEmote = null;
+    $('emote-bubble').classList.add('hidden');
+    emoteBubbleTimer = 0;
+    document.querySelectorAll('.emote-btn').forEach(btn => btn.classList.remove('active-emote'));
   }
 
   function lerpAngle (a, b, t) {
@@ -6779,7 +7029,7 @@ window.onerror = function(msg, url, line, col, err) {
     const headForwardZ = -Math.cos(cameraAngleY) * 0.35;
     const camX = px + headForwardX;
     const camZ = pz + headForwardZ;
-    const camY = eyeHeight;
+    const camY = eyeHeight + playerY; // add jump height
 
     // Look direction: forward based on cameraAngleY, pitch from cameraAngleX
     const lookDist = 10;
