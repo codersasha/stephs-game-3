@@ -1067,6 +1067,155 @@ html, body {
 }
 
 /* ========================================
+   Den Interior
+   ======================================== */
+#den-interior {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 500;
+  background: radial-gradient(ellipse at 50% 40%, rgba(50, 38, 22, 0.96), rgba(18, 14, 8, 0.99));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#den-interior.hidden { display: none; }
+
+#den-interior-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(95%, 600px);
+  margin-bottom: 12px;
+}
+#den-interior-title {
+  color: #e8d5b0;
+  font-family: 'Georgia', serif;
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  font-weight: bold;
+  text-shadow: 0 2px 8px rgba(255, 180, 80, 0.3);
+}
+#den-leave-btn {
+  background: rgba(150, 100, 50, 0.3);
+  border: 2px solid rgba(200, 150, 80, 0.4);
+  color: #ddc090;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.2s;
+}
+#den-leave-btn:hover {
+  background: rgba(200, 150, 80, 0.4);
+  border-color: rgba(230, 180, 100, 0.6);
+}
+#den-interior-desc {
+  color: #b8a888;
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.85rem, 2.5vw, 1.05rem);
+  font-style: italic;
+  text-align: center;
+  max-width: 500px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+#den-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  width: min(95%, 600px);
+  max-width: 600px;
+}
+.den-cat-card {
+  background: rgba(80, 60, 35, 0.5);
+  border: 2px solid rgba(160, 130, 80, 0.25);
+  border-radius: 14px;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 100px;
+}
+.den-cat-card:hover {
+  background: rgba(120, 90, 50, 0.6);
+  border-color: rgba(220, 180, 100, 0.5);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.den-cat-card:active {
+  transform: translateY(0);
+}
+.den-cat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  border: 2px solid rgba(255, 220, 150, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.den-cat-name {
+  color: #e8d5b0;
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  font-weight: bold;
+  text-align: center;
+}
+.den-cat-status {
+  color: #a09070;
+  font-family: 'Georgia', serif;
+  font-size: clamp(0.7rem, 2vw, 0.8rem);
+  font-style: italic;
+  margin-top: 4px;
+  text-align: center;
+}
+.den-cat-talk {
+  color: #bbaa77;
+  font-size: clamp(0.7rem, 2vw, 0.75rem);
+  margin-top: 8px;
+  opacity: 0.6;
+}
+.den-cat-card:hover .den-cat-talk {
+  opacity: 1;
+  color: #eedd99;
+}
+.den-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #a09070;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  padding: 30px;
+  font-size: clamp(1rem, 3vw, 1.1rem);
+}
+
+/* Touch devices — bigger den cards */
+body.touch-device .den-cat-card {
+  padding: 18px 12px;
+  min-height: 110px;
+}
+body.touch-device .den-cat-icon {
+  width: 58px;
+  height: 58px;
+  font-size: 1.7rem;
+}
+body.touch-device #den-leave-btn {
+  padding: 14px 24px;
+  font-size: 1.1rem;
+}
+
+/* ========================================
    Territory Map
    ======================================== */
 #map-overlay {

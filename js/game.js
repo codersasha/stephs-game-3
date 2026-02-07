@@ -4382,16 +4382,23 @@ window.onerror = function(msg, url, line, col, err) {
         if (messageBox.classList.contains('visible')) advanceMessage();
       }
       // 'E' or 'e' to talk to nearest cat
-      if ((e.key === 'e' || e.key === 'E') && gameState === 'playing') {
-        talkToNearestCat();
+      if ((e.key === 'e' || e.key === 'E') && gameState === 'playing' && !denOpen) {
+        // Check if near a den entrance first
+        const nearDen = getNearestDen();
+        if (nearDen) {
+          enterDen(nearDen);
+        } else {
+          talkToNearestCat();
+        }
       }
       // 'M' or 'm' to toggle map
       if ((e.key === 'm' || e.key === 'M')) {
         if ($('map-overlay').classList.contains('hidden') && gameState === 'playing') openMap();
         else if (!$('map-overlay').classList.contains('hidden')) closeMap();
       }
-      // Escape to close map
+      // Escape to close map or den
       if (e.key === 'Escape' && !$('map-overlay').classList.contains('hidden')) closeMap();
+      if (e.key === 'Escape' && denOpen) leaveDen();
       // SPACE to jump (can't jump while swimming)
       if (e.key === ' ' && gameState === 'playing' && isOnGround && !isSwimming && !messageBox.classList.contains('visible')) {
         playerJump();
@@ -4520,6 +4527,9 @@ window.onerror = function(msg, url, line, col, err) {
     // Map close button
     $('map-close-btn').addEventListener('click', closeMap);
     $('map-close-btn').addEventListener('touchstart', e => { e.preventDefault(); closeMap(); });
+    // Den leave button
+    $('den-leave-btn').addEventListener('click', leaveDen);
+    $('den-leave-btn').addEventListener('touchstart', e => { e.preventDefault(); leaveDen(); });
 
     // Save screen back button — return to game
     $('save-back-btn').addEventListener('click', () => {
@@ -4610,7 +4620,13 @@ window.onerror = function(msg, url, line, col, err) {
           ? 'rgba(100, 200, 255, 0.9)' : '';
       }
     });
-    bAction.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); talkToNearestCat(); });
+    bAction.addEventListener('touchstart', e => {
+      e.preventDefault(); initAudio();
+      if (denOpen) { leaveDen(); return; }
+      const nearDen = getNearestDen();
+      if (nearDen && gameState === 'playing') { enterDen(nearDen); }
+      else { talkToNearestCat(); }
+    });
 
     // Jump button
     const bJump = $('btn-jump');
@@ -8779,6 +8795,164 @@ window.onerror = function(msg, url, line, col, err) {
     'Prisoner': { x: 10, z: 6 },
   };
 
+  // Den info for interior view — descriptions, detection radius, display names
+  const DEN_INFO = {
+    'Warriors': {
+      label: "Warriors' Den",
+      r: 4.0,
+      desc: "A large den woven from brambles and branches. Moss-lined nests cover the sandy floor, each one carrying the familiar scent of a different warrior. It's warm and cozy inside."
+    },
+    'Apprentices': {
+      label: "Apprentices' Den",
+      r: 3.2,
+      desc: "A smaller den for apprentice cats. The nests are fresh with moss and bracken. Paw prints mark the sandy floor, and the air buzzes with youthful energy."
+    },
+    'Leader': {
+      label: "Leader's Den",
+      r: 3.0,
+      desc: "A sheltered cave beneath the Highrock, hidden behind a curtain of hanging lichen. The leader's nest sits at the back, lined with the softest moss in camp."
+    },
+    'Medicine': {
+      label: "Medicine Den",
+      r: 3.5,
+      desc: "The air is thick with the scent of herbs. Bundles of catmint, tansy, cobwebs, and borage line the rocky walls. Herb stores and patient nests fill the back of the den."
+    },
+    'Nursery': {
+      label: "Nursery",
+      r: 3.5,
+      desc: "The warmest den in camp. Thick walls of woven bramble keep out the cold wind, and soft moss nests cradle the queens and their kits. It smells of milk and warm fur."
+    },
+    'Elders': {
+      label: "Elders' Den",
+      r: 3.5,
+      desc: "A sheltered den where the elders rest and share stories. It smells of old memories and warm pelts. Moss nests are arranged near the entrance for easy access."
+    },
+    'Prisoner': {
+      label: "Prisoner Den",
+      r: 2.5,
+      desc: "A cramped den surrounded by thick bramble walls and thorns. Dark and uncomfortable — meant to hold cats who aren't trusted by the Clan... yet."
+    }
+  };
+
+  // Cat fur colors for den interior display
+  const CAT_DISPLAY_COLORS = {
+    'Bluestar': '#6688aa', 'Lionheart': '#ccaa33', 'Graypaw': '#778899',
+    'Whitestorm': '#cccccc', 'Dustpaw': '#7a5533', 'Sandpaw': '#ddbb88',
+    'Mousefur': '#8b6b4a', 'Darkstripe': '#555566', 'Ravenpaw': '#2a2a2a',
+    'Spottedleaf': '#aa6633', 'Tigerclaw': '#5a3a1a', 'Yellowfang': '#555555',
+    'Longtail': '#ccbb99', 'Smudge': '#333333', 'Princess': '#ccaa77',
+  };
+
+  // Den interior state
+  let denOpen = false;
+
+  function getNearestDen () {
+    if (!player) return null;
+    const px = player.position.x, pz = player.position.z;
+    let closest = null, closestDist = Infinity;
+    for (const [name, info] of Object.entries(DEN_INFO)) {
+      const spot = DEN_SPOTS[name];
+      if (!spot) continue;
+      const dx = px - spot.x, dz = pz - spot.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < info.r && dist < closestDist) {
+        closest = name;
+        closestDist = dist;
+      }
+    }
+    return closest;
+  }
+
+  function getCatsInDen (denName) {
+    const spot = DEN_SPOTS[denName];
+    const info = DEN_INFO[denName];
+    if (!spot || !info) return [];
+    const cats = [];
+    for (const npc of npcCats) {
+      if (!npc.group.visible) continue;
+      const dx = npc.group.position.x - spot.x;
+      const dz = npc.group.position.z - spot.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < info.r + 1.5) {
+        cats.push(npc);
+      }
+    }
+    return cats;
+  }
+
+  function getAIStatusText (npc) {
+    if (!npc.ai) return 'Resting';
+    switch (npc.ai.state) {
+      case 'rest':  return 'Sleeping \uD83D\uDCA4';
+      case 'eat':   return 'Eating \uD83C\uDF56';
+      case 'drink': return 'Drinking \uD83D\uDCA7';
+      case 'patrol': return 'On patrol';
+      case 'hunt':  return 'Hunting';
+      case 'idle':  return 'Resting';
+      default:      return 'Resting';
+    }
+  }
+
+  function enterDen (denName) {
+    const info = DEN_INFO[denName];
+    if (!info) return;
+    denOpen = true;
+
+    const cats = getCatsInDen(denName);
+
+    // Populate overlay
+    $('den-interior-title').textContent = info.label;
+    $('den-interior-desc').textContent = info.desc;
+
+    const grid = $('den-cat-grid');
+    grid.innerHTML = '';
+
+    if (cats.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'den-empty';
+      empty.textContent = 'The den is empty right now. Everyone must be out in camp or the territory.';
+      grid.appendChild(empty);
+    } else {
+      cats.forEach(npc => {
+        const card = document.createElement('div');
+        card.className = 'den-cat-card';
+        const displayName = knownCats.has(npc.name) ? npc.name : '???';
+        const color = CAT_DISPLAY_COLORS[npc.name] || '#888866';
+        const status = getAIStatusText(npc);
+
+        card.innerHTML =
+          '<div class="den-cat-icon" style="background:' + color + '">\uD83D\uDC31</div>' +
+          '<div class="den-cat-name">' + displayName + '</div>' +
+          '<div class="den-cat-status">' + status + '</div>' +
+          '<div class="den-cat-talk">' + (isMobile ? 'Tap to talk' : 'Click to talk') + '</div>';
+
+        card.addEventListener('click', function () {
+          leaveDen();
+          setTimeout(function () { talkToCat(npc); }, 100);
+        });
+        card.addEventListener('touchstart', function (ev) {
+          ev.preventDefault();
+          leaveDen();
+          setTimeout(function () { talkToCat(npc); }, 100);
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    $('den-interior').classList.remove('hidden');
+    // Play a soft ambient sound
+    if (audioCtx) {
+      try {
+        playSound('ambient');
+      } catch (e) {}
+    }
+  }
+
+  function leaveDen () {
+    denOpen = false;
+    $('den-interior').classList.add('hidden');
+  }
+
   // Assign rank-based dens (kittypets get the Twoleg house as their "den")
   const TWOLEG_HOUSE_SPOT = { x: 0, z: 83 };
 
@@ -9304,8 +9478,8 @@ window.onerror = function(msg, url, line, col, err) {
   function updatePlayer (dt) {
     if (!player) return;
 
-    // FREEZE player movement while a message box is showing — must dismiss it first
-    if (messageBox.classList.contains('visible')) {
+    // FREEZE player movement while a message box or den interior is showing
+    if (messageBox.classList.contains('visible') || denOpen) {
       animateCatLegs(dt, false, 0);
       return;
     }
@@ -9943,10 +10117,24 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   function updateInteractHint () {
-    if (!player || gameState !== 'playing' || messageBox.classList.contains('visible')) {
+    if (!player || gameState !== 'playing' || messageBox.classList.contains('visible') || denOpen) {
       interactHint.classList.add('hidden');
       return;
     }
+
+    // Check if near a den entrance FIRST (takes priority)
+    const nearDen = getNearestDen();
+    if (nearDen) {
+      const info = DEN_INFO[nearDen];
+      const cats = getCatsInDen(nearDen);
+      const countText = cats.length > 0 ? ' (' + cats.length + ' cat' + (cats.length > 1 ? 's' : '') + ' inside)' : ' (empty)';
+      interactHintText.textContent = isMobile
+        ? 'Tap ACT to enter ' + info.label + countText
+        : 'Press E to enter ' + info.label + countText;
+      interactHint.classList.remove('hidden');
+      return;
+    }
+
     // Find nearest visible cat
     let nearest = null, nearestDist = TALK_RANGE;
     for (const npc of npcCats) {
