@@ -5195,7 +5195,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     const pName = player.name || 'apprentice';
 
-    const scenes = [
+    const preBattleScenes = [
       // Bluestar summons the patrol
       { speaker: 'Bluestar', text: '"' + pName + ', Graypaw, Ravenpaw, Tigerclaw — come here. I need to speak with all of you."',
         camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
@@ -5337,82 +5337,88 @@ window.onerror = function(msg, url, line, col, err) {
 
       { narration: true, text: 'A swarm of rats pours from the barn! Dozens of them, their eyes gleaming red in the darkness. They attack without fear!',
         camPos: { x: -52, y: 3, z: -70 }, camLook: { x: -50, y: 1, z: -68 } },
-
-      { narration: true, text: 'You fight desperately alongside Bluestar, Tigerclaw, Graypaw, and Ravenpaw. The rats bite and scratch, coming in wave after wave. There are too many!',
-        camPos: { x: -50, y: 4, z: -69 }, camLook: { x: -52, y: 1, z: -71 } },
-
-      { narration: true, text: 'A huge rat sinks its teeth into Bluestar\'s shoulder. She yowls in pain and stumbles! Tigerclaw tears it away with a vicious swipe.',
-        camPos: { x: -53, y: 2, z: -70 }, camLook: { x: -55, y: 0.8, z: -71 } },
-
-      { narration: true, text: 'A tabby barn cat suddenly appears from the shadows, helping to drive the rats back. "Run! Get out of here!" he yowls.',
-        camPos: { x: -48, y: 3, z: -68 }, camLook: { x: -50, y: 1.5, z: -70 } },
-
-      { narration: true, text: 'You all break free and flee. Bluestar is badly wounded — she staggers, her breathing labored.',
-        camPos: { x: -40, y: 4, z: -60 }, camLook: { x: -45, y: 1, z: -65 } },
-
-      { speaker: 'Tigerclaw', text: '"Bluestar! Can you walk? We must keep moving."',
-        camPos: { x: -38, y: 2.5, z: -58 }, camLook: { x: -40, y: 1.5, z: -60 } },
-
-      { narration: true, text: 'Bluestar stumbles and falls. Her body goes still... then, after a terrible moment, she draws a shuddering breath. She\'s alive — but barely.',
-        camPos: { x: -38, y: 2, z: -57 }, camLook: { x: -40, y: 0.5, z: -59 } },
-
-      { narration: true, text: '<em>You realize with horror: Bluestar just lost a life.</em> Leaders have nine lives given by StarClan — but they are not limitless.',
-        camPos: { x: -35, y: 3, z: -55 }, camLook: { x: -38, y: 1, z: -58 } },
-
-      { speaker: 'Bluestar', text: '"I... I am alright. StarClan has returned me. But I have fewer lives now. We must be more careful."',
-        camPos: { x: -37, y: 2, z: -56 }, camLook: { x: -40, y: 1, z: -58 } },
-
-      { speaker: 'Graypaw', text: '"Bluestar lost a LIFE?! That\'s... that\'s really scary, ' + pName + '..."',
-        camPos: { x: -36, y: 2, z: -54 }, camLook: { x: -37, y: 1.2, z: -55 } },
-
-      { speaker: 'Ravenpaw', text: '"I-I thought she was dead... I was so scared..."',
-        camPos: { x: -35, y: 2, z: -54 }, camLook: { x: -36, y: 1, z: -55 } },
-
-      // Return to camp — dawn breaks
-      { narration: true, text: 'Slowly, painfully, you all help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. The sky begins to lighten in the east.',
-        camPos: { x: -15, y: 8, z: -30 }, camLook: { x: 0, y: 2, z: 0 } },
-
-      { narration: true, text: 'You reach ThunderClan camp just as the sun rises, painting the sky gold and pink. Spottedleaf rushes to tend Bluestar\'s wounds.',
-        camPos: { x: 2, y: 4, z: 10 }, camLook: { x: 0, y: 1, z: 0 },
-        onShow: function () { setDayMode(); } },
-
-      { speaker: 'Spottedleaf', text: '"Bluestar! What happened? These wounds..."',
-        camPos: { x: -9, y: 2, z: 5 }, camLook: { x: -10, y: 1, z: 3 } },
-
-      { speaker: 'Bluestar', text: '"Rats... near the barn on the way back from Highstones. We were outnumbered."',
-        camPos: { x: -8, y: 2, z: 4 }, camLook: { x: -10, y: 1.5, z: 3 } },
-
-      { speaker: 'Graypaw', text: '"' + pName + '! You actually saw the Moonstone up close! What was it like? Tell me everything!"',
-        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
-
-      { narration: true, text: 'You tell Graypaw and Ravenpaw about the shimmering, shining Moonstone — how it blazed with light, how Bluestar slept beside it, how you heard the prophecy in your mind.',
-        camPos: { x: 3, y: 2, z: 5 }, camLook: { x: 1, y: 1, z: 3 } },
-
-      { speaker: 'Graypaw', text: '"That sounds INCREDIBLE. I wish I could have seen it... but I\'m glad you did, ' + pName + '."',
-        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
-
-      { narration: true, text: 'Tigerclaw says nothing. He watches Bluestar being carried into the medicine den. His amber eyes are unreadable.',
-        camPos: { x: 5, y: 2.5, z: -3 }, camLook: { x: 6, y: 1.2, z: -4 } },
-
-      { narration: true, text: '<em>Fire alone will save our Clan.</em> The prophecy burns in your mind. Bluestar grows weaker. ShadowClan grows bolder. The Clan needs you now more than ever.',
-        camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
     ];
 
-    startCutscene(scenes, () => {
-      gameState = 'playing';
-      mothermouthTriggered = true;
-      setDayMode(); // ensure daytime is restored
-      // Bluestar rests in medicine den
-      if (bs) { bs.group.position.set(-9, 0, 5); }
-      if (tc) { tc.group.position.set(6, 0, -3); }
-      if (gp) { gp.group.position.set(3, 0, 4); }
-      if (rp) { rp.group.position.set(4, 0, 5); }
-      player.position = { x: 2, y: 0, z: 3 };
-      catGroup.position.set(2, 0, 3);
-      placeCatsInCamp();
-      saveGame();
-      queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality. Explore freely, and press "Next Chapter" when you\'re ready.');
-      showNextChapterButton();
+    // Start first part of cutscene, then launch the rat battle
+    startCutscene(preBattleScenes, () => {
+      startBattle({
+        enemyName: 'Rat Swarm',
+        enemyHP: 80,
+        enemyMaxHP: 80,
+        enemyAttack: 8,
+        enemyDefense: 1,
+        enemyFurColor: 0x554433,
+        enemyEyeColor: 0xff3333,
+        enemyStripes: false,
+        expReward: 35,
+        allies: [
+          { name: 'Bluestar', attack: 12, phrases: ['For ThunderClan!', 'Stand your ground!', 'Fight together!'] },
+          { name: 'Tigerclaw', attack: 14, phrases: ['Filthy vermin!', 'Die, rat!', 'I\'ll shred every one of them!'] },
+          { name: 'Graypaw', attack: 7, phrases: ['Take THAT!', 'Get away from us!', 'There\'s too many!'] },
+          { name: 'Ravenpaw', attack: 5, phrases: ['G-get back!', 'Leave us alone!', 'I won\'t run this time!'] },
+        ],
+        onWin: function () {
+          // Continue the story after the rat battle
+          gameState = 'cutscene';
+          const postBattleScenes = [
+            { narration: true, text: 'The last rats scatter and flee back into the barn! But the damage is done — Bluestar is badly wounded.',
+              camPos: { x: -50, y: 3, z: -69 }, camLook: { x: -52, y: 1, z: -71 } },
+            { narration: true, text: 'A tabby barn cat appears from the shadows. "I\'m Barley. You\'re lucky to be alive — those rats are vicious."',
+              camPos: { x: -48, y: 3, z: -68 }, camLook: { x: -50, y: 1.5, z: -70 } },
+            { narration: true, text: 'Bluestar staggers and falls. Her body goes still... then, after a terrible moment, she draws a shuddering breath. She\'s alive — but barely.',
+              camPos: { x: -38, y: 2, z: -57 }, camLook: { x: -40, y: 0.5, z: -59 } },
+            { narration: true, text: '<em>You realize with horror: Bluestar just lost a life.</em> Leaders have nine lives given by StarClan — but they are not limitless.',
+              camPos: { x: -35, y: 3, z: -55 }, camLook: { x: -38, y: 1, z: -58 } },
+            { speaker: 'Bluestar', text: '"I... I am alright. StarClan has returned me. But I have fewer lives now. We must be more careful."',
+              camPos: { x: -37, y: 2, z: -56 }, camLook: { x: -40, y: 1, z: -58 } },
+            { speaker: 'Graypaw', text: '"Bluestar lost a LIFE?! That\'s... that\'s really scary, ' + pName + '..."',
+              camPos: { x: -36, y: 2, z: -54 }, camLook: { x: -37, y: 1.2, z: -55 } },
+            { speaker: 'Ravenpaw', text: '"I-I thought she was dead... I was so scared..."',
+              camPos: { x: -35, y: 2, z: -54 }, camLook: { x: -36, y: 1, z: -55 } },
+            // Return to camp — dawn breaks
+            { narration: true, text: 'Slowly, painfully, you all help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. The sky begins to lighten in the east.',
+              camPos: { x: -15, y: 8, z: -30 }, camLook: { x: 0, y: 2, z: 0 } },
+            { narration: true, text: 'You reach ThunderClan camp just as the sun rises, painting the sky gold and pink. Spottedleaf rushes to tend Bluestar\'s wounds.',
+              camPos: { x: 2, y: 4, z: 10 }, camLook: { x: 0, y: 1, z: 0 },
+              onShow: function () { setDayMode(); } },
+            { speaker: 'Spottedleaf', text: '"Bluestar! What happened? These wounds..."',
+              camPos: { x: -9, y: 2, z: 5 }, camLook: { x: -10, y: 1, z: 3 } },
+            { speaker: 'Bluestar', text: '"Rats... near the barn on the way back from Highstones. We were outnumbered."',
+              camPos: { x: -8, y: 2, z: 4 }, camLook: { x: -10, y: 1.5, z: 3 } },
+            { speaker: 'Graypaw', text: '"' + pName + '! You actually saw the Moonstone up close! What was it like? Tell me everything!"',
+              camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
+            { narration: true, text: 'You tell Graypaw and Ravenpaw about the shimmering, shining Moonstone — how it blazed with light, how Bluestar slept beside it, how you heard the prophecy in your mind.',
+              camPos: { x: 3, y: 2, z: 5 }, camLook: { x: 1, y: 1, z: 3 } },
+            { speaker: 'Graypaw', text: '"That sounds INCREDIBLE. I wish I could have seen it... but I\'m glad you did, ' + pName + '."',
+              camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
+            { narration: true, text: 'Tigerclaw says nothing. He watches Bluestar being carried into the medicine den. His amber eyes are unreadable.',
+              camPos: { x: 5, y: 2.5, z: -3 }, camLook: { x: 6, y: 1.2, z: -4 } },
+            { narration: true, text: '<em>Fire alone will save our Clan.</em> The prophecy burns in your mind. Bluestar grows weaker. ShadowClan grows bolder. The Clan needs you now more than ever.',
+              camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+          ];
+          startCutscene(postBattleScenes, () => {
+            gameState = 'playing';
+            mothermouthTriggered = true;
+            setDayMode();
+            if (bs) { bs.group.position.set(-9, 0, 5); }
+            if (tc) { tc.group.position.set(6, 0, -3); }
+            if (gp) { gp.group.position.set(3, 0, 4); }
+            if (rp) { rp.group.position.set(4, 0, 5); }
+            player.position = { x: 2, y: 0, z: 3 };
+            catGroup.position.set(2, 0, 3);
+            placeCatsInCamp(); saveGame();
+            queueMessage('Narrator', 'Bluestar rests in the medicine den. The journey to Mothermouth has changed you. You\'ve seen the Moonstone — and witnessed a leader\'s mortality. Explore freely, and press "Next Chapter" when you\'re ready.');
+            showNextChapterButton();
+          });
+        },
+        onLose: function () {
+          // You can't really lose with 4 allies — but just in case, heal and retry
+          player.health = player.maxHealth;
+          queueMessage('Narrator', 'The rats overwhelm you momentarily, but your allies drag you to safety. You shake it off and fight again!');
+          // Re-trigger the battle
+          triggerMothermouthJourney();
+        },
+      });
     });
   }
 
@@ -5543,7 +5549,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
     if (tc) { tc.group.visible = true; tc.group.position.set(5, 0, -2); }
 
-    const scenes = [
+    const preScenes = [
       { narration: true, text: 'A yowl of alarm rings through the camp! Cats leap to their paws, eyes wide with fear...',
         camPos: { x: 0, y: 6, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
       { speaker: 'Tigerclaw', text: '"ShadowClan! They\'re attacking the camp! Warriors, defend the nursery!"',
@@ -5552,22 +5558,54 @@ window.onerror = function(msg, url, line, col, err) {
         camPos: { x: 0, y: 4, z: 12 }, camLook: { x: 0, y: 1, z: 0 } },
       { speaker: 'Bluestar', text: '"ThunderClan, to me! We will not let them take our kits! Fight with everything you have!"',
         camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
-      { narration: true, text: 'You throw yourself into the battle alongside your Clanmates! Claws flash and yowls split the air!',
-        camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 0, y: 1, z: 0 } },
-      { narration: true, text: 'Yellowfang fights fiercely against her old Clanmates! She proves her loyalty to ThunderClan beyond any doubt!',
-        camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -8, y: 1, z: 3 } },
-      { narration: true, text: 'The ShadowClan raiders are driven back! They flee into the forest, leaving ThunderClan bruised but victorious.',
-        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 1, z: -10 } },
-      { speaker: 'Bluestar', text: '"Brokenstar grows too bold. We must deal with him before he destroys all the Clans. ' + pName + ', you fought bravely today."',
-        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
-      { narration: true, text: '<em>ThunderClan has survived the attack, but Brokenstar\'s ShadowClan grows more dangerous every day...</em>',
-        camPos: { x: 0, y: 10, z: 10 }, camLook: { x: 0, y: 2, z: 0 } },
     ];
-    startCutscene(scenes, () => {
-      gameState = 'playing';
-      placeCatsInCamp(); saveGame();
-      queueMessage('Narrator', 'ShadowClan has been driven off. The Clan is shaken but alive. Keep exploring!');
-      showNextChapterButton();
+
+    startCutscene(preScenes, () => {
+      // Launch the ShadowClan battle with your Clanmates fighting alongside you!
+      startBattle({
+        enemyName: 'ShadowClan Warrior',
+        enemyHP: 70,
+        enemyMaxHP: 70,
+        enemyAttack: 12,
+        enemyDefense: 4,
+        enemyFurColor: 0x333333,
+        enemyEyeColor: 0xddcc00,
+        enemyStripes: true,
+        enemyStripeColor: 0x111111,
+        expReward: 40,
+        allies: [
+          { name: 'Tigerclaw', attack: 15, phrases: ['ShadowClan filth!', 'Get out of our camp!', 'I\'ll rip you apart!'] },
+          { name: 'Yellowfang', attack: 10, phrases: ['I know your tricks, ShadowClan!', 'I fight for ThunderClan now!', 'You won\'t take this camp!'] },
+          { name: 'Graypaw', attack: 8, phrases: ['For ThunderClan!', 'You won\'t get past me!', 'Take THAT!'] },
+          { name: 'Lionheart', attack: 13, phrases: ['Warriors, hold the line!', 'Protect the nursery!', 'Stand firm!'] },
+        ],
+        onWin: function () {
+          gameState = 'cutscene';
+          const postScenes = [
+            { narration: true, text: 'The ShadowClan raiders are driven back! They flee into the forest, leaving ThunderClan bruised but victorious.',
+              camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 1, z: -10 } },
+            { narration: true, text: 'Yellowfang fought fiercely against her old Clanmates! She has proven her loyalty to ThunderClan beyond any doubt!',
+              camPos: { x: -9, y: 2, z: 4 }, camLook: { x: -8, y: 1, z: 3 } },
+            { speaker: 'Bluestar', text: '"Brokenstar grows too bold. We must deal with him before he destroys all the Clans. ' + pName + ', you fought bravely today."',
+              camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+            { narration: true, text: '<em>ThunderClan has survived the attack, but Brokenstar\'s ShadowClan grows more dangerous every day...</em>',
+              camPos: { x: 0, y: 10, z: 10 }, camLook: { x: 0, y: 2, z: 0 } },
+          ];
+          startCutscene(postScenes, () => {
+            gameState = 'playing';
+            placeCatsInCamp(); saveGame();
+            queueMessage('Narrator', 'ShadowClan has been driven off! Your Clanmates fought bravely alongside you. Keep exploring!');
+            showNextChapterButton();
+          });
+        },
+        onLose: function () {
+          player.health = Math.floor(player.maxHealth * 0.5);
+          queueMessage('Narrator', 'You are knocked down, but your Clanmates pull you to safety. The ShadowClan raiders retreat. You survived!');
+          gameState = 'playing';
+          placeCatsInCamp(); saveGame();
+          showNextChapterButton();
+        },
+      });
     });
   }
 
@@ -5746,7 +5784,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (tc) { tc.group.visible = true; tc.group.position.set(5, 0, -2); }
     if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
 
-    const scenes = [
+    const preScenes = [
       { narration: true, text: 'You discover that Tigerclaw has been plotting in secret. He has been leading rogues into ThunderClan territory, planning to overthrow Bluestar!',
         camPos: { x: 0, y: 5, z: 8 }, camLook: { x: 0, y: 1, z: 0 } },
       { narration: true, text: 'One night, Tigerclaw leads a band of rogues directly into the ThunderClan camp! Cats scatter in terror!',
@@ -5754,18 +5792,50 @@ window.onerror = function(msg, url, line, col, err) {
         onShow: function () { setNightMode(); } },
       { speaker: 'Tigerclaw', text: '"It\'s time, Bluestar! I should have been leader long ago. ThunderClan needs a STRONG leader — not a weak old she-cat!"',
         camPos: { x: 6, y: 2.5, z: -1 }, camLook: { x: 5, y: 1.2, z: -2 } },
-      { narration: true, text: 'Tigerclaw lunges at Bluestar! His massive claws flash in the moonlight as he tries to kill his own leader!',
+      { narration: true, text: 'Tigerclaw lunges at Bluestar! You throw yourself between them to defend your leader!',
         camPos: { x: 2, y: 2, z: -3 }, camLook: { x: 0, y: 1, z: -4 } },
-      { narration: true, text: 'You throw yourself between them! Fighting with all your strength, you help drive Tigerclaw back!',
-        camPos: { x: 1, y: 2, z: -2 }, camLook: { x: 3, y: 1, z: -3 } },
-      { narration: true, text: 'The rogues are defeated. Tigerclaw stands surrounded by ThunderClan warriors, his treachery exposed for all to see.',
-        camPos: { x: 0, y: 4, z: 2 }, camLook: { x: 3, y: 1, z: -2 } },
     ];
-    startCutscene(scenes, () => {
-      gameState = 'playing'; setDayMode();
-      placeCatsInCamp(); saveGame();
-      queueMessage('Narrator', 'Tigerclaw\'s treachery has been exposed! He tried to kill Bluestar and take over ThunderClan. His fate is in Bluestar\'s paws now.');
-      showNextChapterButton();
+
+    startCutscene(preScenes, () => {
+      // Battle against Tigerclaw with your Clanmates!
+      startBattle({
+        enemyName: 'Tigerclaw',
+        enemyHP: 100,
+        enemyMaxHP: 100,
+        enemyAttack: 18,
+        enemyDefense: 6,
+        enemyFurColor: 0x5a3a1a,
+        enemyEyeColor: 0xffaa11,
+        enemyStripes: true,
+        enemyStripeColor: 0x221100,
+        expReward: 60,
+        allies: [
+          { name: 'Whitestorm', attack: 12, phrases: ['Traitor!', 'You won\'t touch Bluestar!', 'ThunderClan stands together!'] },
+          { name: 'Graypaw', attack: 9, phrases: ['How COULD you, Tigerclaw?!', 'We trusted you!', 'For ThunderClan!'] },
+          { name: 'Mousefur', attack: 10, phrases: ['You\'ll pay for this betrayal!', 'ThunderClan, fight!', 'Drive him out!'] },
+        ],
+        onWin: function () {
+          gameState = 'cutscene';
+          const postScenes = [
+            { narration: true, text: 'Tigerclaw and his rogues are defeated! He stands surrounded by ThunderClan warriors, his treachery exposed for all to see.',
+              camPos: { x: 0, y: 4, z: 2 }, camLook: { x: 3, y: 1, z: -2 } },
+          ];
+          startCutscene(postScenes, () => {
+            gameState = 'playing'; setDayMode();
+            placeCatsInCamp(); saveGame();
+            queueMessage('Narrator', 'Tigerclaw\'s treachery has been exposed! He tried to kill Bluestar and take over ThunderClan. His fate is in Bluestar\'s paws now.');
+            showNextChapterButton();
+          });
+        },
+        onLose: function () {
+          // Can't really lose this — story continues regardless
+          player.health = Math.floor(player.maxHealth * 0.5);
+          gameState = 'playing'; setDayMode();
+          placeCatsInCamp(); saveGame();
+          queueMessage('Narrator', 'You are wounded, but your Clanmates subdue Tigerclaw. His treachery is exposed!');
+          showNextChapterButton();
+        },
+      });
     });
   }
 
@@ -6415,6 +6485,7 @@ window.onerror = function(msg, url, line, col, err) {
       playerTurn: true,
       dodging: false,
       round: 0,
+      allies: opts.allies || null, // Array of { name, attack, phrases }
     };
 
     // Show the battle screen (hide patrol enemy selector if it was open)
@@ -6422,7 +6493,7 @@ window.onerror = function(msg, url, line, col, err) {
     document.getElementById('battle-enemy-selector').classList.add('hidden');
     patrolBattleData = null; // clear any patrol battle data
     battleLog.innerHTML = '';
-    battleHeader.textContent = 'BATTLE!';
+    battleHeader.textContent = currentBattle.allies ? 'TEAM BATTLE!' : 'BATTLE!';
     battlePlayerName.textContent = player.name || 'Rusty';
     battleEnemyName.textContent = currentBattle.enemyName;
 
@@ -6437,7 +6508,12 @@ window.onerror = function(msg, url, line, col, err) {
     updateBattleHP();
     enableBattleButtons(true);
 
-    addBattleLog('The battle begins!', 'battle-log-fierce');
+    if (currentBattle.allies && currentBattle.allies.length > 0) {
+      const allyNames = currentBattle.allies.map(a => a.name).join(', ');
+      addBattleLog('The battle begins! <strong>' + allyNames + '</strong> fight alongside you!', 'battle-log-fierce');
+    } else {
+      addBattleLog('The battle begins!', 'battle-log-fierce');
+    }
     playSound('battle');
   }
 
@@ -6504,8 +6580,51 @@ window.onerror = function(msg, url, line, col, err) {
       return;
     }
 
-    // Enemy turn after delay
-    setTimeout(() => battleEnemyTurn(), 800);
+    // Allies attack after the player (if any)
+    if (b.allies && b.allies.length > 0) {
+      setTimeout(() => battleAllyTurns(), 600);
+    } else {
+      // Enemy turn after delay
+      setTimeout(() => battleEnemyTurn(), 800);
+    }
+  }
+
+  /** Each ally takes a turn attacking the enemy */
+  function battleAllyTurns () {
+    if (!currentBattle) return;
+    const b = currentBattle;
+    if (!b.allies || b.allies.length === 0) { battleEnemyTurn(); return; }
+
+    let idx = 0;
+    function nextAlly () {
+      if (idx >= b.allies.length || b.enemyHP <= 0) {
+        updateBattleHP();
+        if (b.enemyHP <= 0) {
+          setTimeout(() => endBattle(true), 600);
+        } else {
+          setTimeout(() => battleEnemyTurn(), 500);
+        }
+        return;
+      }
+      const ally = b.allies[idx];
+      idx++;
+      const baseDmg = ally.attack || 6;
+      const dmg = Math.max(1, baseDmg + Math.floor(Math.random() * 6) - (b.enemyDefense || 0));
+      b.enemyHP = Math.max(0, b.enemyHP - dmg);
+      // Pick a random phrase or use a default
+      let phrase = '';
+      if (ally.phrases && ally.phrases.length > 0) {
+        phrase = ' <em>"' + ally.phrases[Math.floor(Math.random() * ally.phrases.length)] + '"</em>';
+      }
+      addBattleLog('<strong>' + ally.name + '</strong> attacks! <strong>-' + dmg + '</strong>' + phrase, 'battle-log-ally');
+      playSound('hit');
+      // Shake enemy
+      const eSide = document.querySelector('.battle-enemy-side');
+      if (eSide) { eSide.classList.add('battle-shake'); setTimeout(() => eSide.classList.remove('battle-shake'), 300); }
+      updateBattleHP();
+      setTimeout(nextAlly, 500);
+    }
+    nextAlly();
   }
 
   function battleEnemyTurn () {
