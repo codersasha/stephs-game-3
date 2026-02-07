@@ -5097,42 +5097,56 @@ window.onerror = function(msg, url, line, col, err) {
     const bs = npcCats.find(c => c.name === 'Bluestar');
     const tc = npcCats.find(c => c.name === 'Tigerclaw');
     const gp = npcCats.find(c => c.name === 'Graypaw');
+    const rp = npcCats.find(c => c.name === 'Ravenpaw');
 
-    // Position cats for the scene
+    // Position cats for the scene — gathering at Highrock
     if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
     if (tc) { tc.group.visible = true; tc.group.position.set(4, 0, -2); }
     if (gp) { gp.group.visible = true; gp.group.position.set(player.position.x + 2, 0, player.position.z); }
+    if (rp) { rp.group.visible = true; rp.group.position.set(player.position.x - 1, 0, player.position.z + 1); }
 
     const pName = player.name || 'apprentice';
 
     const scenes = [
-      // Bluestar summons the player
-      { speaker: 'Bluestar', text: '"' + pName + ', come here. I need to speak with you."',
+      // Bluestar summons the patrol
+      { speaker: 'Bluestar', text: '"' + pName + ', Graypaw, Ravenpaw, Tigerclaw — come here. I need to speak with all of you."',
         camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-      { speaker: 'Bluestar', text: '"It is time for me to travel to Highstones and share tongues with StarClan at the Moonstone. I must seek their guidance."',
+      { speaker: 'Bluestar', text: '"It is time for me to travel to the Moonstone at Mothermouth to share tongues with StarClan. I must seek their guidance."',
         camPos: { x: -2, y: 3, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-      { speaker: 'Bluestar', text: '"I have chosen you to come with me, ' + pName + '. It is a long journey — beyond WindClan\'s moorland to the cave called Mothermouth."',
+      { speaker: 'Bluestar', text: '"All four of you will come with me. Graypaw, Ravenpaw, ' + pName + ' — and Tigerclaw will lead the escort."',
         camPos: { x: 0, y: 3, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
 
-      { speaker: 'Tigerclaw', text: '"Bluestar, I will join you. The moors are dangerous — WindClan has been driven out by ShadowClan. Who knows what lurks out there now."',
+      { speaker: 'Graypaw', text: '"The Moonstone?! We\'re actually going to Mothermouth? I\'ve heard the elders talk about it — this is amazing!"',
+        camPos: { x: player.position.x + 3, y: 2, z: player.position.z }, camLook: { x: player.position.x + 2, y: 1, z: player.position.z } },
+
+      { speaker: 'Ravenpaw', text: '"M-Mothermouth? Isn\'t that all the way past WindClan territory? That\'s... that\'s really far..."',
+        camPos: { x: player.position.x, y: 2, z: player.position.z + 2 }, camLook: { x: player.position.x - 1, y: 1, z: player.position.z + 1 } },
+
+      { speaker: 'Tigerclaw', text: '"The moors are dangerous now. WindClan has been driven out by ShadowClan. I will protect the patrol."',
         camPos: { x: 5, y: 2, z: -1 }, camLook: { x: 4, y: 1, z: -2 } },
 
-      { speaker: 'Bluestar', text: '"Very well, Tigerclaw. We leave at once. ' + pName + ', stay close and keep your eyes open."',
+      { speaker: 'Bluestar', text: '"We leave at once. Stay close together and keep your eyes open. Let\'s go."',
         camPos: { x: -1, y: 3, z: 0 }, camLook: { x: -3, y: 3, z: -4 } },
 
-      // The journey begins — crossing the territory
-      { narration: true, text: 'You set out from camp with Bluestar and Tigerclaw. The three of you slip through the forest, heading northwest toward WindClan territory.',
+      // The journey begins
+      { narration: true, text: 'The five of you set out from camp together. Bluestar leads the way with Tigerclaw at her side, while you, Graypaw, and Ravenpaw follow behind.',
         camPos: { x: -20, y: 8, z: -20 }, camLook: { x: -40, y: 2, z: -50 } },
 
-      { narration: true, text: 'The trees thin as you reach the edge of ThunderClan\'s forest. Ahead stretches the open moorland of WindClan — but it feels eerily empty.',
+      { speaker: 'Graypaw', text: '"Can you believe it, ' + pName + '? We\'re going to the MOONSTONE! I bet it glows like the sun!"',
+        camPos: { x: -25, y: 3, z: -30 }, camLook: { x: -28, y: 1.5, z: -35 } },
+
+      { speaker: 'Ravenpaw', text: '"I-I just hope we don\'t run into any ShadowClan patrols out here... or worse..."',
+        camPos: { x: -27, y: 2.5, z: -33 }, camLook: { x: -30, y: 1.5, z: -38 } },
+
+      { narration: true, text: 'The trees thin as you reach the edge of ThunderClan\'s forest. Ahead stretches the open moorland of WindClan — eerily empty and silent.',
         camPos: { x: -30, y: 6, z: -55 }, camLook: { x: -50, y: 3, z: -70 } },
 
-      { speaker: 'Tigerclaw', text: '"This territory stinks of ShadowClan. Brokenstar has driven WindClan out. Stay alert."',
+      { speaker: 'Tigerclaw', text: '"This territory stinks of ShadowClan. Brokenstar has driven WindClan out. Stay alert, all of you."',
         camPos: { x: -35, y: 3, z: -60 }, camLook: { x: -40, y: 2, z: -65 } },
 
-      { narration: true, text: 'The wind howls across the barren moor. Without WindClan\'s patrols, the empty hills feel dangerous and exposed. You press on.',
+      { narration: true, text: 'The wind howls across the barren moor. Without WindClan\'s patrols, the empty hills feel dangerous and exposed. You press on in silence.',
         camPos: { x: -50, y: 10, z: -70 }, camLook: { x: -70, y: 3, z: -85 } },
 
       { speaker: 'Bluestar', text: '"The Moonstone lies deep inside Mothermouth, a cave in Highstones. Medicine cats and leaders come here to share tongues with StarClan."',
@@ -5145,58 +5159,97 @@ window.onerror = function(msg, url, line, col, err) {
       { narration: true, text: 'A dark opening yawns in the rock face. This is <strong>Mothermouth</strong> — the entrance to the cave where the Moonstone lies.',
         camPos: { x: -78, y: 4, z: -90 }, camLook: { x: -80, y: 2, z: -94 } },
 
-      { speaker: 'Bluestar', text: '"We must wait for moonrise. When the moon shines into the cave, the Moonstone glows with StarClan\'s light. You must not speak inside."',
+      { speaker: 'Bluestar', text: '"We must wait for moonrise. When the moon shines into the cave, the Moonstone will glow with StarClan\'s light."',
         camPos: { x: -76, y: 3, z: -91 }, camLook: { x: -80, y: 2, z: -93 } },
 
-      { speaker: 'Tigerclaw', text: '"I will stand guard here. Go. I have no need to enter."',
-        camPos: { x: -75, y: 2.5, z: -90 }, camLook: { x: -76, y: 1, z: -92 } },
+      { speaker: 'Bluestar', text: '"Graypaw, Ravenpaw, Tigerclaw — you three will wait out here. ' + pName + ', you are coming inside with me."',
+        camPos: { x: -76, y: 3, z: -90 }, camLook: { x: -78, y: 2, z: -92 } },
 
-      // Inside the cave
-      { narration: true, text: 'You follow Bluestar into the pitch-black tunnel. The stone is cold beneath your paws. The darkness presses in from all sides.',
+      { speaker: 'Graypaw', text: '"Aw, we have to wait outside? I wanted to see the Moonstone!"',
+        camPos: { x: -74, y: 2, z: -89 }, camLook: { x: -75, y: 1.2, z: -90 } },
+
+      { speaker: 'Tigerclaw', text: '"I will guard the entrance. No one enters while Bluestar is inside. Go."',
+        camPos: { x: -75, y: 2.5, z: -90 }, camLook: { x: -76, y: 1.2, z: -91 } },
+
+      { speaker: 'Ravenpaw', text: '"G-good luck in there, ' + pName + '... I\'ve heard it\'s really dark inside..."',
+        camPos: { x: -73, y: 2, z: -89 }, camLook: { x: -74, y: 1, z: -90 } },
+
+      // Going inside — just you and Bluestar
+      { narration: true, text: 'You follow Bluestar into the pitch-black tunnel, leaving the others behind. The stone is ice-cold beneath your paws. The darkness swallows you whole.',
         camPos: { x: -80, y: 2, z: -94 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
-      { narration: true, text: 'The tunnel opens into a vast underground cavern. In the center stands a great rock — the <strong>Moonstone</strong>.',
+      { narration: true, text: 'You can\'t see a thing. You follow the soft sound of Bluestar\'s paws ahead, feeling your whiskers brush the tunnel walls.',
+        camPos: { x: -80, y: 1.8, z: -95 }, camLook: { x: -80, y: 1.2, z: -97 } },
+
+      { narration: true, text: 'The tunnel opens into a vast underground cavern. In the center stands a great rock — the <strong>Moonstone</strong>. It sits in total darkness, waiting.',
         camPos: { x: -80, y: 3, z: -95.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
-      { narration: true, text: 'A shaft of moonlight pierces through a hole in the roof. It strikes the Moonstone — and the crystal erupts in blazing silver-white light!',
+      { speaker: 'Bluestar', text: '"Do not speak from this moment on, ' + pName + '. Watch, and be still."',
+        camPos: { x: -81, y: 2, z: -95.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
+
+      // The Moonstone lights up
+      { narration: true, text: 'A shaft of moonlight pierces through a hole in the cavern roof. It strikes the Moonstone — and the crystal ERUPTS in blazing silver-white light!',
         camPos: { x: -79, y: 2.5, z: -96 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
-      { narration: true, text: 'The light is blinding — like a frozen star fallen to earth. You can feel a strange power humming through your paws. This is the bridge between the living and the dead.',
+      { narration: true, text: 'The light is blinding. The rock shimmers and shines, casting dazzling reflections across every surface. It\'s like a star has fallen into the earth. You shiver at the sheer power of it.',
         camPos: { x: -80, y: 2, z: -96.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
-      { narration: true, text: 'Bluestar crouches and presses her nose to the glowing stone. Her eyes close. She is sharing tongues with StarClan — the warrior ancestors.',
-        camPos: { x: -81, y: 1.5, z: -96 }, camLook: { x: -80, y: 0.8, z: -97 } },
+      { narration: true, text: 'The Moonstone glows with an otherworldly light — shimmering silver, then blazing white, then pulsing blue. It seems alive. The whole cavern trembles with its energy.',
+        camPos: { x: -79.5, y: 1.8, z: -96 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
-      { narration: true, text: 'You watch in awe. The silence is absolute. The Moonstone pulses gently, casting blue-white light across the cavern walls.',
+      // Bluestar sleeps next to the stone
+      { narration: true, text: 'Bluestar pads forward slowly and lies down right next to the shimmering Moonstone. She curls her body against the glowing rock and closes her eyes.',
+        camPos: { x: -81, y: 1.5, z: -96.5 }, camLook: { x: -80, y: 0.6, z: -97 } },
+
+      { narration: true, text: 'She presses her nose gently against the stone. The glow intensifies, washing over her blue-grey fur, making it shimmer like starlight.',
+        camPos: { x: -80.5, y: 1.2, z: -96.8 }, camLook: { x: -80, y: 0.5, z: -97 } },
+
+      { narration: true, text: 'Bluestar lies perfectly still, sleeping beside the shining stone. The Moonstone pulses gently, each pulse sending waves of silver light across her fur and the cavern walls.',
+        camPos: { x: -80, y: 1, z: -96.5 }, camLook: { x: -80, y: 0.5, z: -97.2 } },
+
+      { narration: true, text: 'You watch in silence and awe. Bluestar is dreaming — sharing tongues with StarClan, the warrior ancestors who watch over the Clans from Silverpelt.',
+        camPos: { x: -80, y: 2, z: -96 }, camLook: { x: -80, y: 0.5, z: -97 } },
+
+      { narration: true, text: 'The shimmering light plays across the cavern ceiling like dancing stars. You feel a strange warmth despite the cold stone. Something brushes against your mind...',
         camPos: { x: -80, y: 3, z: -96 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
-      { narration: true, text: '<em>Fire alone will save our Clan...</em> The words drift through your mind unbidden. Is StarClan speaking to you too?',
+      { narration: true, text: '<em>"Fire alone will save our Clan..."</em> The words drift through your mind like a whisper. Is StarClan speaking to you too? You shiver — not from the cold.',
         camPos: { x: -80, y: 2, z: -96.5 }, camLook: { x: -80, y: 1.5, z: -97 } },
 
       // Bluestar wakes
-      { narration: true, text: 'After what feels like an eternity, Bluestar stirs. The moonlight fades. The Moonstone dims to ordinary grey rock.',
+      { narration: true, text: 'After what feels like an eternity, Bluestar stirs. Her eyes flutter open. The moonlight begins to fade. The shimmering glow dies away, and the Moonstone becomes ordinary grey rock once more.',
         camPos: { x: -79, y: 2.5, z: -96 }, camLook: { x: -80, y: 1, z: -97 } },
 
       { speaker: 'Bluestar', text: '"It is done. StarClan has spoken to me... but their message was unclear. They showed me fire and shadow, locked in battle."',
         camPos: { x: -81, y: 2, z: -95 }, camLook: { x: -80, y: 1.5, z: -96 } },
 
-      { speaker: 'Bluestar', text: '"Come, ' + pName + '. We must return before dawn."',
+      { speaker: 'Bluestar', text: '"Come, ' + pName + '. We must return to the others before dawn."',
         camPos: { x: -80, y: 2, z: -94 }, camLook: { x: -80, y: 1.5, z: -93 } },
 
-      // The return — the rat attack
-      { narration: true, text: 'You emerge from Mothermouth into the cold night air. Tigerclaw is waiting, his amber eyes gleaming.',
-        camPos: { x: -77, y: 3, z: -91 }, camLook: { x: -76, y: 1, z: -92 } },
+      // Rejoining the others outside
+      { narration: true, text: 'You emerge from Mothermouth into the cold night air. Tigerclaw stands guard. Graypaw and Ravenpaw are huddled together nearby.',
+        camPos: { x: -77, y: 3, z: -91 }, camLook: { x: -76, y: 1, z: -90 } },
 
-      { narration: true, text: 'On the return journey, you pass near an old Twoleg barn. A musty, foul smell hangs in the air.',
+      { speaker: 'Graypaw', text: '"' + pName + '! What was it like in there? Was the Moonstone amazing?!"',
+        camPos: { x: -74, y: 2, z: -89 }, camLook: { x: -75, y: 1.2, z: -90 } },
+
+      { speaker: 'Ravenpaw', text: '"Y-you were in there for so long... we were starting to worry..."',
+        camPos: { x: -73, y: 2, z: -89 }, camLook: { x: -74, y: 1, z: -90 } },
+
+      { speaker: 'Bluestar', text: '"Let us go. We have a long journey home."',
+        camPos: { x: -76, y: 2.5, z: -90 }, camLook: { x: -78, y: 1.5, z: -92 } },
+
+      // The return — the rat attack
+      { narration: true, text: 'The five of you begin the journey home. You pass near an old Twoleg barn. A musty, foul smell hangs in the air.',
         camPos: { x: -60, y: 5, z: -75 }, camLook: { x: -55, y: 2, z: -70 } },
 
-      { speaker: 'Tigerclaw', text: '"Rats! Be on your guard!"',
+      { speaker: 'Tigerclaw', text: '"Rats! Everyone, be on your guard!"',
         camPos: { x: -55, y: 3, z: -72 }, camLook: { x: -50, y: 1, z: -70 } },
 
       { narration: true, text: 'A swarm of rats pours from the barn! Dozens of them, their eyes gleaming red in the darkness. They attack without fear!',
         camPos: { x: -52, y: 3, z: -70 }, camLook: { x: -50, y: 1, z: -68 } },
 
-      { narration: true, text: 'You fight desperately alongside Bluestar and Tigerclaw. The rats bite and scratch, coming in wave after wave. There are too many!',
+      { narration: true, text: 'You fight desperately alongside Bluestar, Tigerclaw, Graypaw, and Ravenpaw. The rats bite and scratch, coming in wave after wave. There are too many!',
         camPos: { x: -50, y: 4, z: -69 }, camLook: { x: -52, y: 1, z: -71 } },
 
       { narration: true, text: 'A huge rat sinks its teeth into Bluestar\'s shoulder. She yowls in pain and stumbles! Tigerclaw tears it away with a vicious swipe.',
@@ -5205,7 +5258,7 @@ window.onerror = function(msg, url, line, col, err) {
       { narration: true, text: 'A tabby barn cat suddenly appears from the shadows, helping to drive the rats back. "Run! Get out of here!" he yowls.',
         camPos: { x: -48, y: 3, z: -68 }, camLook: { x: -50, y: 1.5, z: -70 } },
 
-      { narration: true, text: 'The three of you break free and flee. Bluestar is badly wounded — she staggers, her breathing labored.',
+      { narration: true, text: 'You all break free and flee. Bluestar is badly wounded — she staggers, her breathing labored.',
         camPos: { x: -40, y: 4, z: -60 }, camLook: { x: -45, y: 1, z: -65 } },
 
       { speaker: 'Tigerclaw', text: '"Bluestar! Can you walk? We must keep moving."',
@@ -5217,11 +5270,17 @@ window.onerror = function(msg, url, line, col, err) {
       { narration: true, text: '<em>You realize with horror: Bluestar just lost a life.</em> Leaders have nine lives given by StarClan — but they are not limitless.',
         camPos: { x: -35, y: 3, z: -55 }, camLook: { x: -38, y: 1, z: -58 } },
 
-      { speaker: 'Bluestar', text: '"I... I am alright, ' + pName + '. StarClan has returned me. But I have fewer lives now. We must be more careful."',
+      { speaker: 'Bluestar', text: '"I... I am alright. StarClan has returned me. But I have fewer lives now. We must be more careful."',
         camPos: { x: -37, y: 2, z: -56 }, camLook: { x: -40, y: 1, z: -58 } },
 
+      { speaker: 'Graypaw', text: '"Bluestar lost a LIFE?! That\'s... that\'s really scary, ' + pName + '..."',
+        camPos: { x: -36, y: 2, z: -54 }, camLook: { x: -37, y: 1.2, z: -55 } },
+
+      { speaker: 'Ravenpaw', text: '"I-I thought she was dead... I was so scared..."',
+        camPos: { x: -35, y: 2, z: -54 }, camLook: { x: -36, y: 1, z: -55 } },
+
       // Return to camp
-      { narration: true, text: 'Slowly, painfully, you help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. Dawn is breaking.',
+      { narration: true, text: 'Slowly, painfully, you all help Bluestar back through WindClan\'s empty territory and into ThunderClan\'s forest. Dawn is breaking.',
         camPos: { x: -15, y: 8, z: -30 }, camLook: { x: 0, y: 2, z: 0 } },
 
       { narration: true, text: 'You reach ThunderClan camp just as the sun rises. Spottedleaf rushes to tend Bluestar\'s wounds.',
@@ -5233,13 +5292,13 @@ window.onerror = function(msg, url, line, col, err) {
       { speaker: 'Bluestar', text: '"Rats... near the barn on the way back from Highstones. We were outnumbered."',
         camPos: { x: -8, y: 2, z: 4 }, camLook: { x: -10, y: 1.5, z: 3 } },
 
-      { speaker: 'Graypaw', text: '"' + pName + '! You went to the Moonstone?! What was it like? Tell me everything!"',
+      { speaker: 'Graypaw', text: '"' + pName + '! You actually saw the Moonstone up close! What was it like? Tell me everything!"',
         camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
 
-      { narration: true, text: 'You tell Graypaw about the shining Moonstone, the dark tunnels, and the terrible rat attack. His eyes grow wide.',
+      { narration: true, text: 'You tell Graypaw and Ravenpaw about the shimmering, shining Moonstone — how it blazed with light, how Bluestar slept beside it, how you heard the prophecy in your mind.',
         camPos: { x: 3, y: 2, z: 5 }, camLook: { x: 1, y: 1, z: 3 } },
 
-      { speaker: 'Graypaw', text: '"Wow... you\'re so brave, ' + pName + '! I can\'t believe Bluestar lost a life though... that\'s really scary."',
+      { speaker: 'Graypaw', text: '"That sounds INCREDIBLE. I wish I could have seen it... but I\'m glad you did, ' + pName + '."',
         camPos: { x: 3, y: 2, z: 4 }, camLook: { x: 2, y: 1, z: 5 } },
 
       { narration: true, text: 'Tigerclaw says nothing. He watches Bluestar being carried into the medicine den. His amber eyes are unreadable.',
@@ -5256,6 +5315,7 @@ window.onerror = function(msg, url, line, col, err) {
       if (bs) { bs.group.position.set(-9, 0, 5); }
       if (tc) { tc.group.position.set(6, 0, -3); }
       if (gp) { gp.group.position.set(3, 0, 4); }
+      if (rp) { rp.group.position.set(4, 0, 5); }
       player.position = { x: 2, y: 0, z: 3 };
       catGroup.position.set(2, 0, 3);
       placeCatsInCamp();
