@@ -1348,15 +1348,17 @@ window.onerror = function(msg, url, line, col, err) {
     const orange = 0xff8c00, darkOrange = 0xcc6600, lightOrange = 0xffaa44;
     const cream = 0xffcc99, white = 0xffeedd, pink = 0xff7799;
 
-    /* --- body (two overlapping capsules for smooth shape) --- */
+    /* --- body (capsule oriented head-to-tail along Z axis) --- */
     const bodyMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 15 });
-    const bodyMain = makeCapsuleMesh(0.22, 0.95, 12, 16, bodyMat);
-    bodyMain.rotation.z = Math.PI / 2; bodyMain.position.set(0, 0.58, 0); bodyMain.castShadow = true;
+    const bodyMain = makeCapsuleMesh(0.20, 0.90, 12, 16, bodyMat);
+    bodyMain.rotation.x = Math.PI / 2; // round ends face head (front) and tail (back)
+    bodyMain.position.set(0, 0.58, 0); bodyMain.castShadow = true;
     catGroup.add(bodyMain);
     // belly (lighter, slightly below)
     const bellyMat = new THREE.MeshPhongMaterial({ color: cream, shininess: 10 });
-    const belly = makeCapsuleMesh(0.17, 0.65, 8, 12, bellyMat);
-    belly.rotation.z = Math.PI / 2; belly.position.set(0, 0.49, 0.04);
+    const belly = makeCapsuleMesh(0.15, 0.60, 8, 12, bellyMat);
+    belly.rotation.x = Math.PI / 2; // same orientation as body
+    belly.position.set(0, 0.49, 0.04);
     catGroup.add(belly);
 
     /* --- head --- */
@@ -1479,24 +1481,24 @@ window.onerror = function(msg, url, line, col, err) {
       catGroup.add(bigBean);
     });
 
-    /* --- tail (curved upward, tight segments) --- */
+    /* --- tail (smooth connected curve — overlapping segments, no gaps) --- */
     const tailMat = new THREE.MeshPhongMaterial({ color: orange });
     catGroup.tailSegs = [];
-    const tailSegs = 10;
+    const tailSegs = 14; // more segments for smoother look
     for (let i = 0; i < tailSegs; i++) {
       const t = i / (tailSegs - 1); // 0 to 1
-      const radius = 0.06 - t * 0.035; // tapers from 0.06 to 0.025
-      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.02, radius), 6, 5), tailMat);
-      // tail curves upward and back in a gentle arc
-      const zOff = -0.40 - t * 0.45; // goes back
-      const yOff = 0.52 + t * 0.35;  // curves up
+      const radius = 0.065 - t * 0.040; // tapers from 0.065 to 0.025
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.022, radius), 8, 6), tailMat);
+      // tail curves upward and back in a smooth arc — segments OVERLAP
+      const zOff = -0.40 - t * 0.38; // goes back (closer together)
+      const yOff = 0.52 + t * 0.30;  // curves up gently
       seg.position.set(0, yOff, zOff);
       catGroup.add(seg);
       catGroup.tailSegs.push(seg);
     }
-    // tail tip (darker)
-    const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), new THREE.MeshPhongMaterial({ color: darkOrange }));
-    tailTip.position.set(0, 0.87, -0.85);
+    // tail tip (slightly darker, overlaps last segment)
+    const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.020, 6, 4), new THREE.MeshPhongMaterial({ color: darkOrange }));
+    tailTip.position.set(0, 0.82, -0.78);
     catGroup.add(tailTip);
     catGroup.tailSegs.push(tailTip);
 
@@ -1505,14 +1507,26 @@ window.onerror = function(msg, url, line, col, err) {
     chest.position.set(0, 0.55, 0.36); chest.scale.set(0.6, 0.7, 0.45);
     catGroup.add(chest);
 
-    /* --- tabby stripes --- */
+    /* --- kittypet collar (red with a golden bell — visible only when storyPhase is 'house') --- */
+    const collarMat = new THREE.MeshPhongMaterial({ color: 0xcc2222, shininess: 40 });
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 8, 20), collarMat);
+    collar.position.set(0, 0.72, 0.45);
+    collar.rotation.x = Math.PI / 2.2; // angled slightly to sit on neck
+    catGroup.add(collar);
+    // Bell on the collar
+    const bellMat = new THREE.MeshPhongMaterial({ color: 0xffdd00, shininess: 90 });
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), bellMat);
+    bell.position.set(0, 0.62, 0.58);
+    catGroup.add(bell);
+    // Tiny slit on the bell
+    const bellSlit = new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.03, 0.01), new THREE.MeshBasicMaterial({ color: 0x333300 }));
+    bellSlit.position.set(0, 0.62, 0.60);
+    catGroup.add(bellSlit);
+    // Store collar parts so we can show/hide them
+    catGroup.collarParts = [collar, bell, bellSlit];
+
+    /* --- tabby forehead M marking (no body stripes — Rusty is a clean ginger cat) --- */
     const stripeMat = new THREE.MeshPhongMaterial({ color: darkOrange });
-    for (let i = 0; i < 5; i++) {
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.015, 0.05), stripeMat);
-      stripe.position.set(0, 0.88, 0.12 - i * 0.13);
-      catGroup.add(stripe);
-    }
-    // forehead M marking
     const mMark = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.015, 0.03), stripeMat);
     mMark.position.set(0, 1.02, 0.65);
     catGroup.add(mMark);
@@ -2610,6 +2624,7 @@ window.onerror = function(msg, url, line, col, err) {
      ==================================================== */
   function startCutscene (scenes, onDone) {
     gameState = 'cutscene';
+    if (catGroup) catGroup.visible = true; // make sure cat is visible
     setCatFirstPerson(false); // show full cat during cutscenes
     cutsceneQueue = scenes.slice();
     cutsceneOverlay.classList.remove('hidden');
@@ -5318,13 +5333,27 @@ window.onerror = function(msg, url, line, col, err) {
   /** Show full cat model (for cutscenes) or hide body for first-person */
   function setCatFirstPerson (firstPerson) {
     if (!catGroup) return;
+    // Determine if collar should be visible (only when kittypet)
+    const showCollar = storyPhase === 'house';
+
     catGroup.children.forEach(child => {
+      const isCollar = catGroup.collarParts && catGroup.collarParts.includes(child);
+
       if (firstPerson) {
         const isLeg = catGroup.legs && catGroup.legs.includes(child);
         const isTail = catGroup.tailSegs && catGroup.tailSegs.includes(child);
-        child.visible = isLeg || isTail; // only paws + tail visible
+        if (isCollar) {
+          child.visible = false; // collar not visible in first person (it's on your neck)
+        } else {
+          child.visible = isLeg || isTail; // only paws + tail visible
+        }
       } else {
-        child.visible = true; // show everything
+        // Show everything — but collar only when kittypet
+        if (isCollar) {
+          child.visible = showCollar;
+        } else {
+          child.visible = true;
+        }
       }
     });
   }
