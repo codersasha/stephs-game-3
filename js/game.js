@@ -215,12 +215,12 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /** Bird tweet — short high chirpy sound */
+  /** Bird tweet — cheerful chirps (LOUDER) */
   function playBirdTweet () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      // 2-3 quick chirps
-      const chirps = 2 + Math.floor(Math.random() * 2);
+      const chirps = 2 + Math.floor(Math.random() * 3);
       for (let i = 0; i < chirps; i++) {
         const delay = i * (0.1 + Math.random() * 0.08);
         const o = audioCtx.createOscillator();
@@ -231,14 +231,57 @@ window.onerror = function(msg, url, line, col, err) {
         o.frequency.setValueAtTime(pitch, t + delay);
         o.frequency.linearRampToValueAtTime(pitch * (0.8 + Math.random() * 0.4), t + delay + 0.06);
         o.frequency.linearRampToValueAtTime(pitch * 1.1, t + delay + 0.10);
-        g.gain.setValueAtTime(0.04 + Math.random() * 0.02, t + delay);
-        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
-        o.start(t + delay); o.stop(t + delay + 0.15);
+        g.gain.setValueAtTime(0.12 + Math.random() * 0.06, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.15);
+        o.start(t + delay); o.stop(t + delay + 0.18);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) {}
   }
 
-  /** Wind rustling through trees — soft filtered noise */
+  /** Songbird — longer melodic call */
+  function playSongbird () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const notes = [2200, 2600, 2400, 2800, 2500, 2900];
+      for (let i = 0; i < 4 + Math.floor(Math.random() * 3); i++) {
+        const delay = i * 0.15;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine';
+        const p = notes[i % notes.length] + Math.random() * 300;
+        o.frequency.setValueAtTime(p, t + delay);
+        o.frequency.linearRampToValueAtTime(p * 0.85, t + delay + 0.12);
+        g.gain.setValueAtTime(0.10, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.14);
+        o.start(t + delay); o.stop(t + delay + 0.16);
+      }
+    } catch (e) {}
+  }
+
+  /** Owl hoot — deep, eerie */
+  function playOwlHoot () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      for (let i = 0; i < 2; i++) {
+        const delay = i * 0.6;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(380, t + delay);
+        o.frequency.linearRampToValueAtTime(320, t + delay + 0.4);
+        g.gain.setValueAtTime(0.12, t + delay);
+        g.gain.linearRampToValueAtTime(0.08, t + delay + 0.2);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
+        o.start(t + delay); o.stop(t + delay + 0.55);
+      }
+    } catch (e) {}
+  }
+
+  /** Wind rustling through trees — soft filtered noise (LOUDER) */
   function playWindRustle () {
     if (!audioCtx) return;
     try {
@@ -254,33 +297,75 @@ window.onerror = function(msg, url, line, col, err) {
       const g = audioCtx.createGain();
       noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.025, t + 0.5);
-      g.gain.linearRampToValueAtTime(0.015, t + 1.5);
+      g.gain.linearRampToValueAtTime(0.07, t + 0.5);
+      g.gain.linearRampToValueAtTime(0.04, t + 1.5);
       g.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
       noise.start(t); noise.stop(t + 2.5);
-    } catch (e) { /* silent */ }
+    } catch (e) {}
   }
 
-  /** Cricket chirps — nighttime ambient */
+  /** Leaves rustling / crunching underfoot */
+  function playLeafCrunch () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 0.15;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highpass'; filter.frequency.value = 2000 + Math.random() * 1000;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.10 + Math.random() * 0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      noise.start(t); noise.stop(t + 0.15);
+    } catch (e) {}
+  }
+
+  /** Cricket chirps — nighttime ambient (LOUDER) */
   function playCricket () {
     if (!audioCtx) return;
     try {
       const t = audioCtx.currentTime;
-      for (let i = 0; i < 4; i++) {
+      const count = 4 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < count; i++) {
         const delay = i * 0.07;
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         o.connect(g); g.connect(audioCtx.destination);
         o.type = 'square';
         o.frequency.value = 4200 + Math.random() * 800;
-        g.gain.setValueAtTime(0.012, t + delay);
+        g.gain.setValueAtTime(0.04, t + delay);
         g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.04);
         o.start(t + delay); o.stop(t + delay + 0.05);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) {}
   }
 
-  /** Water / river flowing — gentle filtered noise */
+  /** Frog croak — deep rhythmic */
+  function playFrogCroak () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+        const delay = i * 0.25;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(120 + Math.random() * 40, t + delay);
+        o.frequency.linearRampToValueAtTime(80, t + delay + 0.1);
+        g.gain.setValueAtTime(0.08, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.15);
+        o.start(t + delay); o.stop(t + delay + 0.18);
+      }
+    } catch (e) {}
+  }
+
+  /** Water / river flowing — gentle filtered noise (LOUDER) */
   function playRiverSound () {
     if (!audioCtx) return;
     try {
@@ -295,10 +380,230 @@ window.onerror = function(msg, url, line, col, err) {
       filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.5;
       const g = audioCtx.createGain();
       noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.015, t);
+      g.gain.setValueAtTime(0.06, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
       noise.start(t); noise.stop(t + 1.5);
-    } catch (e) { /* silent */ }
+    } catch (e) {}
+  }
+
+  /** Water splash — short burst */
+  function playWaterSplash () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 0.3;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass'; filter.frequency.value = 1200; filter.Q.value = 0.3;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.15, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      noise.start(t); noise.stop(t + 0.3);
+    } catch (e) {}
+  }
+
+  /** Cat purr — warm rumble */
+  function playPurr () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sawtooth';
+      o.frequency.value = 28 + Math.random() * 8;
+      g.gain.setValueAtTime(0.06, t);
+      g.gain.setValueAtTime(0.08, t + 0.3);
+      g.gain.setValueAtTime(0.05, t + 0.6);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+      o.start(t); o.stop(t + 1.0);
+    } catch (e) {}
+  }
+
+  /** Cat hiss — angry sound */
+  function playHiss () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 0.5;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'highpass'; filter.frequency.value = 3000;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.15, t);
+      g.gain.linearRampToValueAtTime(0.20, t + 0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      noise.start(t); noise.stop(t + 0.5);
+    } catch (e) {}
+  }
+
+  /** Cat yowl — distressed sound */
+  function playYowl () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(500, t);
+      o.frequency.linearRampToValueAtTime(800, t + 0.2);
+      o.frequency.linearRampToValueAtTime(400, t + 0.5);
+      o.frequency.linearRampToValueAtTime(600, t + 0.7);
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.linearRampToValueAtTime(0.15, t + 0.2);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+      o.start(t); o.stop(t + 0.85);
+    } catch (e) {}
+  }
+
+  /** Bell jingle — for collar */
+  function playBellJingle () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const delay = i * 0.08;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(2800 + i * 200, t + delay);
+        g.gain.setValueAtTime(0.08, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.2);
+        o.start(t + delay); o.stop(t + delay + 0.25);
+      }
+    } catch (e) {}
+  }
+
+  /** Drink/lap water sound */
+  function playDrinkSound () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const delay = i * 0.2;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(600, t + delay);
+        o.frequency.linearRampToValueAtTime(300, t + delay + 0.08);
+        g.gain.setValueAtTime(0.10, t + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+        o.start(t + delay); o.stop(t + delay + 0.15);
+      }
+    } catch (e) {}
+  }
+
+  /** Prey caught — excited squeak + crunch */
+  function playPreyCatch () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      // Squeak
+      const o1 = audioCtx.createOscillator();
+      const g1 = audioCtx.createGain();
+      o1.connect(g1); g1.connect(audioCtx.destination);
+      o1.type = 'sine';
+      o1.frequency.setValueAtTime(3000, t);
+      o1.frequency.linearRampToValueAtTime(4000, t + 0.05);
+      o1.frequency.linearRampToValueAtTime(2500, t + 0.12);
+      g1.gain.setValueAtTime(0.10, t);
+      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      o1.start(t); o1.stop(t + 0.18);
+      // Crunch
+      const bufferSize = audioCtx.sampleRate * 0.1;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const g2 = audioCtx.createGain();
+      noise.connect(g2); g2.connect(audioCtx.destination);
+      g2.gain.setValueAtTime(0.08, t + 0.15);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      noise.start(t + 0.15); noise.stop(t + 0.28);
+    } catch (e) {}
+  }
+
+  /** Heartbeat — tense moments */
+  function playHeartbeat () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const delay = i * 0.7;
+        // Lub
+        const o1 = audioCtx.createOscillator();
+        const g1 = audioCtx.createGain();
+        o1.connect(g1); g1.connect(audioCtx.destination);
+        o1.type = 'sine'; o1.frequency.value = 50;
+        g1.gain.setValueAtTime(0.15, t + delay);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1);
+        o1.start(t + delay); o1.stop(t + delay + 0.12);
+        // Dub
+        const o2 = audioCtx.createOscillator();
+        const g2 = audioCtx.createGain();
+        o2.connect(g2); g2.connect(audioCtx.destination);
+        o2.type = 'sine'; o2.frequency.value = 40;
+        g2.gain.setValueAtTime(0.12, t + delay + 0.15);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.25);
+        o2.start(t + delay + 0.15); o2.stop(t + delay + 0.28);
+      }
+    } catch (e) {}
+  }
+
+  /** Twig snap — alerting sound */
+  function playTwigSnap () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 0.05;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.15));
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const g = audioCtx.createGain();
+      noise.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.18, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      noise.start(t); noise.stop(t + 0.05);
+    } catch (e) {}
+  }
+
+  /** Thunder rumble — distant storm */
+  function playThunderRumble () {
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const bufferSize = audioCtx.sampleRate * 3;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 150;
+      const g = audioCtx.createGain();
+      noise.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.02, t);
+      g.gain.linearRampToValueAtTime(0.12, t + 0.3);
+      g.gain.linearRampToValueAtTime(0.08, t + 1.0);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+      noise.start(t); noise.stop(t + 3.0);
+    } catch (e) {}
   }
 
   function playSound (type) {
@@ -311,84 +616,128 @@ window.onerror = function(msg, url, line, col, err) {
       switch (type) {
         case 'step':
           osc.frequency.value = 80 + Math.random() * 40; osc.type = 'triangle';
-          gain.gain.value = 0.04; gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-          osc.start(); osc.stop(t + 0.08); break;
+          gain.gain.value = 0.10; gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          osc.start(); osc.stop(t + 0.08);
+          // Also play a leaf crunch on some steps
+          if (Math.random() < 0.3) playLeafCrunch();
+          // Bell jingle when kittypet
+          if (storyPhase === 'house' && Math.random() < 0.15) playBellJingle();
+          break;
         case 'meow':
           osc.frequency.setValueAtTime(650, t); osc.type = 'sine';
           osc.frequency.linearRampToValueAtTime(500, t + 0.15);
           osc.frequency.linearRampToValueAtTime(420, t + 0.35);
-          gain.gain.setValueAtTime(0.14, t);
+          gain.gain.setValueAtTime(0.22, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
           osc.start(); osc.stop(t + 0.42); break;
         case 'ceremony':
-          // Dramatic rising tone
+          // Dramatic rising tone — LOUD
           osc.frequency.setValueAtTime(330, t); osc.type = 'sine';
           osc.frequency.linearRampToValueAtTime(550, t + 0.4);
           osc.frequency.linearRampToValueAtTime(660, t + 0.8);
-          gain.gain.setValueAtTime(0.10, t);
-          gain.gain.setValueAtTime(0.12, t + 0.4);
+          gain.gain.setValueAtTime(0.20, t);
+          gain.gain.setValueAtTime(0.25, t + 0.4);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
           osc.start(); osc.stop(t + 1.0); break;
         case 'hit':
           osc.frequency.setValueAtTime(200, t); osc.type = 'sawtooth';
           osc.frequency.linearRampToValueAtTime(80, t + 0.12);
-          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.setValueAtTime(0.22, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
           osc.start(); osc.stop(t + 0.15); break;
         case 'hurt':
           osc.frequency.setValueAtTime(300, t); osc.type = 'sawtooth';
           osc.frequency.linearRampToValueAtTime(100, t + 0.2);
-          gain.gain.setValueAtTime(0.10, t);
+          gain.gain.setValueAtTime(0.20, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-          osc.start(); osc.stop(t + 0.25); break;
+          osc.start(); osc.stop(t + 0.25);
+          playYowl(); // also yowl when hurt
+          break;
         case 'swoosh':
           osc.frequency.setValueAtTime(800, t); osc.type = 'sine';
           osc.frequency.linearRampToValueAtTime(200, t + 0.15);
-          gain.gain.setValueAtTime(0.06, t);
+          gain.gain.setValueAtTime(0.14, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
           osc.start(); osc.stop(t + 0.18); break;
         case 'battle':
-          // Dramatic battle start sound
+          // Dramatic battle start — LOUD
           osc.frequency.setValueAtTime(150, t); osc.type = 'sawtooth';
           osc.frequency.linearRampToValueAtTime(400, t + 0.2);
           osc.frequency.linearRampToValueAtTime(200, t + 0.5);
-          gain.gain.setValueAtTime(0.12, t);
-          gain.gain.setValueAtTime(0.14, t + 0.2);
+          gain.gain.setValueAtTime(0.22, t);
+          gain.gain.setValueAtTime(0.25, t + 0.2);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-          osc.start(); osc.stop(t + 0.6); break;
+          osc.start(); osc.stop(t + 0.6);
+          playHiss(); // hiss when battle starts
+          playHeartbeat();
+          break;
         case 'danger':
-          // Warning buzzer
+          // Warning buzzer — LOUD
           osc.frequency.setValueAtTime(440, t); osc.type = 'square';
           osc.frequency.setValueAtTime(0, t + 0.15);
           osc.frequency.setValueAtTime(440, t + 0.3);
-          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.setValueAtTime(0.16, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-          osc.start(); osc.stop(t + 0.5); break;
+          osc.start(); osc.stop(t + 0.5);
+          playHeartbeat();
+          break;
         case 'eat':
           // Happy munching sound
           osc.frequency.setValueAtTime(300, t); osc.type = 'triangle';
           osc.frequency.linearRampToValueAtTime(450, t + 0.1);
           osc.frequency.linearRampToValueAtTime(350, t + 0.2);
           osc.frequency.linearRampToValueAtTime(500, t + 0.3);
-          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.setValueAtTime(0.14, t);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-          osc.start(); osc.stop(t + 0.35); break;
+          osc.start(); osc.stop(t + 0.35);
+          playPurr(); // purr while eating
+          break;
+        case 'drink':
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+          playDrinkSound();
+          break;
+        case 'purr':
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+          playPurr();
+          break;
+        case 'hiss':
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+          playHiss();
+          break;
+        case 'splash':
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+          playWaterSplash();
+          break;
+        case 'catch':
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+          playPreyCatch();
+          break;
+        case 'thunder':
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
+          playThunderRumble();
+          break;
         case 'ambient':
-          // Randomly pick a forest ambient sound
-          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01); // dummy, we use the functions below
+          // Randomly pick a forest ambient sound — many more varieties!
+          gain.gain.value = 0; osc.start(); osc.stop(t + 0.01);
           const r = Math.random();
-          if (r < 0.35)      playBirdTweet();
-          else if (r < 0.55) playWindRustle();
-          else if (r < 0.70) playCricket();
-          else if (r < 0.80) playRiverSound();
+          if (r < 0.22)      playBirdTweet();
+          else if (r < 0.35) playSongbird();
+          else if (r < 0.48) playWindRustle();
+          else if (r < 0.58) playCricket();
+          else if (r < 0.65) playFrogCroak();
+          else if (r < 0.72) playRiverSound();
+          else if (r < 0.78) playLeafCrunch();
+          else if (r < 0.82) playTwigSnap();
+          else if (r < 0.86) playOwlHoot();
+          else if (r < 0.89) playThunderRumble();
           // else silence — natural pause
           break;
         default:
-          osc.frequency.value = 200; osc.type = 'sine'; gain.gain.value = 0.05;
+          osc.frequency.value = 200; osc.type = 'sine'; gain.gain.value = 0.08;
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
           osc.start(); osc.stop(t + 0.2);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) {}
   }
 
   /** Play ambient forest sounds more frequently for immersion */
@@ -5628,9 +5977,25 @@ window.onerror = function(msg, url, line, col, err) {
     messageTextEl.textContent = m.text;
     messageCallback = m.callback || null;
     messageBox.classList.add('visible');
-    // Play cat voice for speaker
+    // Play appropriate sound for speaker
     if (m.speaker && m.speaker !== 'Narrator') {
       playCatVoice(m.speaker);
+    } else if (m.speaker === 'Narrator') {
+      // Narrator gets a soft chime
+      try {
+        if (audioCtx) {
+          const t = audioCtx.currentTime;
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g); g.connect(audioCtx.destination);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(880, t);
+          o.frequency.linearRampToValueAtTime(1100, t + 0.1);
+          g.gain.setValueAtTime(0.08, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          o.start(t); o.stop(t + 0.35);
+        }
+      } catch (e) {}
     }
   }
 
@@ -6087,6 +6452,9 @@ window.onerror = function(msg, url, line, col, err) {
               if (isNPCNearTarget(c, 2)) {
                 // "Caught prey" - now carry it back
                 ai.carryingPrey = true;
+                // Play prey catch sound if player is nearby
+                const dToPlayer = Math.sqrt((c.group.position.x - player.position.x)**2 + (c.group.position.z - player.position.z)**2);
+                if (dToPlayer < 30) playPreyCatch();
                 ai.target = { x: FRESH_KILL.x + (Math.random()-0.5)*2, z: FRESH_KILL.z + (Math.random()-0.5)*1 };
               }
             }
@@ -6111,6 +6479,11 @@ window.onerror = function(msg, url, line, col, err) {
             if (isNPCNearTarget(c, 2)) {
               // Drinking for a moment
               c._walking = false;
+              // Play drinking sound occasionally
+              if (Math.random() < 0.02) {
+                const dToPlayer = Math.sqrt((c.group.position.x - player.position.x)**2 + (c.group.position.z - player.position.z)**2);
+                if (dToPlayer < 20) playDrinkSound();
+              }
               ai.timer -= dt;
               if (ai.timer <= 16) { // drank for ~4 seconds
                 ai.task = 'idle';
@@ -6143,7 +6516,15 @@ window.onerror = function(msg, url, line, col, err) {
             if (isNPCNearTarget(c, 2)) {
               c._walking = false;
               ai.target = null;
+              // Play eating sound once when they arrive
+              const dToP = Math.sqrt((c.group.position.x - player.position.x)**2 + (c.group.position.z - player.position.z)**2);
+              if (dToP < 15) playSound('eat');
             }
+          }
+          // Occasional purring while eating
+          if (!ai.target && Math.random() < 0.01) {
+            const dToP2 = Math.sqrt((c.group.position.x - player.position.x)**2 + (c.group.position.z - player.position.z)**2);
+            if (dToP2 < 12) playPurr();
           }
           if (ai.timer <= 0) { ai.task = 'idle'; ai.timer = 3 + Math.random() * 5; ai.target = null; }
           break;
@@ -6224,7 +6605,28 @@ window.onerror = function(msg, url, line, col, err) {
         autoSaveTimer = 0;
         saveGame();
       }
-      if (Math.random() < 0.004) playSound('ambient');
+      // Ambient sounds — play much more often!
+      if (Math.random() < 0.015) playSound('ambient');
+      // Location-based sounds
+      if (player.position) {
+        const territory = GameLogic.getTerritory(player.position);
+        // Near water — play river/splash sounds
+        const dRiver = Math.abs(player.position.x - 75);
+        if (dRiver < 15 && Math.random() < 0.008) playRiverSound();
+        if (dRiver < 8 && Math.random() < 0.003) playWaterSplash();
+        // Near Thunderpath — car whooshes
+        if (territory === 'Thunderpath' && Math.random() < 0.01) playSound('danger');
+        // WindClan — more wind
+        if (territory === 'WindClan' && Math.random() < 0.01) playWindRustle();
+        // Near stream
+        const dStream = Math.sqrt((player.position.x - WATER_SPOT.x) ** 2 + (player.position.z - WATER_SPOT.z) ** 2);
+        if (dStream < 10 && Math.random() < 0.006) playRiverSound();
+        // In camp — purring cats, rustling
+        const dCamp = Math.sqrt(player.position.x ** 2 + player.position.z ** 2);
+        if (dCamp < 15 && Math.random() < 0.004) playPurr();
+        // In house — bell jingle
+        if (player.position.z > 81 && Math.abs(player.position.x) < 6 && Math.random() < 0.005) playBellJingle();
+      }
     }
 
     if (gameState === 'cutscene') {
