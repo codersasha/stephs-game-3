@@ -4572,12 +4572,16 @@ window.onerror = function(msg, url, line, col, err) {
       }
       // 'E' or 'e' to talk to nearest cat
       if ((e.key === 'e' || e.key === 'E') && gameState === 'playing' && !denOpen) {
-        // Check if near a den entrance first
-        const nearDen = getNearestDen();
-        if (nearDen) {
-          enterDen(nearDen);
+        // Check intruders first, then dens, then talk
+        if (intruderActive && intruderPatrolAssigned && confrontIntruder()) {
+          // confronted an intruder
         } else {
-          talkToNearestCat();
+          const nearDen = getNearestDen();
+          if (nearDen) {
+            enterDen(nearDen);
+          } else {
+            talkToNearestCat();
+          }
         }
       }
       // 'M' or 'm' to toggle map
@@ -4812,6 +4816,8 @@ window.onerror = function(msg, url, line, col, err) {
     bAction.addEventListener('touchstart', e => {
       e.preventDefault(); initAudio();
       if (denOpen) { leaveDen(); return; }
+      // Check intruders first
+      if (intruderActive && intruderPatrolAssigned && gameState === 'playing' && confrontIntruder()) return;
       const nearDen = getNearestDen();
       if (nearDen && gameState === 'playing') { enterDen(nearDen); }
       else { talkToNearestCat(); }
@@ -5954,6 +5960,251 @@ window.onerror = function(msg, url, line, col, err) {
         },
       });
     });
+  }
+
+  /* ====================================================
+     TERRITORY INTRUDERS — enemy cats that sneak into ThunderClan
+     Bluestar assigns a patrol to chase them out!
+     ==================================================== */
+  let intruderTimer = 0;          // seconds until next intruder event
+  let intruderCooldown = 120;     // minimum seconds between intruder events
+  let intruderActive = false;     // is there an active intruder to chase?
+  let intruderCats = [];          // { group, name, clan, x, z, fur, eye, stripes, stripeColor }
+  let intruderPatrolAssigned = false; // has Bluestar assigned the patrol?
+
+  const INTRUDER_CLANS = [
+    { clan: 'ShadowClan', names: ['Blackfoot', 'Clawface', 'Boulder'], fur: [0x222222, 0x5a4a3a, 0x666666], eye: [0xffaa11, 0xddaa33, 0xeedd33] },
+    { clan: 'RiverClan',  names: ['Oakheart', 'Loudbelly', 'Silverstream'], fur: [0x7a5533, 0x887755, 0xaaaabb], eye: [0xddaa33, 0x44cc44, 0x66aaee] },
+    { clan: 'WindClan',   names: ['Mudclaw', 'Onewhisker', 'Deadfoot'], fur: [0x8b6b4a, 0xbbaa88, 0x333333], eye: [0xddaa33, 0xddaa33, 0xddaa33] },
+  ];
+
+  function spawnIntruders () {
+    if (intruderActive || storyPhase !== 'playing') return;
+
+    // Pick a random enemy clan
+    const clanDef = INTRUDER_CLANS[Math.floor(Math.random() * INTRUDER_CLANS.length)];
+    const numCats = 1 + Math.floor(Math.random() * 2); // 1-2 intruders
+
+    // Spawn positions in ThunderClan territory (away from camp, near borders)
+    const spawnPoints = [
+      { x: -30 + Math.random() * 15, z: -20 + Math.random() * 15 },  // near ShadowClan border
+      { x: 35 + Math.random() * 15,  z: -10 + Math.random() * 15 },  // near RiverClan border
+      { x: -10 + Math.random() * 20, z: -35 + Math.random() * 10 },  // near WindClan border
+      { x: 15 + Math.random() * 15,  z: 15 + Math.random() * 15  },  // in the forest
+    ];
+    const spawnArea = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+
+    intruderCats = [];
+    for (let i = 0; i < numCats; i++) {
+      const catIdx = i % clanDef.names.length;
+      const ix = spawnArea.x + (Math.random() - 0.5) * 4;
+      const iz = spawnArea.z + (Math.random() - 0.5) * 4;
+      const hasStripes = Math.random() > 0.5;
+
+      const catObj = makeBookCat({
+        name: clanDef.names[catIdx],
+        fur: clanDef.fur[catIdx],
+        belly: clanDef.fur[catIdx],
+        eyeColor: clanDef.eye[catIdx],
+        earInner: 0xcc8888,
+        noseColor: 0x886666,
+        size: 0.95 + Math.random() * 0.2,
+        stripes: hasStripes ? 3 : 0,
+        stripeColor: 0x333322,
+        whiteChest: false, whitePaws: false, longFur: false
+      }, ix, iz);
+
+      catObj.group.visible = true;
+      // Give them a known name so the label shows
+      revealCatName(clanDef.names[catIdx]);
+
+      intruderCats.push({
+        group: catObj.group,
+        name: clanDef.names[catIdx],
+        clan: clanDef.clan,
+        x: ix, z: iz,
+        fur: clanDef.fur[catIdx],
+        eye: clanDef.eye[catIdx],
+        stripes: hasStripes,
+        stripeColor: 0x333322,
+        _walkAngle: Math.random() * Math.PI * 2,
+        _walkTimer: 0,
+      });
+    }
+
+    intruderActive = true;
+    intruderPatrolAssigned = false;
+
+    // Bluestar announces the intruder patrol
+    const clanName = clanDef.clan;
+    const intruderCount = numCats === 1 ? 'a ' + clanName + ' cat' : numCats + ' ' + clanName + ' cats';
+    queueMessage('Bluestar', 'I\'ve received word that ' + intruderCount + ' has been spotted trespassing in our territory! ' +
+      (player.name || 'Firepaw') + ', I\'m sending you on patrol. Find them and chase them out!', () => {
+      queueMessage('Bluestar', 'They were last seen in the forest. Go now — and show them that ThunderClan defends its borders!', () => {
+        intruderPatrolAssigned = true;
+        // Show a hint about where to go
+        const area = spawnArea.x < -15 ? 'near the ShadowClan border' :
+                     spawnArea.x > 30 ? 'near the RiverClan border' :
+                     spawnArea.z < -25 ? 'near the WindClan border' : 'deep in the forest';
+        queueMessage('Narrator', 'Bluestar has sent you on an intruder patrol! Look for the ' + clanName + ' cats ' + area + '. Get close and press E (or ACT) to confront them.');
+      });
+    });
+  }
+
+  /** Update intruder cats — make them wander and check if player confronts them */
+  function updateIntruders (dt) {
+    if (!intruderActive || !intruderPatrolAssigned) return;
+
+    // Make intruder cats wander around their area
+    intruderCats.forEach(ic => {
+      if (!ic.group.visible) return;
+      ic._walkTimer -= dt;
+      if (ic._walkTimer <= 0) {
+        ic._walkAngle += (Math.random() - 0.5) * 1.5;
+        ic._walkTimer = 2 + Math.random() * 3;
+      }
+      const speed = 1.5 * dt;
+      ic.group.position.x += Math.cos(ic._walkAngle) * speed;
+      ic.group.position.z += Math.sin(ic._walkAngle) * speed;
+      ic.group.rotation.y = ic._walkAngle + Math.PI;
+      // Animate legs
+      if (ic.group.legs) {
+        if (!ic._wc) ic._wc = 0;
+        ic._wc += dt * 4;
+        const sw = Math.sin(ic._wc) * 0.3;
+        ic.group.legs[0].rotation.x = sw; ic.group.legs[1].rotation.x = -sw;
+        ic.group.legs[2].rotation.x = -sw; ic.group.legs[3].rotation.x = sw;
+      }
+    });
+
+    // Check if player is close enough to confront
+    if (gameState !== 'playing') return;
+    const activeCats = intruderCats.filter(c => c.group.visible);
+    if (activeCats.length === 0) {
+      // All defeated — patrol success!
+      finishIntruderPatrol();
+      return;
+    }
+
+    // Check proximity — update interact hint
+    let nearestIntruder = null;
+    let nearestDist = Infinity;
+    for (const ic of activeCats) {
+      const dx = player.position.x - ic.group.position.x;
+      const dz = player.position.z - ic.group.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestIntruder = ic;
+      }
+    }
+    if (nearestIntruder && nearestDist < 4) {
+      interactHintText.textContent = 'Confront ' + nearestIntruder.name + ' (' + nearestIntruder.clan + ')';
+      interactHint.classList.remove('hidden');
+    }
+  }
+
+  /** Player confronts an intruder — triggers a battle */
+  function confrontIntruder () {
+    if (!intruderActive || !intruderPatrolAssigned || gameState !== 'playing') return false;
+
+    const activeCats = intruderCats.filter(c => c.group.visible);
+    // Find nearest intruder
+    let nearest = null, nearestDist = Infinity;
+    for (const ic of activeCats) {
+      const dx = player.position.x - ic.group.position.x;
+      const dz = player.position.z - ic.group.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < 5 && dist < nearestDist) {
+        nearest = ic;
+        nearestDist = dist;
+      }
+    }
+    if (!nearest) return false;
+
+    const ic = nearest;
+    const pName = player.name || 'Firepaw';
+
+    // Confrontation dialogue then battle
+    gameState = 'cutscene';
+    playSound('danger');
+    const scenes = [
+      { speaker: pName, text: '"You\'re trespassing on ThunderClan territory! Leave now or face the consequences!"' },
+      { speaker: ic.name, text: '"' + (ic.clan === 'ShadowClan'
+        ? 'Ha! A ThunderClan apprentice thinks they can tell ME what to do? You\'ll regret this!'
+        : ic.clan === 'RiverClan'
+        ? 'This land should belong to RiverClan anyway! You can\'t make me leave!'
+        : 'The moor has no borders! Try and stop me, tree-cat!') + '"' },
+    ];
+
+    startCutscene(scenes, () => {
+      const lvl = player.level || 1;
+      startBattle({
+        enemyName: ic.name + ' (' + ic.clan + ')',
+        enemyHP: 50 + lvl * 8,
+        enemyMaxHP: 50 + lvl * 8,
+        enemyAttack: 8 + lvl * 2,
+        enemyDefense: 3 + lvl,
+        enemyFurColor: ic.fur,
+        enemyEyeColor: ic.eye,
+        enemyStripes: ic.stripes,
+        enemyStripeColor: ic.stripeColor,
+        expReward: 35 + lvl * 5,
+        onWin: function () {
+          // This intruder is defeated — hide them
+          ic.group.visible = false;
+          const remaining = intruderCats.filter(c => c.group.visible).length;
+          if (remaining > 0) {
+            queueMessage('Narrator', ic.name + ' flees! But there are still ' + remaining + ' more intruder' + (remaining > 1 ? 's' : '') + ' in the territory. Keep patrolling!');
+          } else {
+            finishIntruderPatrol();
+          }
+        },
+        onLose: function () {
+          // Lost — respawn at medicine den but intruder is still there
+          respawnAtMedicineDen();
+          queueMessage('Narrator', 'The ' + ic.clan + ' intruder is still in the territory. Heal up and try again!');
+        },
+      });
+    });
+    return true;
+  }
+
+  /** All intruders chased out — report back to Bluestar */
+  function finishIntruderPatrol () {
+    intruderActive = false;
+    intruderPatrolAssigned = false;
+    intruderCooldown = 90 + Math.random() * 120; // 1.5-3.5 minutes until next event
+    intruderTimer = 0;
+
+    // Remove intruder cat meshes from scene
+    intruderCats.forEach(ic => {
+      if (ic.group.parent) ic.group.parent.remove(ic.group);
+    });
+    intruderCats = [];
+
+    // Bluestar congratulates
+    const pName = player.name || 'Firepaw';
+    queueMessage('Bluestar', 'Well done, ' + pName + '! You\'ve driven the intruders out of our territory. ThunderClan is safe thanks to you.', () => {
+      queueMessage('Bluestar', 'You\'ve proven yourself a true defender of the Clan. I\'m proud of you.', () => {
+        // Bonus XP for completing the patrol
+        player = GameLogic.addExperience(player, 50);
+        queueMessage('Narrator', 'Patrol complete! +50 experience. Bluestar is pleased with you.');
+        saveGame();
+      });
+    });
+  }
+
+  /** Timer-based intruder spawning during free play */
+  function checkIntruderSpawn (dt) {
+    if (storyPhase !== 'playing' || intruderActive) return;
+    if (trainingStep >= 0 && trainingStep < 11) return; // not during training
+
+    intruderTimer += dt;
+    if (intruderTimer >= intruderCooldown) {
+      intruderTimer = 0;
+      spawnIntruders();
+    }
   }
 
   /* ====================================================
@@ -9777,6 +10028,8 @@ window.onerror = function(msg, url, line, col, err) {
       updateHUD();
       updateNPCAI(dt);
       updateBorderPatrols(dt);
+      updateIntruders(dt);
+      checkIntruderSpawn(dt);
       updateTwolegs(dt);
       updateMonsters(dt);
       checkStoryTriggers();
