@@ -5931,22 +5931,23 @@ window.onerror = function(msg, url, line, col, err) {
     { id: 1,  name: "Redtail's Death",           trigger: 'triggerRedtailEvent' },
     { id: 2,  name: 'Journey to Mothermouth',    trigger: 'triggerMothermouthJourney' },
     { id: 3,  name: 'Yellowfang',                trigger: 'triggerYellowfangEncounter' },
-    { id: 4,  name: 'Driving Out Brokenstar',      trigger: 'triggerDrivingOutBrokenstar' },
-    { id: 5,  name: 'Spottedleaf\'s Warning',     trigger: 'triggerSpottedleafWarning' },
-    { id: 6,  name: 'Ravenpaw\'s Secret',          trigger: 'triggerRavenpawSecret' },
-    { id: 7,  name: 'Ravenpaw Leaves',            trigger: 'triggerRavenpawLeaves' },
-    { id: 8,  name: 'Fire and Ice',               trigger: 'triggerFireAndIce' },
-    { id: 9,  name: 'Bring Back WindClan',         trigger: 'triggerWindClanRescue' },
-    { id: 10, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
-    { id: 11, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
-    { id: 12, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
-    { id: 13, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
-    { id: 14, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
-    { id: 15, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
-    { id: 16, name: 'Firestar\'s Leadership',       trigger: 'triggerFirestarLeadership' },
-    { id: 17, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
-    { id: 18, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
-    { id: 19, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
+    { id: 4,  name: 'Stolen Kits',               trigger: 'triggerStolenKits' },
+    { id: 5,  name: 'Driving Out Brokenstar',      trigger: 'triggerDrivingOutBrokenstar' },
+    { id: 6,  name: 'Spottedleaf\'s Warning',     trigger: 'triggerSpottedleafWarning' },
+    { id: 7,  name: 'Ravenpaw\'s Secret',          trigger: 'triggerRavenpawSecret' },
+    { id: 8,  name: 'Ravenpaw Leaves',            trigger: 'triggerRavenpawLeaves' },
+    { id: 9,  name: 'Fire and Ice',               trigger: 'triggerFireAndIce' },
+    { id: 10, name: 'Bring Back WindClan',         trigger: 'triggerWindClanRescue' },
+    { id: 11, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
+    { id: 12, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
+    { id: 13, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
+    { id: 14, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
+    { id: 15, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
+    { id: 16, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
+    { id: 17, name: 'Firestar\'s Leadership',       trigger: 'triggerFirestarLeadership' },
+    { id: 18, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
+    { id: 19, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
+    { id: 20, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
   ];
 
   function showNextChapterButton () {
@@ -7341,7 +7342,158 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CHAPTER 4: SHADOWCLAN ATTACKS
+     CHAPTER 4: STOLEN KITS
+     ShadowClan steals ThunderClan kits — the player must
+     go to ShadowClan territory to rescue them!
+     ==================================================== */
+  function triggerStolenKits () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    const ff = npcCats.find(c => c.name === 'Frostfur');
+    const yf = npcCats.find(c => c.name === 'Yellowfang');
+    const wt = npcCats.find(c => c.name === 'Whitestorm');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+    if (ff) { ff.group.visible = true; ff.group.position.set(-8, 0, 5); }
+
+    const preScenes = [
+      { narration: true, text: 'You wake to horrified screaming from the nursery! Frostfur\'s desperate wails echo through the camp!',
+        camPos: { x: -6, y: 3, z: 6 }, camLook: { x: -8, y: 1, z: 5 },
+        onShow: function () { setNightMode(); playSound('danger'); } },
+      { speaker: 'Frostfur', text: '"MY KITS! THEY\'RE GONE! Someone took my kits! I can smell ShadowClan scent in the nursery!"',
+        camPos: { x: -7, y: 2, z: 5.5 }, camLook: { x: -8, y: 0.5, z: 5 } },
+      { narration: true, text: 'The whole camp is in chaos. Warriors stumble from their dens, eyes wide with alarm. The nursery is empty — Frostfur\'s four kits have vanished!',
+        camPos: { x: 0, y: 5, z: 3 }, camLook: { x: -5, y: 1, z: 5 } },
+      { speaker: 'Bluestar', text: '"ShadowClan! Brokenstar has gone too far this time! Stealing kits from our nursery in the dead of night!"',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"' + pName + ', you know ShadowClan territory better than anyone — you encountered Yellowfang near their border. I need you to lead a patrol to rescue our kits!"',
+        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: 0, y: 1.2, z: 2 } },
+      { speaker: 'Frostfur', text: '"Please, ' + pName + '! Bring back Cinderkit, Brackenkit, Brightkit, and Thornkit! They\'re so small... they must be so scared..."',
+        camPos: { x: -7, y: 1.5, z: 5 }, camLook: { x: -8, y: 0.5, z: 5 } },
+    ];
+
+    // Yellowfang offers to help — she knows ShadowClan camp
+    const yellowfangScenes = [];
+    if (yf) {
+      yellowfangScenes.push(
+        { speaker: 'Yellowfang', text: '"I know Brokenstar\'s camp. I was ShadowClan\'s medicine cat before he drove me out. Let me come with you — I can guide you straight to where he\'ll be keeping them."',
+          camPos: { x: -11, y: 2, z: 3 }, camLook: { x: -12, y: 1, z: 3 } }
+      );
+      yellowfangScenes.push(
+        { speaker: 'Bluestar', text: '"Very well, Yellowfang. ' + pName + ', take Whitestorm and Yellowfang. Cross the Thunderpath and head deep into ShadowClan territory. Bring our kits HOME."',
+          camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } }
+      );
+    } else {
+      yellowfangScenes.push(
+        { speaker: 'Bluestar', text: '"' + pName + ', take Whitestorm with you. Cross the Thunderpath and search ShadowClan\'s camp. Bring our kits HOME."',
+          camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } }
+      );
+    }
+
+    const allPreScenes = preScenes.concat(yellowfangScenes);
+    allPreScenes.push(
+      { narration: true, text: 'You set off toward ShadowClan territory. The night is dark and the Thunderpath rumbles with monsters. The kits are counting on you!',
+        camPos: { x: -40, y: 6, z: 0 }, camLook: { x: -58, y: 2, z: 0 },
+        onShow: function () { playSound('danger'); } }
+    );
+
+    startCutscene(allPreScenes, () => {
+      // Battle in ShadowClan camp!
+      const lvl = player.level || 1;
+      const rescueScenes = [
+        { narration: true, text: 'You sneak through ShadowClan territory, following the scent of your stolen Clanmates. Finally, you find the ShadowClan camp!',
+          camPos: { x: -80, y: 4, z: 10 }, camLook: { x: -85, y: 1, z: 5 } },
+        { narration: true, text: 'The kits are huddled together in a dark corner of the camp, guarded by Brokenstar\'s warriors. You have to fight your way through!',
+          camPos: { x: -82, y: 2, z: 8 }, camLook: { x: -85, y: 0.5, z: 5 } },
+        { speaker: 'Clawface', text: '"ThunderClan fools! Did you really think you could just waltz into our camp? Brokenstar will have your pelts!"',
+          camPos: { x: -83, y: 2, z: 7 }, camLook: { x: -85, y: 1, z: 5 } },
+      ];
+
+      startCutscene(rescueScenes, () => {
+        // Build allies
+        const allies = [];
+        if (wt) {
+          allies.push({ name: 'Whitestorm', hp: 80 + lvl * 5, maxHP: 80 + lvl * 5, atk: 12 + lvl, def: 8 + lvl });
+        }
+        if (yf) {
+          allies.push({ name: 'Yellowfang', hp: 60 + lvl * 4, maxHP: 60 + lvl * 4, atk: 10 + lvl, def: 6 + lvl });
+        }
+
+        const enemies = [
+          { name: 'Clawface', hp: 70 + lvl * 8, maxHP: 70 + lvl * 8, atk: 13 + lvl * 2, def: 6 + lvl,
+            fur: 0x5a4a3a, eye: 0xddaa33, stripes: 2, stripeColor: 0x3a2a1a, defeated: false },
+          { name: 'Brokenstar\'s Guard', hp: 55 + lvl * 6, maxHP: 55 + lvl * 6, atk: 11 + lvl * 2, def: 5 + lvl,
+            fur: 0x444444, eye: 0xffaa11, stripes: 0, defeated: false },
+        ];
+
+        startPatrolBattle({
+          clan: 'ShadowClan',
+          enemies: enemies,
+          allies: allies,
+          expReward: 80 + lvl * 10,
+          onWin: function () {
+            const victoryScenes = [
+              { narration: true, text: 'The ShadowClan guards fall back, defeated! You rush to the kits — all four of Frostfur\'s kits are here, frightened but alive!',
+                camPos: { x: -84, y: 2, z: 6 }, camLook: { x: -85, y: 0.5, z: 5 } },
+              { speaker: 'Cinderkit', text: '"' + pName + '! You came for us! We were so scared! Brokenstar said we\'d have to train as warriors even though we\'re too little!"' },
+              { speaker: 'Brackenkit', text: '"I knew ThunderClan would come! I told the others not to be afraid!"' },
+            ];
+            if (yf) {
+              victoryScenes.push(
+                { speaker: 'Yellowfang', text: '"Brokenstar... he was always cruel. He forced kits as young as three moons to fight. Many died. That\'s why I tried to stop him — and why he drove me out."',
+                  camPos: { x: -83, y: 2, z: 4 }, camLook: { x: -85, y: 1, z: 3 } }
+              );
+            }
+            victoryScenes.push(
+              { narration: true, text: 'You gather all four kits and race back through the night toward ThunderClan camp! The kits are safe!',
+                camPos: { x: -58, y: 5, z: 0 }, camLook: { x: -40, y: 3, z: 0 },
+                onShow: function () { setDayMode(); } }
+            );
+            victoryScenes.push(
+              { narration: true, text: 'Frostfur rushes to her kits, purring and licking them furiously. The whole Clan cheers!',
+                camPos: { x: -6, y: 3, z: 6 }, camLook: { x: -8, y: 1, z: 5 } }
+            );
+            victoryScenes.push(
+              { speaker: 'Frostfur', text: '"Thank you, ' + pName + '! Thank StarClan! I don\'t know what I would have done if I\'d lost them!"' }
+            );
+            victoryScenes.push(
+              { speaker: 'Bluestar', text: '"You have done ThunderClan a great service, ' + pName + '. You brought our kits home safely. Brokenstar\'s cruelty cannot go unpunished — we will deal with him soon."',
+                camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } }
+            );
+            victoryScenes.push(
+              { narration: true, text: 'The kits are returned to the nursery. Frostfur refuses to let them out of her sight. You are hailed as a hero!',
+                camPos: { x: 0, y: 6, z: 5 }, camLook: { x: 0, y: 2, z: 0 } }
+            );
+
+            startCutscene(victoryScenes, () => {
+              gameState = 'playing';
+              player.level = (player.level || 1) + 1;
+              player.health = player.maxHealth;
+              placeCatsInCamp(); saveGame();
+              queueMessage('Narrator', 'You rescued the stolen kits from ShadowClan! The Clan is grateful. But Brokenstar is still out there, and he won\'t stop until he\'s defeated...');
+              showNextChapterButton();
+            });
+          },
+          onLose: function () {
+            const loseScenes = [
+              { narration: true, text: 'The ShadowClan warriors overpower you! Whitestorm drags you to safety as you retreat across the Thunderpath.' },
+              { speaker: 'Whitestorm', text: '"We\'ll come back stronger, ' + pName + '. We know where the kits are now. Rest up and we\'ll try again."' },
+            ];
+            startCutscene(loseScenes, () => {
+              respawnAtMedicineDen();
+              // Put chapter button back so they can retry
+              storyChapter--;
+              saveGame();
+              showNextChapterButton();
+            });
+          },
+        });
+      });
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 5: SHADOWCLAN ATTACKS (DRIVING OUT BROKENSTAR)
      ==================================================== */
   function triggerDrivingOutBrokenstar () {
     gameState = 'cutscene';
@@ -7711,10 +7863,24 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      CHAPTER 12: WARRIOR CEREMONY
      ==================================================== */
+  // Warrior name suffix generator
+  const WARRIOR_SUFFIXES = ['heart', 'flower', 'leg', 'claw', 'fur', 'storm', 'tail', 'stripe', 'leaf', 'pelt', 'fang', 'stream', 'step', 'foot', 'face', 'blaze', 'flight', 'pool'];
+
+  function getWarriorName (apprenticeName) {
+    const prefix = apprenticeName.replace(/paw$/i, '');
+    // If the prefix is "Fire" (book-accurate), the suffix is always "heart" → Fireheart
+    if (prefix.toLowerCase() === 'fire') {
+      return prefix + 'heart';
+    }
+    // Otherwise, pick a random suffix from the list
+    const suffix = WARRIOR_SUFFIXES[Math.floor(Math.random() * WARRIOR_SUFFIXES.length)];
+    return prefix + suffix;
+  }
+
   function triggerWarriorCeremony () {
     gameState = 'cutscene';
     const pName = player.name || 'apprentice';
-    const warName = pName.replace(/paw$/, 'heart');
+    const warName = getWarriorName(pName);
     const bs = npcCats.find(c => c.name === 'Bluestar');
     if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
 
@@ -7844,7 +8010,9 @@ window.onerror = function(msg, url, line, col, err) {
   function triggerFirestarLeadership () {
     gameState = 'cutscene';
     const pName = player.name || 'warrior';
-    const leaderName = pName.replace(/heart$|paw$/, 'star');
+    // Remove any warrior suffix to get prefix, then add 'star'
+    const suffixPattern = new RegExp('(' + WARRIOR_SUFFIXES.join('|') + '|paw)$', 'i');
+    const leaderName = pName.replace(suffixPattern, '') + 'star';
 
     const scenes = [
       { narration: true, text: 'You travel to the Moonstone one final time — but this time, you go as ThunderClan\'s leader.',
