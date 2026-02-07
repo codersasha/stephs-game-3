@@ -1899,59 +1899,265 @@ body.touch-device #map-close-btn {
    Tablet / iPad Enhancements (touch + wider screen)
    ======================================== */
 @media (min-width: 769px) and (pointer: coarse) {
-  /* Bigger joystick for tablet-sized screens */
+  /* Much bigger joystick for tablet — easy to use with thumbs */
+  #mobile-controls {
+    bottom: 20px;
+    padding: 0 24px;
+    gap: 30px;
+  }
+
   .joystick-area {
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
   }
 
   .joystick-base {
-    width: 180px;
-    height: 180px;
-    border: 3px solid rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.1);
+    width: 200px;
+    height: 200px;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   }
 
   .joystick-stick {
-    width: 72px;
-    height: 72px;
-    border: 3px solid rgba(255, 255, 255, 0.5);
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
+    width: 80px;
+    height: 80px;
+    border: 3px solid rgba(255, 255, 255, 0.55);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.2));
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
   }
 
-  /* Bigger action buttons for easier tapping */
+  /* Much bigger action buttons for easy tapping */
   .action-btn {
-    width: 90px;
-    height: 65px;
-    font-size: 0.9rem;
+    width: 110px;
+    height: 72px;
+    font-size: 1rem;
     border-width: 3px;
+    border-radius: 16px;
+    letter-spacing: 0.5px;
   }
 
   .action-buttons {
     gap: 10px;
-    max-width: 200px;
+    max-width: 240px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .action-btn-map {
+    grid-column: span 2;
+    height: 58px;
   }
 
   /* Bigger emotes for tablet */
   #emote-bar {
-    bottom: 200px;
-    gap: 8px;
-    padding: 10px;
+    bottom: 250px;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 20px;
   }
   .emote-btn {
-    width: 54px; height: 54px;
-    font-size: 1.7rem;
+    width: 60px; height: 60px;
+    font-size: 1.9rem;
+    border-radius: 14px;
   }
 
-  /* Tablet message box */
+  /* Bigger HUD at top */
+  body.touch-device .hud-btn {
+    padding: 12px 22px;
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+
+  body.touch-device #game-hud {
+    padding: 14px 20px;
+  }
+
+  body.touch-device .stat-bar {
+    height: 16px;
+    border-radius: 8px;
+  }
+
+  body.touch-device #location-text {
+    font-size: 1rem;
+  }
+
+  body.touch-device #player-name {
+    font-size: 1.1rem;
+  }
+
+  /* Tablet message box — higher and bigger */
   body.touch-device #message-box {
-    bottom: 220px;
-    padding: 24px 28px;
+    bottom: 260px;
+    padding: 24px 32px;
+    font-size: 1.1rem;
+    border-radius: 16px;
+    max-width: 700px;
+  }
+
+  body.touch-device #message-box .message-continue {
+    font-size: 0.95rem;
   }
 
   /* Tablet interact hint */
   body.touch-device #interact-hint {
-    bottom: 240px;
+    bottom: 280px;
+    font-size: 1.15rem;
+    padding: 12px 24px;
+    border-radius: 14px;
+  }
+
+  /* Battle screen improvements for tablet */
+  body.touch-device .battle-btn {
+    padding: 20px 32px;
+    font-size: 1.25rem;
+    min-height: 64px;
+    min-width: 120px;
+    border-radius: 14px;
+  }
+
+  body.touch-device .battle-buttons {
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  body.touch-device .battle-header {
+    font-size: 2rem;
+  }
+
+  body.touch-device .battle-log {
+    font-size: 1.05rem;
+    max-height: 200px;
+  }
+
+  /* Bigger save slots on tablet */
+  body.touch-device .save-slot-content {
+    padding: 24px;
+    min-height: 80px;
+    font-size: 1.05rem;
+  }
+
+  body.touch-device .save-delete-btn {
+    width: 60px;
+    font-size: 1.4rem;
+  }
+
+  /* Bigger choice buttons */
+  body.touch-device .choice-btn {
+    padding: 22px 44px;
+    font-size: 1.3rem;
+    min-height: 60px;
+    border-radius: 14px;
+  }
+
+  /* Map overlay tablet improvements */
+  body.touch-device #map-close-btn {
+    width: 56px;
+    height: 56px;
+    font-size: 1.6rem;
+    border-radius: 14px;
+  }
+
+  body.touch-device #map-canvas {
+    min-width: 400px;
+    min-height: 400px;
+  }
+
+  /* Den interior tablet improvements */
+  body.touch-device .den-cat-card {
+    padding: 20px 16px;
+    min-height: 120px;
+    border-radius: 14px;
+  }
+
+  body.touch-device .den-cat-icon {
+    width: 64px;
+    height: 64px;
+    font-size: 1.8rem;
+  }
+
+  body.touch-device #den-leave-btn {
+    padding: 16px 28px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+  }
+
+  body.touch-device #den-interior-title {
+    font-size: 1.6rem;
+  }
+
+  body.touch-device #den-interior-desc {
+    font-size: 1.1rem;
+  }
+
+  /* Cutscene text bigger on tablet */
+  body.touch-device #cutscene-text {
+    font-size: 1.3rem;
+    padding: 32px;
+    max-width: 750px;
+  }
+
+  /* Title screen bigger on tablet */
+  body.touch-device .title-subtitle {
+    font-size: 1.3rem;
+  }
+
+  /* Next chapter button */
+  body.touch-device #next-chapter-btn {
+    padding: 14px 24px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+  }
+
+  /* Emote bubble */
+  body.touch-device #emote-bubble {
+    font-size: 2.5rem;
+  }
+
+  /* Swim indicator */
+  body.touch-device #swim-indicator {
+    font-size: 1.1rem;
+    padding: 10px 20px;
+  }
+}
+
+/* iPad Pro / large tablet (1024px+) */
+@media (min-width: 1024px) and (pointer: coarse) {
+  .joystick-area {
+    width: 240px;
+    height: 240px;
+  }
+  .joystick-base {
+    width: 220px;
+    height: 220px;
+  }
+  .joystick-stick {
+    width: 88px;
+    height: 88px;
+  }
+  .action-btn {
+    width: 120px;
+    height: 78px;
+    font-size: 1.1rem;
+  }
+  .action-buttons {
+    max-width: 260px;
+    gap: 12px;
+  }
+  #mobile-controls {
+    bottom: 28px;
+    padding: 0 36px;
+    gap: 40px;
+  }
+  body.touch-device #message-box {
+    bottom: 290px;
+    max-width: 800px;
+    font-size: 1.2rem;
+  }
+  body.touch-device #interact-hint {
+    bottom: 310px;
   }
 }
 

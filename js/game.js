@@ -4736,9 +4736,10 @@ window.onerror = function(msg, url, line, col, err) {
     setupMobileControls();
 
     // Touch camera — drag anywhere on the screen (not on joystick) to look around
-    // Higher sensitivity for responsive feel, works anywhere not covered by UI
+    // Tablet gets higher sensitivity since finger movements are bigger on larger screens
     let touchCamId = null, ltx = 0, lty = 0;
-    const camSensitivity = 0.005;
+    const isTablet = window.innerWidth >= 769;
+    const camSensitivity = isTablet ? 0.004 : 0.005;
 
     renderer.domElement.addEventListener('touchstart', e => {
       if (gameState !== 'playing') return;
@@ -4777,8 +4778,8 @@ window.onerror = function(msg, url, line, col, err) {
     const jArea = $('joystick-area'), jStick = $('joystick-stick');
     const bSprint = $('btn-sprint'), bAction = $('btn-action');
     let jTid = null, jCenter = { x: 0, y: 0 };
-    // Bigger max joystick distance — more responsive feel
-    const joyMax = (window.innerWidth > 768) ? 65 : 50;
+    // Bigger max joystick distance — more responsive feel; tablets get more range
+    const joyMax = (window.innerWidth >= 1024) ? 80 : (window.innerWidth > 768) ? 70 : 50;
 
     jArea.addEventListener('touchstart', e => {
       e.preventDefault(); const t = e.changedTouches[0]; jTid = t.identifier;
