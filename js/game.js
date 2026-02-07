@@ -7185,12 +7185,13 @@ window.onerror = function(msg, url, line, col, err) {
 
     // Start first part of cutscene, then launch the rat battle
     startCutscene(preBattleScenes, () => {
+      var ratHp = Math.max(80, 60 + (player.level || 1) * 15);
       startBattle({
         enemyName: 'Rat Swarm',
-        enemyHP: 80,
-        enemyMaxHP: 80,
-        enemyAttack: 8,
-        enemyDefense: 1,
+        enemyHP: ratHp,
+        enemyMaxHP: ratHp,
+        enemyAttack: 8 + Math.floor((player.level || 1) * 1.5),
+        enemyDefense: 1 + Math.floor((player.level || 1) * 0.3),
         enemyFurColor: 0x554433,
         enemyEyeColor: 0xff3333,
         enemyStripes: false,
@@ -7255,18 +7256,19 @@ window.onerror = function(msg, url, line, col, err) {
             player.position = { x: 2, y: 0, z: 3 };
             catGroup.position.set(2, 0, 3);
 
-            // Launch the ShadowClan patrol battle — pick which cat to fight!
+            // Launch the ShadowClan patrol battle — scale with player level
+            var scLvl = player.level || 1;
             const scEnemies = [
-              { name: 'Clawface', hp: 55, maxHP: 55, atk: 11, def: 3, fur: 0x6b5b3a, eye: 0xddcc00, stripes: true, stripeColor: 0x3a2a1a, defeated: false },
-              { name: 'Blackfoot', hp: 60, maxHP: 60, atk: 13, def: 4, fur: 0x222222, eye: 0xffcc33, stripes: false, stripeColor: 0, defeated: false },
-              { name: 'Boulder', hp: 50, maxHP: 50, atk: 10, def: 5, fur: 0x888888, eye: 0xaacc44, stripes: false, stripeColor: 0, defeated: false },
-              { name: 'Russetfur', hp: 45, maxHP: 45, atk: 12, def: 3, fur: 0x994422, eye: 0xddaa33, stripes: false, stripeColor: 0, defeated: false },
+              { name: 'Clawface', hp: 55 + scLvl * 8, maxHP: 55 + scLvl * 8, atk: 11 + scLvl, def: 3 + Math.floor(scLvl * 0.5), fur: 0x6b5b3a, eye: 0xddcc00, stripes: true, stripeColor: 0x3a2a1a, defeated: false },
+              { name: 'Blackfoot', hp: 60 + scLvl * 8, maxHP: 60 + scLvl * 8, atk: 13 + scLvl, def: 4 + Math.floor(scLvl * 0.5), fur: 0x222222, eye: 0xffcc33, stripes: false, stripeColor: 0, defeated: false },
+              { name: 'Boulder', hp: 50 + scLvl * 8, maxHP: 50 + scLvl * 8, atk: 10 + scLvl, def: 5 + Math.floor(scLvl * 0.5), fur: 0x888888, eye: 0xaacc44, stripes: false, stripeColor: 0, defeated: false },
+              { name: 'Russetfur', hp: 45 + scLvl * 8, maxHP: 45 + scLvl * 8, atk: 12 + scLvl, def: 3 + Math.floor(scLvl * 0.5), fur: 0x994422, eye: 0xddaa33, stripes: false, stripeColor: 0, defeated: false },
             ];
 
             startPatrolBattle({
               clan: 'ShadowClan',
               enemies: scEnemies,
-              expReward: 50,
+              expReward: 50 + scLvl * 5,
               retreatOnFirstWin: true, // beat ONE cat and they ALL retreat!
               onWin: function () {
                 gameState = 'cutscene';
@@ -7362,13 +7364,14 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(preScenes, () => {
-      // Battle against Yellowfang!
+      // Battle against Yellowfang! Scale HP with player level so fights aren't instant
+      var yfHp = Math.max(50, 40 + (player.level || 1) * 10);
       startBattle({
         enemyName: '??? (Rogue She-cat)',
-        enemyHP: 40,
-        enemyMaxHP: 40,
-        enemyAttack: 9,
-        enemyDefense: 2,
+        enemyHP: yfHp,
+        enemyMaxHP: yfHp,
+        enemyAttack: 9 + Math.floor((player.level || 1) * 1.5),
+        enemyDefense: 2 + Math.floor((player.level || 1) * 0.5),
         enemyFurColor: 0x666666,
         enemyEyeColor: 0xffaa00,
         enemyStripes: false,
@@ -7668,13 +7671,14 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(preScenes, () => {
-      // Boss battle against Brokenstar with your Clanmates!
+      // Boss battle against Brokenstar — scale with player level
+      var bsHp = Math.max(85, 70 + (player.level || 1) * 15);
       startBattle({
         enemyName: 'Brokenstar',
-        enemyHP: 85,
-        enemyMaxHP: 85,
-        enemyAttack: 14,
-        enemyDefense: 5,
+        enemyHP: bsHp,
+        enemyMaxHP: bsHp,
+        enemyAttack: 14 + Math.floor((player.level || 1) * 2),
+        enemyDefense: 5 + Math.floor((player.level || 1) * 0.8),
         enemyFurColor: 0x4a3520,
         enemyEyeColor: 0xffaa00,
         enemyStripes: true,
@@ -8115,13 +8119,14 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(preScenes, () => {
-      // Battle against Tigerclaw!
+      // Battle against Tigerclaw — boss fight, scale strongly with level!
+      var tcHp = Math.max(120, 100 + lvl * 15);
       startBattle({
         enemyName: 'Tigerclaw',
-        enemyHP: 110 + lvl * 5,
-        enemyMaxHP: 110 + lvl * 5,
-        enemyAttack: 18 + lvl,
-        enemyDefense: 7 + lvl,
+        enemyHP: tcHp,
+        enemyMaxHP: tcHp,
+        enemyAttack: 18 + lvl * 2,
+        enemyDefense: 7 + Math.floor(lvl * 1.2),
         enemyFurColor: 0x5a3a1a,
         enemyEyeColor: 0xffaa11,
         enemyStripes: true,
@@ -8529,13 +8534,14 @@ window.onerror = function(msg, url, line, col, err) {
         camPos: { x: -46, y: 1.5, z: -45 }, camLook: { x: -46.5, y: 0.5, z: -45 } },
     ];
     startCutscene(scenes, () => {
-      // Start the final boss battle against Scourge!
+      // Start the final boss battle against Scourge — scale with level!
+      var scourgeHp = Math.max(150, 120 + (player.level || 1) * 18);
       startBattle({
         enemyName: 'Scourge',
-        enemyHP: 150,
-        enemyMaxHP: 150,
-        enemyAttack: 25,
-        enemyDefense: 8,
+        enemyHP: scourgeHp,
+        enemyMaxHP: scourgeHp,
+        enemyAttack: 25 + Math.floor((player.level || 1) * 2),
+        enemyDefense: 8 + Math.floor((player.level || 1) * 1),
         enemyFurColor: 0x111111,
         enemyEyeColor: 0x66ccff,
         enemyStripes: false,
