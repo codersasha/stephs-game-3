@@ -1010,6 +1010,16 @@ html, body {
   background: rgba(140, 80, 200, 0.45);
   border-color: rgba(200, 130, 255, 0.8);
 }
+.action-btn-crouch {
+  border-color: rgba(180, 140, 80, 0.4);
+  background: rgba(120, 90, 40, 0.2);
+}
+.action-btn-crouch:active,
+.action-btn-crouch.active {
+  background: rgba(180, 140, 40, 0.5);
+  border-color: rgba(220, 180, 80, 0.8);
+  box-shadow: 0 0 10px rgba(180, 140, 40, 0.3);
+}
 .action-btn-map {
   border-color: rgba(255, 200, 100, 0.4);
   background: rgba(200, 150, 50, 0.2);

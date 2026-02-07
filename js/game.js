@@ -100,10 +100,15 @@ window.onerror = function(msg, url, line, col, err) {
   const JUMP_FORCE = 7;
 
   /* ---------- emotes ---------- */
-  let currentEmote = null;    // 'happy' | 'sad' | 'angry' | 'nervous' | 'sit' | 'sleep' | null
+  let currentEmote = null;    // 'happy' | 'sad' | 'angry' | 'nervous' | 'sit' | 'sleep' | 'meow' | null
   let emoteTimer = 0;
   let emoteBubbleTimer = 0;
-  const EMOTE_ICONS = { happy: '😊', sad: '😢', angry: '😠', nervous: '😨', sit: '🐱', sleep: '💤' };
+  const EMOTE_ICONS = { happy: '😊', sad: '😢', angry: '😠', nervous: '😨', sit: '🐱', sleep: '💤', meow: '🐾' };
+
+  /* ---------- crouching ---------- */
+  let isCrouching = false;
+  const CROUCH_HEIGHT_OFFSET = -0.35;  // how much lower the camera goes
+  const CROUCH_SPEED_MULT = 0.45;      // move much slower while crouched
 
   /* ---------- swimming ---------- */
   let isSwimming = false;
@@ -1675,11 +1680,11 @@ window.onerror = function(msg, url, line, col, err) {
     // Atmospheric fog that gives depth — gentle fade into distance
     scene.fog = new THREE.Fog(0x7ab5d8, 50, 180);
 
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 250);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.5, 300);
     camera.position.set(0, 8, 14);
     camera.lookAt(0, 1, 0);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -1708,8 +1713,13 @@ window.onerror = function(msg, url, line, col, err) {
     /* ground — extra large so you never see the void */
     const groundGeo = new THREE.PlaneGeometry(600, 600, 1, 1);
     const groundMat = new THREE.MeshPhongMaterial({ color: 0x4a9438, shininess: 2 });
+    // Push main ground behind all overlapping planes to prevent z-fighting
+    groundMat.polygonOffset = true;
+    groundMat.polygonOffsetFactor = 4;
+    groundMat.polygonOffsetUnits = 4;
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+    ground.position.y = -0.01; // slightly below zero
     scene.add(ground);
 
     /* Scattered dirt patches on the ground for natural look */
@@ -1718,29 +1728,33 @@ window.onerror = function(msg, url, line, col, err) {
       const dx = (Math.random() - 0.5) * 160, dz = (Math.random() - 0.5) * 160;
       const ds = 2 + Math.random() * 5;
       const dirt = new THREE.Mesh(new THREE.CircleGeometry(ds, 8), dirtMat);
-      dirt.rotation.x = -Math.PI / 2; dirt.position.set(dx, 0.005, dz);
+      dirt.rotation.x = -Math.PI / 2; dirt.position.set(dx, 0.02, dz);
       scene.add(dirt);
     }
 
     /* camp clearing — larger, with dirt ring around it */
     const campRingMat = new THREE.MeshPhongMaterial({ color: 0x6a5a40, shininess: 1 });
+    campRingMat.polygonOffset = true; campRingMat.polygonOffsetFactor = 2; campRingMat.polygonOffsetUnits = 2;
     const campRing = new THREE.Mesh(new THREE.CircleGeometry(16, 32), campRingMat);
-    campRing.rotation.x = -Math.PI / 2; campRing.position.y = 0.005;
+    campRing.rotation.x = -Math.PI / 2; campRing.position.y = 0.03;
     scene.add(campRing);
     const campGeo = new THREE.CircleGeometry(13, 32);
     const campMat = new THREE.MeshPhongMaterial({ color: 0x8a7a60, shininess: 1 });
+    campMat.polygonOffset = true; campMat.polygonOffsetFactor = 1; campMat.polygonOffsetUnits = 1;
     const camp = new THREE.Mesh(campGeo, campMat);
-    camp.rotation.x = -Math.PI / 2; camp.position.y = 0.01;
+    camp.rotation.x = -Math.PI / 2; camp.position.y = 0.06;
     scene.add(camp);
 
     /* path — wider, with worn dirt edges */
     const pathEdgeMat = new THREE.MeshPhongMaterial({ color: 0x7a6a4a, shininess: 1 });
     const pathEdge = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 32), pathEdgeMat);
-    pathEdge.rotation.x = -Math.PI / 2; pathEdge.position.set(0, 0.012, 22);
+    pathEdgeMat.polygonOffset = true; pathEdgeMat.polygonOffsetFactor = 1; pathEdgeMat.polygonOffsetUnits = 1;
+    pathEdge.rotation.x = -Math.PI / 2; pathEdge.position.set(0, 0.07, 22);
     scene.add(pathEdge);
     const pathMat = new THREE.MeshPhongMaterial({ color: 0x9a8a6a, shininess: 1 });
+    pathMat.polygonOffset = true; pathMat.polygonOffsetFactor = -1; pathMat.polygonOffsetUnits = -1;
     const path = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 30), pathMat);
-    path.rotation.x = -Math.PI / 2; path.position.set(0, 0.02, 22);
+    path.rotation.x = -Math.PI / 2; path.position.set(0, 0.10, 22);
     scene.add(path);
 
     /* trees */
@@ -1918,7 +1932,7 @@ window.onerror = function(msg, url, line, col, err) {
     [-1, 1].forEach(side => {
       const bank = new THREE.Mesh(new THREE.PlaneGeometry(2, 200, 1, 1), bankMat);
       bank.rotation.x = -Math.PI / 2;
-      bank.position.set(75 + side * 5, 0.01, 0);
+      bank.position.set(75 + side * 5, 0.04, 0);
       scene.add(bank);
     });
     // River pebbles/stones at banks
@@ -1938,7 +1952,7 @@ window.onerror = function(msg, url, line, col, err) {
       shininess: 30, specular: 0x66aacc
     });
     const river = new THREE.Mesh(riverGeo, riverMat);
-    river.rotation.x = -Math.PI / 2; river.position.set(75, 0.05, 0);
+    river.rotation.x = -Math.PI / 2; river.position.set(75, 0.08, 0);
     river.name = 'river';
     scene.add(river);
     // Water lilies / floating plants
@@ -1964,7 +1978,7 @@ window.onerror = function(msg, url, line, col, err) {
     });
     const stream = new THREE.Mesh(streamGeo, streamMat);
     stream.rotation.x = -Math.PI / 2;
-    stream.position.set(WATER_SPOT.x, 0.04, WATER_SPOT.z);
+    stream.position.set(WATER_SPOT.x, 0.08, WATER_SPOT.z);
     scene.add(stream);
     // Stream rocks
     for (let i = 0; i < 8; i++) {
@@ -3131,33 +3145,34 @@ window.onerror = function(msg, url, line, col, err) {
     // Road base — dark asphalt with slight variation
     const roadMat = new THREE.MeshPhongMaterial({ color: 0x444444, shininess: 4 });
     const road = new THREE.Mesh(new THREE.PlaneGeometry(7, 200), roadMat);
+    roadMat.polygonOffset = true; roadMat.polygonOffsetFactor = -1; roadMat.polygonOffsetUnits = -1;
     road.rotation.x = -Math.PI / 2;
-    road.position.set(-58.5, 0.06, 0);
+    road.position.set(-58.5, 0.15, 0);
     scene.add(road);
     // Road edges — rougher shoulders
     const shoulderMat = new THREE.MeshPhongMaterial({ color: 0x5a5a50, shininess: 1 });
     [-1, 1].forEach(side => {
       const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 200), shoulderMat);
       shoulder.rotation.x = -Math.PI / 2;
-      shoulder.position.set(-58.5 + side * 4.2, 0.055, 0);
+      shoulder.position.set(-58.5 + side * 4.2, 0.12, 0);
       scene.add(shoulder);
     });
     // Yellow center line
     const lineMat = new THREE.MeshPhongMaterial({ color: 0xddcc00, shininess: 3 });
     const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 200), lineMat);
     centerLine.rotation.x = -Math.PI / 2;
-    centerLine.position.set(-58.5, 0.07, 0);
+    centerLine.position.set(-58.5, 0.18, 0);
     scene.add(centerLine);
     // Dashed white edge lines
     const dashMat = new THREE.MeshPhongMaterial({ color: 0xeeeeee, shininess: 2 });
     for (let z = -95; z < 95; z += 6) {
       const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 3), dashMat);
       dash.rotation.x = -Math.PI / 2;
-      dash.position.set(-55.2, 0.07, z);
+      dash.position.set(-55.2, 0.18, z);
       scene.add(dash);
       const dash2 = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 3), dashMat);
       dash2.rotation.x = -Math.PI / 2;
-      dash2.position.set(-61.8, 0.07, z);
+      dash2.position.set(-61.8, 0.18, z);
       scene.add(dash2);
     }
     const tpLabel = makeNameLabel('Thunderpath', 3.0);
@@ -4672,9 +4687,17 @@ window.onerror = function(msg, url, line, col, err) {
       if (e.key === ' ' && gameState === 'playing' && isOnGround && !isSwimming && !messageBox.classList.contains('visible')) {
         playerJump();
       }
-      // Number keys for emotes (1-6) in playing state, battle shortcuts in battle state
+      // C to toggle crouch
+      if ((e.key === 'c' || e.key === 'C') && gameState === 'playing') {
+        toggleCrouch();
+      }
+      // Q to meow
+      if ((e.key === 'q' || e.key === 'Q') && gameState === 'playing') {
+        triggerEmote('meow');
+      }
+      // Number keys for emotes (1-7) in playing state, battle shortcuts in battle state
       if (gameState === 'playing') {
-        const emoteKeys = { '1': 'happy', '2': 'sad', '3': 'angry', '4': 'nervous', '5': 'sit', '6': 'sleep' };
+        const emoteKeys = { '1': 'happy', '2': 'sad', '3': 'angry', '4': 'nervous', '5': 'meow', '6': 'sit', '7': 'sleep' };
         if (emoteKeys[e.key]) triggerEmote(emoteKeys[e.key]);
       }
       // Keyboard shortcuts for battle actions
@@ -4975,6 +4998,19 @@ window.onerror = function(msg, url, line, col, err) {
     const bJump = $('btn-jump');
     if (bJump) {
       bJump.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); if (gameState === 'playing' && isOnGround && !isSwimming) playerJump(); });
+    }
+
+    // Crouch button (toggle)
+    const bCrouch = $('btn-crouch');
+    if (bCrouch) {
+      bCrouch.addEventListener('touchstart', e => {
+        e.preventDefault(); initAudio();
+        if (gameState === 'playing') toggleCrouch();
+      });
+      bCrouch.addEventListener('click', () => {
+        initAudio();
+        if (gameState === 'playing') toggleCrouch();
+      });
     }
 
     // Emote toggle button — shows/hides the emote bar
@@ -10507,13 +10543,22 @@ window.onerror = function(msg, url, line, col, err) {
       $('swim-indicator').classList.add('hidden');
     }
 
+    // Crouching cancels sprint
+    if (isCrouching && player.isSprinting) {
+      player.isSprinting = false;
+    }
+
     if (moving) {
       const angle = Math.atan2(dx, dz) + cameraAngleY;
       const dir = GameLogic.normalizeDirection({ x: Math.sin(angle), z: Math.cos(angle) });
       let spd = player.speed;
-      if (player.isSprinting && player.energy > 0) {
+      if (player.isSprinting && player.energy > 0 && !isCrouching) {
         spd = player.sprintSpeed;
         player = GameLogic.useEnergy(player, dt * 15);
+      }
+      // Crouching slows you down significantly (stealth hunting)
+      if (isCrouching) {
+        spd *= CROUCH_SPEED_MULT;
       }
       // Swimming slows you down
       if (isSwimming) {
@@ -10672,6 +10717,12 @@ window.onerror = function(msg, url, line, col, err) {
     if (currentEmote === 'sit' || currentEmote === 'sleep') {
       cancelEmote();
     }
+    // Cancel crouch on jump
+    if (isCrouching) {
+      isCrouching = false;
+      const btn = $('btn-crouch');
+      if (btn) { btn.classList.remove('active'); btn.innerHTML = '&#128062; CROUCH'; }
+    }
     isJumping = true;
     isOnGround = false;
     playerVY = JUMP_FORCE;
@@ -10693,9 +10744,62 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
+     CROUCHING
+     ==================================================== */
+  function toggleCrouch () {
+    isCrouching = !isCrouching;
+    const btn = $('btn-crouch');
+    if (btn) {
+      if (isCrouching) {
+        btn.classList.add('active');
+        btn.innerHTML = '&#128062; STAND';
+      } else {
+        btn.classList.remove('active');
+        btn.innerHTML = '&#128062; CROUCH';
+      }
+    }
+    // Play a soft sound
+    if (isCrouching) {
+      playLeafCrunch();
+    } else {
+      try {
+        if (audioCtx) {
+          const t = audioCtx.currentTime;
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g); g.connect(_out());
+          o.type = 'sine';
+          o.frequency.setValueAtTime(200, t);
+          o.frequency.linearRampToValueAtTime(300, t + 0.08);
+          g.gain.setValueAtTime(0.08, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          o.start(t); o.stop(t + 0.12);
+        }
+      } catch (e) {}
+    }
+    // Cancel sit/sleep when crouching
+    if (isCrouching && (currentEmote === 'sit' || currentEmote === 'sleep')) {
+      cancelEmote();
+    }
+  }
+
+  /* ====================================================
      EMOTES
      ==================================================== */
   function triggerEmote (emote) {
+    // Meow is instant — doesn't cancel other emotes, just plays sound + shows bubble
+    if (emote === 'meow') {
+      playSound('meow');
+      const bubble = $('emote-bubble');
+      bubble.textContent = '🐱 Meow!';
+      bubble.classList.remove('hidden');
+      emoteBubbleTimer = 2;
+      setTimeout(() => {
+        if (emoteBubbleTimer <= 0) bubble.classList.add('hidden');
+      }, 2500);
+      return;
+    }
+
     // If same emote, toggle off
     if (currentEmote === emote) {
       cancelEmote();
@@ -10794,6 +10898,7 @@ window.onerror = function(msg, url, line, col, err) {
   function updateCamera () {
     // FIRST-PERSON: camera at cat's eye level, looking forward
     const eyeHeight = 0.9; // cat's eye height
+    const crouchOffset = isCrouching ? CROUCH_HEIGHT_OFFSET : 0;
     const px = player.position.x;
     const pz = player.position.z;
 
@@ -10802,7 +10907,7 @@ window.onerror = function(msg, url, line, col, err) {
     const headForwardZ = -Math.cos(cameraAngleY) * 0.35;
     const camX = px + headForwardX;
     const camZ = pz + headForwardZ;
-    const camY = eyeHeight + playerY + (isSwimming ? Math.sin(swimBobTime) * SWIM_BOB_AMP : 0); // add jump height + swim bob
+    const camY = eyeHeight + crouchOffset + playerY + (isSwimming ? Math.sin(swimBobTime) * SWIM_BOB_AMP : 0); // add crouch + jump height + swim bob
 
     // Look direction: forward based on cameraAngleY, pitch from cameraAngleX
     const lookDist = 10;

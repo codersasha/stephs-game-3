@@ -182,6 +182,7 @@
           <div class="control-row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</div>
           <div class="control-row"><kbd>Shift</kbd> Sprint</div>
           <div class="control-row"><kbd>Space</kbd> Jump</div>
+          <div class="control-row"><kbd>C</kbd> Crouch (stealth hunting)</div>
           <div class="control-row"><span class="control-desc">Click &amp; drag to look around</span></div>
           <div class="control-row"><span class="control-desc">Scroll wheel to zoom in/out</span></div>
         </div>
@@ -189,6 +190,7 @@
           <h3>Actions</h3>
           <div class="control-row"><kbd>E</kbd> Interact / Talk / Enter den</div>
           <div class="control-row"><kbd>M</kbd> Toggle Map</div>
+          <div class="control-row"><kbd>Q</kbd> Meow!</div>
           <div class="control-row"><kbd>Click</kbd> Talk to cat (click on them)</div>
           <div class="control-row"><kbd>Esc</kbd> Close map / Leave den</div>
         </div>
@@ -196,7 +198,8 @@
           <h3>Emotes</h3>
           <div class="control-row"><kbd>1</kbd> Happy &nbsp; <kbd>2</kbd> Sad</div>
           <div class="control-row"><kbd>3</kbd> Angry &nbsp; <kbd>4</kbd> Nervous</div>
-          <div class="control-row"><kbd>5</kbd> Sit &nbsp;&nbsp;&nbsp; <kbd>6</kbd> Sleep</div>
+          <div class="control-row"><kbd>5</kbd> Meow &nbsp; <kbd>6</kbd> Sit</div>
+          <div class="control-row"><kbd>7</kbd> Sleep / Lie down</div>
         </div>
         <div class="controls-col">
           <h3>Battle</h3>
@@ -217,7 +220,8 @@
       <button class="action-btn action-btn-sprint" id="btn-sprint">&#128007; RUN</button>
       <button class="action-btn action-btn-act" id="btn-action">&#128172; ACT</button>
       <button class="action-btn action-btn-jump" id="btn-jump">&#11014;&#65039; JUMP</button>
-      <button class="action-btn action-btn-emote" id="btn-emote-toggle">&#128062;</button>
+      <button class="action-btn action-btn-crouch" id="btn-crouch">&#128062; CROUCH</button>
+      <button class="action-btn action-btn-emote" id="btn-emote-toggle">&#128054; EMOTE</button>
       <button class="action-btn action-btn-map" id="btn-map">&#128506; MAP</button>
     </div>
   </div>
@@ -228,8 +232,9 @@
     <button class="emote-btn" data-emote="sad" title="Sad">&#128546;</button>
     <button class="emote-btn" data-emote="angry" title="Angry">&#128544;</button>
     <button class="emote-btn" data-emote="nervous" title="Nervous">&#128552;</button>
-    <button class="emote-btn" data-emote="sit" title="Sit Down">&#128049;</button>
-    <button class="emote-btn" data-emote="sleep" title="Sleep">&#128564;</button>
+    <button class="emote-btn" data-emote="meow" title="Meow!">&#128049;</button>
+    <button class="emote-btn" data-emote="sit" title="Sit Down">&#128062;</button>
+    <button class="emote-btn" data-emote="sleep" title="Lie Down / Sleep">&#128564;</button>
   </div>
 
   <!-- Battle Screen -->
@@ -319,8 +324,8 @@
         '<button onclick="location.reload()" style="padding:12px 24px;font-size:16px;cursor:pointer;background:#ff8c00;border:none;color:#111;border-radius:8px;margin-top:20px">Retry</button></div>';
     }
   </script>
-  <script src="js/game-logic.js?v=39"></script>
-  <script src="js/game.js?v=39"></script>
+  <script src="js/game-logic.js?v=40"></script>
+  <script src="js/game.js?v=40"></script>
 
 </body>
 </html>
