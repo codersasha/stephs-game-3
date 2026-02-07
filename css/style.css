@@ -1470,6 +1470,277 @@ body.touch-device #den-leave-btn {
 }
 
 /* ========================================
+   Crosshair (desktop pointer lock)
+   ======================================== */
+#crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  pointer-events: none;
+}
+#crosshair.hidden { display: none; }
+.crosshair-dot {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6), 0 0 8px rgba(255, 200, 100, 0.3);
+}
+
+/* ========================================
+   Controls Help Overlay
+   ======================================== */
+#controls-help {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 600;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease-out;
+}
+#controls-help.hidden { display: none; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.controls-help-content {
+  background: rgba(30, 40, 20, 0.95);
+  border: 2px solid rgba(100, 160, 80, 0.5);
+  border-radius: 20px;
+  padding: 36px 44px;
+  max-width: 800px;
+  width: 90%;
+  color: #e0d5c0;
+  font-family: 'Georgia', serif;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.controls-help-content h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  color: #ffcc66;
+  margin-bottom: 24px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.controls-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 36px;
+}
+
+.controls-col h3 {
+  color: #aaddaa;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(100, 160, 80, 0.3);
+  padding-bottom: 6px;
+}
+
+.control-row {
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: #ccddbb;
+}
+
+.control-desc {
+  font-style: italic;
+  color: #99aa88;
+  font-size: 0.9rem;
+}
+
+kbd {
+  display: inline-block;
+  background: linear-gradient(180deg, rgba(80, 80, 80, 0.9), rgba(50, 50, 50, 0.95));
+  border: 1px solid rgba(150, 150, 150, 0.4);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #eee;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  margin: 0 2px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.controls-close-hint {
+  text-align: center;
+  margin-top: 24px;
+  color: #889977;
+  font-size: 0.9rem;
+}
+
+/* ========================================
+   Desktop-specific enhancements (mouse + keyboard)
+   ======================================== */
+@media (pointer: fine) {
+  /* Bigger, clearer HUD on desktop */
+  #game-hud {
+    padding: 16px 24px;
+  }
+
+  .hud-bar {
+    width: clamp(110px, 18vw, 180px);
+    height: 16px;
+    border-radius: 8px;
+  }
+
+  .hud-bar-fill {
+    border-radius: 8px;
+  }
+
+  .hud-stat {
+    font-size: 1rem;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .hud-location {
+    font-size: 0.95rem;
+  }
+
+  .hud-btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    transition: all 0.15s ease;
+  }
+
+  .hud-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 12px rgba(100, 200, 80, 0.3);
+  }
+
+  .hud-buttons {
+    gap: 10px;
+  }
+
+  /* Better message box for desktop */
+  #message-box {
+    max-width: 650px;
+    font-size: 1.1rem;
+    padding: 22px 28px;
+    border-radius: 16px;
+    line-height: 1.7;
+  }
+
+  /* Better interact hint on desktop */
+  #interact-hint {
+    font-size: 1rem;
+    padding: 10px 22px;
+    border-radius: 12px;
+  }
+
+  /* Better battle buttons for desktop — hover effects */
+  .battle-btn {
+    padding: 16px 32px;
+    font-size: 1.2rem;
+    border-radius: 14px;
+    min-width: 120px;
+    transition: all 0.15s ease;
+  }
+
+  .battle-btn:hover:not(:disabled) {
+    transform: scale(1.06) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .battle-buttons {
+    gap: 14px;
+  }
+
+  /* Better choice buttons */
+  .choice-btn {
+    padding: 18px 40px;
+    font-size: 1.15rem;
+    border-radius: 14px;
+    transition: all 0.15s ease;
+  }
+
+  .choice-btn:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Desktop emote bar — positioned for easy access */
+  #emote-bar {
+    bottom: 80px;
+    right: 20px;
+  }
+
+  .emote-btn {
+    width: 48px; height: 48px;
+    transition: all 0.12s ease;
+  }
+
+  .emote-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 10px rgba(255, 200, 100, 0.3);
+  }
+
+  /* Better save slots */
+  .save-slot-content {
+    transition: all 0.15s ease;
+  }
+
+  .save-slot-content:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Better den cards */
+  .den-cat-card {
+    transition: all 0.15s ease;
+  }
+
+  .den-cat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 200, 100, 0.15);
+  }
+
+  /* Better cutscene text */
+  #cutscene-text {
+    font-size: 1.2rem;
+    max-width: 700px;
+    line-height: 1.8;
+  }
+
+  /* Keyboard shortcut hints in battle buttons (desktop only) */
+  .battle-btn::after {
+    content: '';
+    display: block;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+  }
+  #battle-attack-btn::after { content: '[1]'; }
+  #battle-dodge-btn::after { content: '[2]'; }
+  #battle-fierce-btn::after { content: '[3]'; }
+  #battle-surrender-btn::after { content: '[4]'; }
+
+  /* Hide help/fullscreen buttons on touch devices */
+  #hud-help-btn, #hud-fullscreen-btn {
+    display: inline-flex;
+  }
+}
+
+/* Hide desktop-only buttons on touch devices */
+body.touch-device #hud-help-btn,
+body.touch-device #hud-fullscreen-btn {
+  display: none;
+}
+
+/* ========================================
    Save Indicator
    ======================================== */
 #save-indicator {

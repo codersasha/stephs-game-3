@@ -157,12 +157,55 @@
     <div class="hud-right">
       <div class="hud-stat" id="player-name">Firepaw</div>
       <div class="hud-buttons">
-        <button class="hud-btn" id="hud-map-btn" title="Open Map">&#128506; Map</button>
+        <button class="hud-btn" id="hud-map-btn" title="Open Map (M)">&#128506; Map</button>
         <button class="hud-btn" id="hud-save-btn" title="Save Game">&#128190; Save</button>
         <button class="hud-btn" id="hud-saves-btn" title="View Saves">&#128193; Saves</button>
+        <button class="hud-btn" id="hud-help-btn" title="Controls (H)">&#10067; Help</button>
+        <button class="hud-btn" id="hud-fullscreen-btn" title="Fullscreen (F11)">&#9974; Fullscreen</button>
       </div>
     </div>
     <div id="save-indicator" class="hidden">Saved!</div>
+  </div>
+
+  <!-- Crosshair (desktop only, shown during pointer lock) -->
+  <div id="crosshair" class="hidden">
+    <div class="crosshair-dot"></div>
+  </div>
+
+  <!-- Controls Help Overlay -->
+  <div id="controls-help" class="hidden">
+    <div class="controls-help-content">
+      <h2>&#127918; Controls</h2>
+      <div class="controls-columns">
+        <div class="controls-col">
+          <h3>Movement</h3>
+          <div class="control-row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</div>
+          <div class="control-row"><kbd>Shift</kbd> Sprint</div>
+          <div class="control-row"><kbd>Space</kbd> Jump</div>
+          <div class="control-row"><span class="control-desc">Click &amp; drag to look around</span></div>
+          <div class="control-row"><span class="control-desc">Scroll wheel to zoom in/out</span></div>
+        </div>
+        <div class="controls-col">
+          <h3>Actions</h3>
+          <div class="control-row"><kbd>E</kbd> Interact / Talk / Enter den</div>
+          <div class="control-row"><kbd>M</kbd> Toggle Map</div>
+          <div class="control-row"><kbd>Click</kbd> Talk to cat (click on them)</div>
+          <div class="control-row"><kbd>Esc</kbd> Close map / Leave den</div>
+        </div>
+        <div class="controls-col">
+          <h3>Emotes</h3>
+          <div class="control-row"><kbd>1</kbd> Happy &nbsp; <kbd>2</kbd> Sad</div>
+          <div class="control-row"><kbd>3</kbd> Angry &nbsp; <kbd>4</kbd> Nervous</div>
+          <div class="control-row"><kbd>5</kbd> Sit &nbsp;&nbsp;&nbsp; <kbd>6</kbd> Sleep</div>
+        </div>
+        <div class="controls-col">
+          <h3>Battle</h3>
+          <div class="control-row"><kbd>1</kbd> Attack &nbsp; <kbd>2</kbd> Dodge</div>
+          <div class="control-row"><kbd>3</kbd> Fierce Attack &nbsp; <kbd>4</kbd> Surrender</div>
+        </div>
+      </div>
+      <div class="controls-close-hint">Press <kbd>H</kbd> or <kbd>Esc</kbd> to close</div>
+    </div>
   </div>
 
   <!-- Mobile Controls -->
@@ -276,8 +319,8 @@
         '<button onclick="location.reload()" style="padding:12px 24px;font-size:16px;cursor:pointer;background:#ff8c00;border:none;color:#111;border-radius:8px;margin-top:20px">Retry</button></div>';
     }
   </script>
-  <script src="js/game-logic.js?v=37"></script>
-  <script src="js/game.js?v=37"></script>
+  <script src="js/game-logic.js?v=38"></script>
+  <script src="js/game.js?v=38"></script>
 
 </body>
 </html>

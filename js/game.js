@@ -86,6 +86,10 @@ window.onerror = function(msg, url, line, col, err) {
   let cameraAngleY = 0, cameraAngleX = 0; // 0 = level, negative = look up, positive = look down
   let joystickInput = { x: 0, z: 0 };
   let isMobile = false;
+  let isPointerLocked = false;
+  let controlsHelpOpen = false;
+  let baseFOV = 75;
+  let currentFOV = 75;  // modified by scroll wheel zoom
 
   /* ---------- jumping ---------- */
   let playerY = 0;        // current vertical position
@@ -4586,25 +4590,49 @@ window.onerror = function(msg, url, line, col, err) {
         if ($('map-overlay').classList.contains('hidden') && gameState === 'playing') openMap();
         else if (!$('map-overlay').classList.contains('hidden')) closeMap();
       }
-      // Escape to close map or den
-      if (e.key === 'Escape' && !$('map-overlay').classList.contains('hidden')) closeMap();
-      if (e.key === 'Escape' && denOpen) leaveDen();
+      // Escape to close map, den, controls help, or release pointer lock
+      if (e.key === 'Escape') {
+        if (controlsHelpOpen) { toggleControlsHelp(); }
+        else if (!$('map-overlay').classList.contains('hidden')) closeMap();
+        else if (denOpen) leaveDen();
+        else if (isPointerLocked) document.exitPointerLock();
+      }
+      // 'H' to toggle controls help
+      if ((e.key === 'h' || e.key === 'H') && !isMobile) {
+        toggleControlsHelp();
+      }
+      // F11 for fullscreen (also prevent default)
+      if (e.key === 'F11') {
+        e.preventDefault();
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        else document.exitFullscreen().catch(() => {});
+      }
       // SPACE to jump (can't jump while swimming)
       if (e.key === ' ' && gameState === 'playing' && isOnGround && !isSwimming && !messageBox.classList.contains('visible')) {
         playerJump();
       }
-      // Number keys for emotes (1-6)
+      // Number keys for emotes (1-6) in playing state, battle shortcuts in battle state
       if (gameState === 'playing') {
         const emoteKeys = { '1': 'happy', '2': 'sad', '3': 'angry', '4': 'nervous', '5': 'sit', '6': 'sleep' };
         if (emoteKeys[e.key]) triggerEmote(emoteKeys[e.key]);
       }
+      // Keyboard shortcuts for battle actions
+      if (gameState === 'battle' && currentBattle && currentBattle.playerTurn) {
+        if (e.key === '1') { const btn = $('battle-attack-btn'); if (btn && !btn.disabled) btn.click(); }
+        if (e.key === '2') { const btn = $('battle-dodge-btn'); if (btn && !btn.disabled) btn.click(); }
+        if (e.key === '3') { const btn = $('battle-fierce-btn'); if (btn && !btn.disabled) btn.click(); }
+        if (e.key === '4') { const btn = $('battle-surrender-btn'); if (btn && !btn.disabled) btn.click(); }
+      }
     });
     window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
 
-    // Left click: talk to cats (no pointer lock — cursor is always visible)
+    // Left click: talk to cats OR request pointer lock for smooth look
     renderer.domElement.addEventListener('click', (e) => {
       if (gameState === 'playing' && !isMobile) {
-        tryTalkByRaycast(e.clientX, e.clientY);
+        if (!isPointerLocked) {
+          // If not pointer-locked, try talking to a cat under cursor
+          tryTalkByRaycast(e.clientX, e.clientY);
+        }
       }
     });
 
@@ -4612,7 +4640,7 @@ window.onerror = function(msg, url, line, col, err) {
     let isDragging = false;
     let lastMouseX = 0, lastMouseY = 0;
     renderer.domElement.addEventListener('mousedown', (e) => {
-      if (gameState === 'playing') {
+      if (gameState === 'playing' && !isPointerLocked) {
         isDragging = true;
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
@@ -4622,8 +4650,16 @@ window.onerror = function(msg, url, line, col, err) {
       isDragging = false;
     });
     renderer.domElement.addEventListener('contextmenu', (e) => { e.preventDefault(); }); // prevent right-click menu
+
+    // Mouse movement — works with both drag-to-look and pointer lock
     document.addEventListener('mousemove', e => {
-      if (isDragging && gameState === 'playing') {
+      if (gameState !== 'playing') return;
+      if (isPointerLocked) {
+        // Pointer lock: use movementX/Y for smooth FPS-style look
+        const sensitivity = 0.003;
+        cameraAngleY -= e.movementX * sensitivity;
+        cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + e.movementY * sensitivity));
+      } else if (isDragging) {
         const dx = e.clientX - lastMouseX;
         const dy = e.clientY - lastMouseY;
         lastMouseX = e.clientX;
@@ -4631,6 +4667,59 @@ window.onerror = function(msg, url, line, col, err) {
         cameraAngleY -= dx * 0.004;
         cameraAngleX = Math.max(-1.2, Math.min(1.3, cameraAngleX + dy * 0.004));
       }
+    });
+
+    // Pointer Lock API — double-click on game to enable smooth mouse look
+    renderer.domElement.addEventListener('dblclick', (e) => {
+      if (gameState === 'playing' && !isMobile && !isPointerLocked) {
+        renderer.domElement.requestPointerLock();
+      }
+    });
+    document.addEventListener('pointerlockchange', () => {
+      isPointerLocked = (document.pointerLockElement === renderer.domElement);
+      const crosshair = $('crosshair');
+      if (isPointerLocked) {
+        crosshair.classList.remove('hidden');
+      } else {
+        crosshair.classList.add('hidden');
+      }
+    });
+
+    // Scroll wheel — zoom in/out by adjusting FOV
+    renderer.domElement.addEventListener('wheel', (e) => {
+      if (gameState === 'playing' && !isMobile) {
+        e.preventDefault();
+        const zoomSpeed = 2;
+        currentFOV = Math.max(40, Math.min(100, currentFOV + (e.deltaY > 0 ? zoomSpeed : -zoomSpeed)));
+        if (camera) camera.fov = currentFOV;
+        if (camera) camera.updateProjectionMatrix();
+      }
+    }, { passive: false });
+
+    // Fullscreen button
+    $('hud-fullscreen-btn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      const btn = $('hud-fullscreen-btn');
+      if (document.fullscreenElement) {
+        btn.innerHTML = '&#9974; Windowed';
+        btn.title = 'Exit Fullscreen (F11)';
+      } else {
+        btn.innerHTML = '&#9974; Fullscreen';
+        btn.title = 'Fullscreen (F11)';
+      }
+    });
+
+    // Controls Help overlay
+    $('hud-help-btn').addEventListener('click', () => { toggleControlsHelp(); });
+    // Close controls help when clicking outside the content
+    $('controls-help').addEventListener('click', (e) => {
+      if (e.target === $('controls-help')) toggleControlsHelp();
     });
 
     titleScreen.addEventListener('click', () => { if (gameState === 'title') { initAudio(); goToSaveScreen(); } });
@@ -10666,6 +10755,22 @@ window.onerror = function(msg, url, line, col, err) {
 
   /* ====================================================
      TERRITORY MAP
+     ==================================================== */
+  /* ====================================================
+     CONTROLS HELP OVERLAY
+     ==================================================== */
+  function toggleControlsHelp () {
+    controlsHelpOpen = !controlsHelpOpen;
+    const overlay = $('controls-help');
+    if (controlsHelpOpen) {
+      overlay.classList.remove('hidden');
+    } else {
+      overlay.classList.add('hidden');
+    }
+  }
+
+  /* ====================================================
+     MAP
      ==================================================== */
   let mapOpen = false;
   let mapAnimFrame = null;
