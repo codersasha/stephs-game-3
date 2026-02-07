@@ -6091,17 +6091,18 @@ window.onerror = function(msg, url, line, col, err) {
     { id: 9,  name: 'Princess & Cloudkit',         trigger: 'triggerPrincessCloudkit' },
     { id: 10, name: 'Fire and Ice',               trigger: 'triggerFireAndIce' },
     { id: 11, name: 'Bring Back WindClan',         trigger: 'triggerWindClanRescue' },
-    { id: 12, name: 'Rogues Attack',               trigger: 'triggerRoguesAttack' },
-    { id: 13, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
-    { id: 14, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
-    { id: 15, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
-    { id: 16, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
-    { id: 17, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
-    { id: 18, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
-    { id: 19, name: 'Leader Ceremony',               trigger: 'triggerFirestarLeadership' },
-    { id: 20, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
-    { id: 21, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
-    { id: 22, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
+    { id: 12, name: 'Cloudpaw\'s Apprentice Ceremony', trigger: 'triggerCloudpawCeremony' },
+    { id: 13, name: 'Rogues Attack',               trigger: 'triggerRoguesAttack' },
+    { id: 14, name: 'Tigerclaw\'s Treachery',      trigger: 'triggerTigerclawTreachery' },
+    { id: 15, name: 'Tigerclaw\'s Exile',           trigger: 'triggerTigerclawExile' },
+    { id: 16, name: 'Warrior Ceremony',            trigger: 'triggerWarriorCeremony' },
+    { id: 17, name: 'A Dangerous Path',            trigger: 'triggerDangerousPath' },
+    { id: 18, name: 'The Dog Pack',                trigger: 'triggerDogPack' },
+    { id: 19, name: 'Bluestar\'s Last Life',        trigger: 'triggerBluestarLastLife' },
+    { id: 20, name: 'Leader Ceremony',               trigger: 'triggerFirestarLeadership' },
+    { id: 21, name: 'TigerClan Rises',              trigger: 'triggerTigerClanRises' },
+    { id: 22, name: 'BloodClan Arrives',             trigger: 'triggerBloodClanArrives' },
+    { id: 23, name: 'The Final Battle: Scourge',     trigger: 'triggerScourge' },
   ];
 
   function showNextChapterButton () {
@@ -6139,6 +6140,7 @@ window.onerror = function(msg, url, line, col, err) {
       triggerRedtailEvent, triggerMothermouthJourney, triggerYellowfangEncounter,
       triggerDrivingOutBrokenstar, triggerSpottedleafWarning, triggerRavenpawSecret,
       triggerRavenpawLeaves, triggerFireAndIce, triggerWindClanRescue,
+      triggerCloudpawCeremony,
       triggerTigerclawTreachery, triggerTigerclawExile, triggerWarriorCeremony,
       triggerDangerousPath, triggerDogPack, triggerBluestarLastLife,
       triggerFirestarLeadership, triggerTigerClanRises, triggerBloodClanArrives,
@@ -8006,7 +8008,92 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
-     CHAPTER 12: ROGUES ATTACK
+     CHAPTER 12: CLOUDPAW'S APPRENTICE CEREMONY
+     Cloudkit has reached six moons! Bluestar holds a ceremony
+     to make him Cloudpaw, apprentice of ThunderClan.
+     ==================================================== */
+  function triggerCloudpawCeremony () {
+    gameState = 'cutscene';
+    const pName = player.name || 'apprentice';
+    const bs = npcCats.find(c => c.name === 'Bluestar');
+    if (bs) { bs.group.visible = true; bs.group.position.set(-3, 3.3, -4); }
+
+    // Find Cloudkit NPC
+    var ck = npcCats.find(c => c.name === 'Cloudkit');
+    if (ck) { ck.group.visible = true; ck.group.position.set(0, 0, 2); }
+
+    const scenes = [
+      { narration: true, text: 'Moons have passed since you brought Cloudkit to ThunderClan. The tiny white kit has grown strong and bold — and today he turns six moons old!',
+        camPos: { x: 0, y: 5, z: 5 }, camLook: { x: 0, y: 1, z: 0 } },
+      { speaker: 'Bluestar', text: '"Let all cats old enough to catch their own prey gather beneath the Highrock for a Clan meeting!"',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: 'ThunderClan gathers around the Highrock. Cloudkit bounces excitedly at the front, his white fur fluffed out and his blue eyes shining.',
+        camPos: { x: 2, y: 3, z: 3 }, camLook: { x: 0, y: 0.5, z: 2 } },
+      { speaker: 'Cloudkit', text: '"Is it really happening? Am I going to be an apprentice? I\'m going to be the BEST apprentice EVER!"',
+        camPos: { x: 1, y: 1.5, z: 2.5 }, camLook: { x: 0, y: 0.5, z: 2 } },
+      { speaker: 'Bluestar', text: '"Cloudkit, you have reached the age of six moons, and it is time for you to be apprenticed."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"From this day on, until you receive your warrior name, you will be known as <strong>Cloudpaw</strong>."',
+        camPos: { x: -2, y: 3.5, z: -2 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { speaker: 'Bluestar', text: '"' + pName + ', you brought Cloudpaw to ThunderClan. You have shown courage and loyalty in your time here. You will be Cloudpaw\'s mentor."',
+        camPos: { x: -1, y: 3.5, z: -1 }, camLook: { x: 0, y: 1.2, z: 2 } },
+      { speaker: pName, text: '"I\'m honored, Bluestar. I\'ll teach Cloudpaw everything I know."',
+        camPos: { x: 1, y: 2, z: 3 }, camLook: { x: -3, y: 3.3, z: -4 } },
+      { narration: true, text: 'You touch noses with Cloudpaw. His eyes are wide with excitement and pride.',
+        camPos: { x: 0.5, y: 1.5, z: 2.5 }, camLook: { x: 0, y: 0.5, z: 2 } },
+      { speaker: 'Cloudpaw', text: '"YES! I\'m Cloudpaw now! I\'m going to be the greatest warrior ThunderClan has EVER seen! Just watch me!"',
+        camPos: { x: 1, y: 1.5, z: 2.5 }, camLook: { x: 0, y: 0.5, z: 2 } },
+      { narration: true, text: '"CLOUDPAW! CLOUDPAW!" The Clan chants his new name. Even the cats who doubted a kittypet\'s kit join in.',
+        camPos: { x: 0, y: 5, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+      { narration: true, text: '<em>Cloudpaw is an apprentice at last! He will train alongside you as your apprentice. Princess would be so proud.</em>',
+        camPos: { x: 0, y: 8, z: 5 }, camLook: { x: 0, y: 2, z: 0 } },
+    ];
+    playSound('ceremony');
+    startCutscene(scenes, () => {
+      gameState = 'playing';
+
+      // Rename Cloudkit to Cloudpaw — update all data structures
+      if (ck) {
+        ck.name = 'Cloudpaw';
+        if (ck.label) updateLabelText(ck.label, 'Cloudpaw', '#ffe0a0');
+        // Move from nursery to apprentice den area
+        ck.group.position.set(DEN_SPOTS['Apprentices'].x + 2, 0, DEN_SPOTS['Apprentices'].z + 1);
+        // Make him slightly bigger — he's grown from a kit
+        ck.group.scale.set(1.3, 1.3, 1.3);
+      }
+      // Update known cats
+      knownCats.delete('Cloudkit');
+      knownCats.add('Cloudpaw');
+      // Update dialogue
+      delete catDialogue['Cloudkit'];
+      catDialogue['Cloudpaw'] = [
+        '"I can\'t believe I\'m an apprentice! When do we go hunting?"',
+        '"Did you see that? I almost caught a mouse! ...Almost."',
+        '"' + pName + ', teach me how to fight! I want to learn EVERYTHING!"',
+        '"The other apprentices are okay, but I\'m going to be the best."',
+        '"Do you think Princess misses me? I bet she\'d be proud!"',
+        '"I don\'t care what anyone says about kittypets. I\'m a CLAN cat now."',
+      ];
+      // Update voice profile
+      delete catVoiceProfiles['Cloudkit'];
+      catVoiceProfiles['Cloudpaw'] = { base: 420, end: 380, dur: 0.25, type: 'sine', vol: 0.14, vibrato: 4 };
+      // Update emoji map
+      catEmojiMap['Cloudpaw'] = '☁️';
+      // Update display colors
+      CAT_DISPLAY_COLORS['Cloudpaw'] = '#ffffff';
+      // Update role for den system
+      // Remove from KIT_NAMES so den shows him as apprentice
+      var kitIdx = KIT_NAMES.indexOf('Cloudkit');
+      if (kitIdx >= 0) KIT_NAMES.splice(kitIdx, 1);
+
+      placeCatsInCamp(); saveGame();
+      queueMessage('Narrator', 'Cloudpaw is now your apprentice! He\'s eager to learn. Keep training him and exploring the territory.');
+      showNextChapterButton();
+    });
+  }
+
+  /* ====================================================
+     CHAPTER 13: ROGUES ATTACK
      Rogues and loners attack ThunderClan camp! After you
      defeat one rogue, the chapter ends and leads into
      Tigerclaw's Treachery.
@@ -8266,7 +8353,7 @@ window.onerror = function(msg, url, line, col, err) {
         'Ravenpaw', 'Spottedleaf', 'Tigerclaw', 'Longtail',
         'Frostfur', 'Brindleface', 'Goldenflower',
         'Cinderkit', 'Brackenkit', 'Brightkit', 'Thornkit', 'Ashkit', 'Fernkit',
-        'Cloudkit', 'Yellowfang', 'Smudge', 'Princess'
+        'Cloudkit', 'Cloudpaw', 'Yellowfang', 'Smudge', 'Princess'
       ];
       revealCatNames(allThunderClanNames);
 
@@ -10530,7 +10617,7 @@ window.onerror = function(msg, url, line, col, err) {
 
   function getDenForCat (name) {
     if (KITTYPET_NAMES.includes(name)) return TWOLEG_HOUSE_SPOT;
-    const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'];
+    const apprentices = ['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw', 'Cloudpaw'];
     if (apprentices.includes(name)) return DEN_SPOTS['Apprentices'];
     if (name === 'Bluestar') return DEN_SPOTS['Leader'];
     if (name === 'Spottedleaf') return DEN_SPOTS['Medicine'];
@@ -10555,7 +10642,7 @@ window.onerror = function(msg, url, line, col, err) {
     if (name === 'Spottedleaf') return 'medicine';
     if (name === 'Yellowfang') return 'elder';
     if (name === 'Smudge' || name === 'Princess') return 'kittypet';
-    if (['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw'].includes(name)) return 'apprentice';
+    if (['Graypaw', 'Dustpaw', 'Sandpaw', 'Ravenpaw', 'Cloudpaw'].includes(name)) return 'apprentice';
     if (QUEEN_NAMES.includes(name)) return 'queen';
     if (KIT_NAMES.includes(name)) return 'kit';
     return 'warrior'; // Lionheart, Whitestorm, Tigerclaw, Mousefur, Darkstripe, Longtail
