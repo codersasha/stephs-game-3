@@ -860,9 +860,9 @@ window.onerror = function(msg, url, line, col, err) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    // Warm tone mapping for that cozy cartoon look
+    // Tone mapping for a natural, non-blown-out look
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.0;
     renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.insertBefore(renderer.domElement, document.body.firstChild);
     renderer.domElement.id = 'game-canvas';
@@ -935,7 +935,7 @@ window.onerror = function(msg, url, line, col, err) {
       const fx = bounds.minX + Math.random() * (bounds.maxX - bounds.minX);
       const fz = bounds.minZ + Math.random() * (bounds.maxZ - bounds.minZ);
       const fc = fColors[Math.floor(Math.random() * fColors.length)];
-      const fm = new THREE.MeshPhongMaterial({ color: fc, emissive: fc, emissiveIntensity: 0.08, shininess: 10 });
+      const fm = new THREE.MeshPhongMaterial({ color: fc, emissive: fc, emissiveIntensity: 0.03, shininess: 5 });
       const f = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 4), fm);
       f.position.set(fx, 0.15, fz);
       scene.add(f);
@@ -943,7 +943,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* river */
     const riverGeo = new THREE.PlaneGeometry(8, 200, 1, 20);
-    const riverMat = new THREE.MeshPhongMaterial({ color: 0x44aadd, transparent: true, opacity: 0.75, shininess: 60 });
+    const riverMat = new THREE.MeshPhongMaterial({ color: 0x44aadd, transparent: true, opacity: 0.75, shininess: 20 });
     const river = new THREE.Mesh(riverGeo, riverMat);
     river.rotation.x = -Math.PI / 2; river.position.set(75, 0.05, 0);
     scene.add(river);
@@ -1086,14 +1086,14 @@ window.onerror = function(msg, url, line, col, err) {
     const house = new THREE.Group();
 
     /* --- MATERIALS --- */
-    const wallMat = new THREE.MeshPhongMaterial({ color: 0xe8dbc8, shininess: 5 });
-    const trimMat = new THREE.MeshPhongMaterial({ color: 0xfaf5ee, shininess: 10 });
-    const roofMat = new THREE.MeshPhongMaterial({ color: 0x7a3a1a, shininess: 8 });
-    const doorMat = new THREE.MeshPhongMaterial({ color: 0x5a3318, shininess: 20 });
-    const winGlassMat = new THREE.MeshPhongMaterial({ color: 0x99ccee, emissive: 0x223344, shininess: 80, transparent: true, opacity: 0.85 });
-    const winFrameMat = new THREE.MeshPhongMaterial({ color: 0xf5f0e8, shininess: 15 });
-    const brickMat = new THREE.MeshPhongMaterial({ color: 0xcc8866, shininess: 3 });
-    const concreteMat = new THREE.MeshPhongMaterial({ color: 0xbbbbaa, shininess: 5 });
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0xe8dbc8, shininess: 2 });
+    const trimMat = new THREE.MeshPhongMaterial({ color: 0xfaf5ee, shininess: 3 });
+    const roofMat = new THREE.MeshPhongMaterial({ color: 0x7a3a1a, shininess: 3 });
+    const doorMat = new THREE.MeshPhongMaterial({ color: 0x5a3318, shininess: 5 });
+    const winGlassMat = new THREE.MeshPhongMaterial({ color: 0x99ccee, emissive: 0x223344, emissiveIntensity: 0.15, shininess: 20, transparent: true, opacity: 0.85 });
+    const winFrameMat = new THREE.MeshPhongMaterial({ color: 0xf5f0e8, shininess: 3 });
+    const brickMat = new THREE.MeshPhongMaterial({ color: 0xcc8866, shininess: 2 });
+    const concreteMat = new THREE.MeshPhongMaterial({ color: 0xbbbbaa, shininess: 2 });
 
     /* --- FOUNDATION --- */
     const foundation = new THREE.Mesh(new THREE.BoxGeometry(11, 0.5, 7.5), concreteMat);
@@ -1153,14 +1153,14 @@ window.onerror = function(msg, url, line, col, err) {
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.2, 0.12), doorMat);
     door.position.set(0, 2.15, -3.55); house.add(door);
     // Door panels (decorative insets)
-    const panelMat = new THREE.MeshPhongMaterial({ color: 0x4a2a12, shininess: 15 });
+    const panelMat = new THREE.MeshPhongMaterial({ color: 0x4a2a12, shininess: 3 });
     [[-0, 3.2], [0, 1.5]].forEach(([x, y]) => {
       const panel = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 0.02), panelMat);
       panel.position.set(x, y, -3.62); house.add(panel);
     });
     // Door handle (brass knob)
     const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6),
-      new THREE.MeshPhongMaterial({ color: 0xddaa44, shininess: 80 }));
+      new THREE.MeshPhongMaterial({ color: 0xddaa44, shininess: 15 }));
     knob.position.set(0.55, 2.2, -3.65); house.add(knob);
     // Door step
     const step = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.15, 0.8), concreteMat);
@@ -1169,11 +1169,11 @@ window.onerror = function(msg, url, line, col, err) {
     const flapFrame = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.08), trimMat);
     flapFrame.position.set(0, 0.7, -3.63); house.add(flapFrame);
     const flap = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.75, 0.03),
-      new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 30 }));
+      new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 5 }));
     flap.position.set(0, 0.65, -3.66); house.add(flap);
     // Glowing indicator around cat flap so player can see it
     const flapGlow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.1, 0.02),
-      new THREE.MeshPhongMaterial({ color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 0.4, transparent: true, opacity: 0.5 }));
+      new THREE.MeshPhongMaterial({ color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 0.15, transparent: true, opacity: 0.35 }));
     flapGlow.position.set(0, 0.7, -3.68); house.add(flapGlow);
     // Label so player can see where the entrance is
     const flapLabel = makeNameLabel('Cat Flap (Enter Here)', 1.5);
@@ -1229,11 +1229,11 @@ window.onerror = function(msg, url, line, col, err) {
     sideWinFrame.position.set(-5.45, 3.5, -1); house.add(sideWinFrame);
 
     /* --- PORCH / AWNING over door --- */
-    const awningMat = new THREE.MeshPhongMaterial({ color: 0x6a3015, shininess: 10 });
+    const awningMat = new THREE.MeshPhongMaterial({ color: 0x6a3015, shininess: 3 });
     const awning = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1.5), awningMat);
     awning.position.set(0, 4.2, -4); awning.rotation.x = 0.15; house.add(awning);
     // Porch supports
-    const supportMat = new THREE.MeshPhongMaterial({ color: 0xf0e8d8, shininess: 10 });
+    const supportMat = new THREE.MeshPhongMaterial({ color: 0xf0e8d8, shininess: 3 });
     [[-1.3, -4.4], [1.3, -4.4]].forEach(([x, z]) => {
       const sup = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 3.7, 8), supportMat);
       sup.position.set(x, 2.35, z); house.add(sup);
@@ -1266,7 +1266,7 @@ window.onerror = function(msg, url, line, col, err) {
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.6, 4), stemMat);
       stem.position.set(fx + (Math.random() - 0.5) * 0.3, 0.8, fz); house.add(stem);
       // Flower head
-      const flowerMat = new THREE.MeshPhongMaterial({ color: flowerColors[i % flowerColors.length], shininess: 15 });
+      const flowerMat = new THREE.MeshPhongMaterial({ color: flowerColors[i % flowerColors.length], shininess: 3 });
       const flower = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), flowerMat);
       flower.position.set(fx + (Math.random() - 0.5) * 0.3, 1.15, fz); house.add(flower);
       // Leaves
@@ -1305,7 +1305,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* --- FOOD & WATER BOWLS --- */
     // Food bowl
-    const bowlMat = new THREE.MeshPhongMaterial({ color: 0x4488cc, shininess: 40 });
+    const bowlMat = new THREE.MeshPhongMaterial({ color: 0x4488cc, shininess: 8 });
     const foodBowl = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.1, 10, 14), bowlMat);
     foodBowl.rotation.x = -Math.PI / 2; foodBowl.position.set(-3, 0.1, -2);
     house.add(foodBowl);
@@ -1328,7 +1328,7 @@ window.onerror = function(msg, url, line, col, err) {
       new THREE.MeshPhongMaterial({ color: 0x666666 }));
     mailPost.position.set(5.5, 0.6, -8); house.add(mailPost);
     const mailBox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.6),
-      new THREE.MeshPhongMaterial({ color: 0xcc2222, shininess: 30 }));
+      new THREE.MeshPhongMaterial({ color: 0xcc2222, shininess: 5 }));
     mailBox.position.set(5.5, 1.35, -8); house.add(mailBox);
     // Mail flag
     const mailFlag = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.3, 0.15),
@@ -1337,10 +1337,10 @@ window.onerror = function(msg, url, line, col, err) {
 
     /* --- OUTDOOR LIGHT by door --- */
     const lightFixture = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 0.15),
-      new THREE.MeshPhongMaterial({ color: 0x444444, shininess: 20 }));
+      new THREE.MeshPhongMaterial({ color: 0x444444, shininess: 5 }));
     lightFixture.position.set(1.2, 3.8, -3.55); house.add(lightFixture);
     const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6),
-      new THREE.MeshPhongMaterial({ color: 0xffffaa, emissive: 0xffdd66, emissiveIntensity: 0.5 }));
+      new THREE.MeshPhongMaterial({ color: 0xffffaa, emissive: 0xffdd66, emissiveIntensity: 0.2 }));
     lightBulb.position.set(1.2, 3.6, -3.6); house.add(lightBulb);
     // Warm glow from porch light
     const porchLight = new THREE.PointLight(0xffdd88, 0.4, 8);
@@ -1355,9 +1355,9 @@ window.onerror = function(msg, url, line, col, err) {
     });
 
     /* --- HOUSE INTERIOR (visible through the cat flap!) --- */
-    const floorMat = new THREE.MeshPhongMaterial({ color: 0xc4a87a, shininess: 15 });
-    const interiorWallMat = new THREE.MeshPhongMaterial({ color: 0xf5efe0, shininess: 5 });
-    const carpetMat = new THREE.MeshPhongMaterial({ color: 0x884444, shininess: 3 });
+    const floorMat = new THREE.MeshPhongMaterial({ color: 0xc4a87a, shininess: 3 });
+    const interiorWallMat = new THREE.MeshPhongMaterial({ color: 0xf5efe0, shininess: 2 });
+    const carpetMat = new THREE.MeshPhongMaterial({ color: 0x884444, shininess: 1 });
 
     // Floor (wooden)
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 6.5), floorMat);
@@ -1384,33 +1384,33 @@ window.onerror = function(msg, url, line, col, err) {
 
     // --- KITCHEN AREA (left side) ---
     // Kitchen counter
-    const counterMat = new THREE.MeshPhongMaterial({ color: 0x8B7355, shininess: 20 });
-    const counterTopMat = new THREE.MeshPhongMaterial({ color: 0xd4d0c8, shininess: 40 });
+    const counterMat = new THREE.MeshPhongMaterial({ color: 0x8B7355, shininess: 5 });
+    const counterTopMat = new THREE.MeshPhongMaterial({ color: 0xd4d0c8, shininess: 8 });
     const counter = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 0.8), counterMat);
     counter.position.set(-3.5, 1.25, 2.5); counter.castShadow = true; house.add(counter);
     const counterTop = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.08, 0.9), counterTopMat);
     counterTop.position.set(-3.5, 2.04, 2.5); house.add(counterTop);
 
     // Kitchen sink
-    const sinkMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 60 });
+    const sinkMat = new THREE.MeshPhongMaterial({ color: 0xcccccc, shininess: 10 });
     const sink = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.15, 0.5), sinkMat);
     sink.position.set(-3.5, 2.08, 2.5); house.add(sink);
     // Faucet
-    const faucetMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, shininess: 80 });
+    const faucetMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, shininess: 12 });
     const faucetBase = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.4, 6), faucetMat);
     faucetBase.position.set(-3.5, 2.28, 2.2); house.add(faucetBase);
     const faucetSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.25, 4), faucetMat);
     faucetSpout.position.set(-3.5, 2.48, 2.35); faucetSpout.rotation.z = Math.PI / 2; house.add(faucetSpout);
 
     // Fridge (tall white box)
-    const fridgeMat = new THREE.MeshPhongMaterial({ color: 0xf0f0f0, shininess: 30 });
+    const fridgeMat = new THREE.MeshPhongMaterial({ color: 0xf0f0f0, shininess: 5 });
     const fridge = new THREE.Mesh(new THREE.BoxGeometry(1.0, 3, 0.8), fridgeMat);
     fridge.position.set(-4.5, 2, 2.5); fridge.castShadow = true; house.add(fridge);
     const fridgeHandle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.6, 0.06), sinkMat);
     fridgeHandle.position.set(-4.1, 2.5, 2.1); house.add(fridgeHandle);
 
     // Kitchen cabinets on wall
-    const cabinetMat = new THREE.MeshPhongMaterial({ color: 0x9B8465, shininess: 10 });
+    const cabinetMat = new THREE.MeshPhongMaterial({ color: 0x9B8465, shininess: 3 });
     const cabinet1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.4), cabinetMat);
     cabinet1.position.set(-3, 4, 2.9); house.add(cabinet1);
     const cabinet2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.4), cabinetMat);
@@ -1436,7 +1436,7 @@ window.onerror = function(msg, url, line, col, err) {
     sofaArmR.position.set(4.7, 1.05, 2); house.add(sofaArmR);
 
     // Coffee table
-    const tableMat = new THREE.MeshPhongMaterial({ color: 0x6b4226, shininess: 15 });
+    const tableMat = new THREE.MeshPhongMaterial({ color: 0x6b4226, shininess: 3 });
     const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.8), tableMat);
     tableTop.position.set(3.5, 0.75, 0.8); house.add(tableTop);
     // Table legs
@@ -1446,16 +1446,16 @@ window.onerror = function(msg, url, line, col, err) {
     }
 
     // TV / screen on front wall
-    const tvMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 50 });
+    const tvMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 8 });
     const tv = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, 0.08), tvMat);
     tv.position.set(3, 3.2, -3.0); house.add(tv);
     // TV screen glow
     const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.85),
-      new THREE.MeshPhongMaterial({ color: 0x223355, emissive: 0x112233, emissiveIntensity: 0.4 }));
+      new THREE.MeshPhongMaterial({ color: 0x223355, emissive: 0x112233, emissiveIntensity: 0.15 }));
     tvScreen.position.set(3, 3.2, -2.95); house.add(tvScreen);
 
     // Bookshelf on left interior wall
-    const shelfMat = new THREE.MeshPhongMaterial({ color: 0x7a5a38, shininess: 10 });
+    const shelfMat = new THREE.MeshPhongMaterial({ color: 0x7a5a38, shininess: 3 });
     const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.5, 1.5), shelfMat);
     shelf.position.set(-4.8, 1.75, -1); house.add(shelf);
     // Books
@@ -1492,7 +1492,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     // Cat food bowl area inside (near front wall, by cat flap)
     const indoorFoodBowl = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.08, 8, 12),
-      new THREE.MeshPhongMaterial({ color: 0xee5533, shininess: 30 }));
+      new THREE.MeshPhongMaterial({ color: 0xee5533, shininess: 5 }));
     indoorFoodBowl.rotation.x = -Math.PI / 2; indoorFoodBowl.position.set(-1, 0.58, -2.5); house.add(indoorFoodBowl);
     const indoorFood = new THREE.Mesh(new THREE.CircleGeometry(0.18, 8),
       new THREE.MeshPhongMaterial({ color: 0x886644 }));
@@ -1523,14 +1523,14 @@ window.onerror = function(msg, url, line, col, err) {
     const g = new THREE.Group();
 
     // Body
-    const bodyMat = new THREE.MeshPhongMaterial({ color: color, shininess: 40 });
+    const bodyMat = new THREE.MeshPhongMaterial({ color: color, shininess: 8 });
     const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 4.0), bodyMat);
     body.position.y = 0.6;
     body.castShadow = true;
     g.add(body);
 
     // Cabin / roof
-    const cabinMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 60, opacity: 0.7, transparent: true });
+    const cabinMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 10, opacity: 0.7, transparent: true });
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 2.0), cabinMat);
     cabin.position.y = 1.45;
     cabin.position.z = -0.3 * dir;
@@ -1551,7 +1551,7 @@ window.onerror = function(msg, url, line, col, err) {
     });
 
     // Headlights (front)
-    const lightMat = new THREE.MeshPhongMaterial({ color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 0.5 });
+    const lightMat = new THREE.MeshPhongMaterial({ color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 0.2 });
     const hlGeo = new THREE.SphereGeometry(0.15, 8, 8);
     const hl1 = new THREE.Mesh(hlGeo, lightMat);
     hl1.position.set(-0.7, 0.7, 2.0 * dir);
@@ -1561,7 +1561,7 @@ window.onerror = function(msg, url, line, col, err) {
     g.add(hl2);
 
     // Taillights
-    const tailMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.3 });
+    const tailMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.1 });
     const tl1 = new THREE.Mesh(hlGeo, tailMat);
     tl1.position.set(-0.7, 0.7, -2.0 * dir);
     g.add(tl1);
@@ -1717,7 +1717,7 @@ window.onerror = function(msg, url, line, col, err) {
 
   function createTwolegModel (color, height) {
     const group = new THREE.Group();
-    const skinMat = new THREE.MeshPhongMaterial({ color: 0xffcc99, shininess: 10 });
+    const skinMat = new THREE.MeshPhongMaterial({ color: 0xffcc99, shininess: 3 });
     const clothMat = new THREE.MeshPhongMaterial({ color: color, shininess: 8 });
     const hairMat = new THREE.MeshPhongMaterial({ color: 0x553322, shininess: 5 });
 
@@ -1763,7 +1763,7 @@ window.onerror = function(msg, url, line, col, err) {
     group.legR = legR;
 
     // Shoes
-    const shoeMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 15 });
+    const shoeMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 3 });
     const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.28), shoeMat);
     shoeL.position.set(-0.15, 0.05, 0.04); group.add(shoeL);
     const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.28), shoeMat);
@@ -2233,7 +2233,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     // The Moonstone — a shimmering crystal inside the cave
     const moonstoneMat = new THREE.MeshPhongMaterial({
-      color: 0xbbccff, emissive: 0x334488, specular: 0xffffff, shininess: 100,
+      color: 0xbbccff, emissive: 0x334488, emissiveIntensity: 0.3, specular: 0x888888, shininess: 20,
       transparent: true, opacity: 0.85
     });
     const moonstone = new THREE.Mesh(new THREE.OctahedronGeometry(1.2, 0), moonstoneMat);
@@ -2327,25 +2327,25 @@ window.onerror = function(msg, url, line, col, err) {
     const cream = 0xffcc99, white = 0xffeedd, pink = 0xff7799;
 
     /* --- body (capsule oriented head-to-tail along Z axis) --- */
-    const bodyMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 15 });
+    const bodyMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 3 });
     const bodyMain = makeCapsuleMesh(0.20, 0.90, 12, 16, bodyMat);
     bodyMain.rotation.x = Math.PI / 2; // round ends face head (front) and tail (back)
     bodyMain.position.set(0, 0.58, 0); bodyMain.castShadow = true;
     catGroup.add(bodyMain);
     // belly (lighter, slightly below)
-    const bellyMat = new THREE.MeshPhongMaterial({ color: cream, shininess: 10 });
+    const bellyMat = new THREE.MeshPhongMaterial({ color: cream, shininess: 3 });
     const belly = makeCapsuleMesh(0.15, 0.60, 8, 12, bellyMat);
     belly.rotation.x = Math.PI / 2; // same orientation as body
     belly.position.set(0, 0.49, 0.04);
     catGroup.add(belly);
 
     /* --- head --- */
-    const headMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 20 });
+    const headMat = new THREE.MeshPhongMaterial({ color: orange, shininess: 5 });
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.30, 14, 12), headMat);
     head.position.set(0, 0.86, 0.60); head.scale.set(1, 0.92, 1.08); head.castShadow = true;
     catGroup.add(head);
     // cheeks
-    const cheekMat = new THREE.MeshPhongMaterial({ color: lightOrange, shininess: 10 });
+    const cheekMat = new THREE.MeshPhongMaterial({ color: lightOrange, shininess: 3 });
     [[-0.15, 0.80, 0.72],[0.15, 0.80, 0.72]].forEach(([x,y,z])=>{
       const ch = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), cheekMat);
       ch.position.set(x,y,z); catGroup.add(ch);
@@ -2377,11 +2377,11 @@ window.onerror = function(msg, url, line, col, err) {
     [[-1, 1],[1, 1]].forEach(([side]) => {
       const x = side * 0.13;
       // sclera (white of eye) — much bigger for cute cartoon look
-      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.10, 14, 12), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 40 }));
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.10, 14, 12), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 8 }));
       sclera.position.set(x, 0.90, 0.82); sclera.scale.set(1.15, 1.0, 0.55);
       catGroup.add(sclera);
       // iris (bright green, Rusty's signature eyes) — big and round
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.082, 14, 12), new THREE.MeshPhongMaterial({ color: 0x33dd44, shininess: 90, emissive: 0x0a1a0a }));
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.082, 14, 12), new THREE.MeshPhongMaterial({ color: 0x33dd44, shininess: 15, emissive: 0x0a1a0a }));
       iris.position.set(x, 0.90, 0.86); iris.scale.set(0.95, 0.95, 0.45);
       catGroup.add(iris);
       // pupil (vertical slit — cat eye!)
@@ -2403,7 +2403,7 @@ window.onerror = function(msg, url, line, col, err) {
     });
 
     /* --- nose (triangle-shaped, pink, more prominent) --- */
-    const noseMat = new THREE.MeshPhongMaterial({ color: pink, shininess: 60 });
+    const noseMat = new THREE.MeshPhongMaterial({ color: pink, shininess: 10 });
     const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), noseMat);
     nose.position.set(0, 0.815, 0.92); nose.scale.set(1.2, 0.6, 0.6);
     catGroup.add(nose);
@@ -2487,13 +2487,13 @@ window.onerror = function(msg, url, line, col, err) {
     catGroup.add(chest);
 
     /* --- kittypet collar (red with a golden bell — visible only when storyPhase is 'house') --- */
-    const collarMat = new THREE.MeshPhongMaterial({ color: 0xcc2222, shininess: 40 });
+    const collarMat = new THREE.MeshPhongMaterial({ color: 0xcc2222, shininess: 5 });
     const collar = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 8, 20), collarMat);
     collar.position.set(0, 0.72, 0.45);
     collar.rotation.x = Math.PI / 2.2; // angled slightly to sit on neck
     catGroup.add(collar);
     // Bell on the collar
-    const bellMat = new THREE.MeshPhongMaterial({ color: 0xffdd00, shininess: 90 });
+    const bellMat = new THREE.MeshPhongMaterial({ color: 0xffdd00, shininess: 12 });
     const bell = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), bellMat);
     bell.position.set(0, 0.62, 0.58);
     catGroup.add(bell);
@@ -2593,7 +2593,7 @@ window.onerror = function(msg, url, line, col, err) {
   function makeBookCat (desc, px, pz) {
     const g = new THREE.Group();
     const sz = desc.size || 1;
-    const furMat  = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 12 });
+    const furMat  = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 3 });
     const bellyC  = desc.belly || desc.fur;
     const bellyMat = new THREE.MeshPhongMaterial({ color: bellyC, shininess: 8 });
     const earInC  = desc.earInner || 0xff9999;
@@ -2625,13 +2625,13 @@ window.onerror = function(msg, url, line, col, err) {
     head.position.set(0, 0.82 * sz, 0.52 * sz); head.scale.set(1, 0.92, 1.06);
     head.castShadow = true; g.add(head);
     // cheeks
-    const cheekMat = new THREE.MeshPhongMaterial({ color: desc.belly || desc.fur, shininess: 10 });
+    const cheekMat = new THREE.MeshPhongMaterial({ color: desc.belly || desc.fur, shininess: 3 });
     [[-1,1],[1,1]].forEach(([s]) => {
       const ch = new THREE.Mesh(new THREE.SphereGeometry(0.12 * sz, 10, 8), cheekMat);
       ch.position.set(s * 0.16 * sz, 0.76 * sz, 0.62 * sz); g.add(ch);
     });
     // muzzle
-    const mzlMat = new THREE.MeshPhongMaterial({ color: bellyC, shininess: 10 });
+    const mzlMat = new THREE.MeshPhongMaterial({ color: bellyC, shininess: 3 });
     const mzl = new THREE.Mesh(new THREE.SphereGeometry(0.11 * sz, 10, 8), mzlMat);
     mzl.position.set(0, 0.76 * sz, 0.72 * sz); mzl.scale.set(1.1, 0.65, 0.7);
     g.add(mzl);
@@ -2641,7 +2641,7 @@ window.onerror = function(msg, url, line, col, err) {
     chin.position.set(0, 0.70 * sz, 0.62 * sz); g.add(chin);
 
     /* ears (with inner pink and fur tufts, matching player quality) */
-    const earMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 10 });
+    const earMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 3 });
     const earIn  = new THREE.MeshPhongMaterial({ color: earInC });
     [[-1,1],[1,1]].forEach(([s]) => {
       const ear = new THREE.Mesh(new THREE.ConeGeometry(0.12 * sz, 0.22 * sz, 4), earMat);
@@ -2660,10 +2660,10 @@ window.onerror = function(msg, url, line, col, err) {
     [[-1,1],[1,1]].forEach(([s]) => {
       const x = s * 0.13 * sz;
       // sclera — bigger for cartoon look
-      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.10 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 40 }));
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.10 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 8 }));
       sclera.position.set(x, 0.86 * sz, 0.72 * sz); sclera.scale.set(1.15, 1.0, 0.55); g.add(sclera);
       // iris — big and bright
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.082 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: eyeC, shininess: 90, emissive: 0x0a1a0a }));
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.082 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: eyeC, shininess: 15, emissive: 0x0a1a0a }));
       iris.position.set(x, 0.86 * sz, 0.74 * sz); iris.scale.set(0.95, 0.95, 0.45); g.add(iris);
       // pupil — vertical slit
       const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.042 * sz, 10, 8), new THREE.MeshBasicMaterial({ color: 0x050505 }));
@@ -2681,7 +2681,7 @@ window.onerror = function(msg, url, line, col, err) {
     });
 
     /* nose (more detailed like player cat) */
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: noseC, shininess: 60 }));
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: noseC, shininess: 10 }));
     nose.position.set(0, 0.79 * sz, 0.80 * sz); nose.scale.set(1.2, 0.6, 0.6); g.add(nose);
     // nostrils
     [[-1,1],[1,1]].forEach(([s]) => {
@@ -2704,8 +2704,8 @@ window.onerror = function(msg, url, line, col, err) {
     });
 
     /* legs & paws (matching player cat detail) */
-    const legMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 10 });
-    const pawMat = new THREE.MeshPhongMaterial({ color: pawC, shininess: 10 });
+    const legMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 3 });
+    const pawMat = new THREE.MeshPhongMaterial({ color: pawC, shininess: 3 });
     const padMat = new THREE.MeshPhongMaterial({ color: 0xff8899 });
     const legPos = [
       [-0.16*sz, 0.22*sz, 0.32*sz], [0.16*sz, 0.22*sz, 0.32*sz],
@@ -3014,11 +3014,11 @@ window.onerror = function(msg, url, line, col, err) {
      LIGHTING
      ==================================================== */
   function createLighting () {
-    // Bright warm ambient — like a sunny cartoon day
-    scene.add(new THREE.AmbientLight(0xfff5e6, 0.65));
+    // Soft ambient — enough to see but not washed out
+    scene.add(new THREE.AmbientLight(0xfff5e6, 0.45));
 
-    // Main sun — warm golden light, high in the sky
-    const sun = new THREE.DirectionalLight(0xffeedd, 1.1);
+    // Main sun — moderate warmth, not blinding
+    const sun = new THREE.DirectionalLight(0xffeedd, 0.8);
     sun.position.set(30, 50, 25); sun.castShadow = true;
     sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
     sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 120;
@@ -3027,17 +3027,16 @@ window.onerror = function(msg, url, line, col, err) {
     sun.shadow.bias = -0.001;
     scene.add(sun);
 
-    // Hemisphere light — bright sky blue above, warm grass green below
-    // This is a huge part of the LKBC look: fills in shadows with color
-    scene.add(new THREE.HemisphereLight(0x88ccff, 0x44aa44, 0.55));
+    // Hemisphere light — gentle fill from sky/ground, not overpowering
+    scene.add(new THREE.HemisphereLight(0x88ccff, 0x44aa44, 0.35));
 
     // Soft fill light from the other side (removes harsh shadows)
-    const fill = new THREE.DirectionalLight(0xaaccff, 0.3);
+    const fill = new THREE.DirectionalLight(0xaaccff, 0.18);
     fill.position.set(-20, 15, -10);
     scene.add(fill);
 
-    // Rim/back light — subtle warm glow to outline characters
-    const rim = new THREE.DirectionalLight(0xffddaa, 0.2);
+    // Rim/back light — very subtle
+    const rim = new THREE.DirectionalLight(0xffddaa, 0.12);
     rim.position.set(-10, 10, -30);
     scene.add(rim);
   }
@@ -6022,7 +6021,7 @@ window.onerror = function(msg, url, line, col, err) {
     const g = new THREE.Group();
 
     // Mouse body - small brown oval
-    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x8B6914, shininess: 10 });
+    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x8B6914, shininess: 3 });
     const body = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), bodyMat);
     body.scale.set(1, 0.7, 1.5);
     body.position.y = 0.12;
