@@ -1049,10 +1049,11 @@ html, body {
 
 .message-continue {
   text-align: right;
-  color: #888;
-  font-size: 0.8rem;
+  color: #ffcc66;
+  font-size: 0.85rem;
   margin-top: 10px;
-  animation: pulse 2s ease-in-out infinite;
+  animation: pulse 1.5s ease-in-out infinite;
+  text-shadow: 0 0 6px rgba(255, 200, 100, 0.3);
 }
 
 /* ========================================

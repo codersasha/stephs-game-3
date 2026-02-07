@@ -6265,6 +6265,13 @@ window.onerror = function(msg, url, line, col, err) {
 
   function updatePlayer (dt) {
     if (!player) return;
+
+    // FREEZE player movement while a message box is showing — must dismiss it first
+    if (messageBox.classList.contains('visible')) {
+      animateCatLegs(dt, false, 0);
+      return;
+    }
+
     let dx = 0, dz = 0;
     if (isMobile) { dx = joystickInput.x; dz = joystickInput.z; }
     else {
