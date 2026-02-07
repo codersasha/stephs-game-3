@@ -2683,6 +2683,13 @@ window.onerror = function(msg, url, line, col, err) {
       if ((e.key === 'e' || e.key === 'E') && gameState === 'playing') {
         talkToNearestCat();
       }
+      // 'M' or 'm' to toggle map
+      if ((e.key === 'm' || e.key === 'M')) {
+        if ($('map-overlay').classList.contains('hidden') && gameState === 'playing') openMap();
+        else if (!$('map-overlay').classList.contains('hidden')) closeMap();
+      }
+      // Escape to close map
+      if (e.key === 'Escape' && !$('map-overlay').classList.contains('hidden')) closeMap();
     });
     window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
 
@@ -2775,6 +2782,14 @@ window.onerror = function(msg, url, line, col, err) {
         openSaveManager();
       }
     });
+
+    // HUD Map button — open territory map
+    $('hud-map-btn').addEventListener('click', () => {
+      if (gameState === 'playing') openMap();
+    });
+    // Map close button
+    $('map-close-btn').addEventListener('click', closeMap);
+    $('map-close-btn').addEventListener('touchstart', e => { e.preventDefault(); closeMap(); });
 
     // Save screen back button — return to game
     $('save-back-btn').addEventListener('click', () => {
@@ -6376,6 +6391,285 @@ window.onerror = function(msg, url, line, col, err) {
 
     // First-person: hide body, show paws and tail only
     setCatFirstPerson(true);
+  }
+
+  /* ====================================================
+     TERRITORY MAP
+     ==================================================== */
+  let mapOpen = false;
+  let mapAnimFrame = null;
+
+  function openMap () {
+    mapOpen = true;
+    $('map-overlay').classList.remove('hidden');
+    renderMap();
+  }
+
+  function closeMap () {
+    mapOpen = false;
+    $('map-overlay').classList.add('hidden');
+    if (mapAnimFrame) { cancelAnimationFrame(mapAnimFrame); mapAnimFrame = null; }
+  }
+
+  function renderMap () {
+    if (!mapOpen) return;
+    const canvas = $('map-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // High-DPI support
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    const dispW = canvas.clientWidth;
+    const dispH = canvas.clientHeight;
+    canvas.width = dispW * dpr;
+    canvas.height = dispH * dpr;
+    ctx.scale(dpr, dpr);
+
+    const W = dispW, H = dispH;
+    ctx.clearRect(0, 0, W, H);
+
+    // World bounds for mapping
+    const worldMinX = -110, worldMaxX = 110;
+    const worldMinZ = -120, worldMaxZ = 100;
+    const worldW = worldMaxX - worldMinX;
+    const worldH = worldMaxZ - worldMinZ;
+
+    // Convert world coords to canvas coords
+    function toMap (wx, wz) {
+      return {
+        x: ((wx - worldMinX) / worldW) * W,
+        y: ((wz - worldMinZ) / worldH) * H
+      };
+    }
+
+    // --- TERRITORY BACKGROUNDS ---
+    // ThunderClan (main forest — dark green)
+    ctx.fillStyle = '#2a5a28';
+    ctx.fillRect(0, 0, W, H);
+
+    // ShadowClan territory (dark, past x=-62)
+    const scLeft = toMap(-110, 0).x;
+    const scRight = toMap(-62, 0).x;
+    ctx.fillStyle = '#1a3a1a';
+    ctx.fillRect(scLeft, 0, scRight - scLeft, H);
+
+    // Thunderpath (road, x=-62 to -55)
+    const tpLeft = toMap(-62, 0).x;
+    const tpRight = toMap(-55, 0).x;
+    ctx.fillStyle = '#444444';
+    ctx.fillRect(tpLeft, 0, tpRight - tpLeft, H);
+    // Center yellow line
+    ctx.strokeStyle = '#cccc00';
+    ctx.lineWidth = 2;
+    const tpCenter = (tpLeft + tpRight) / 2;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.moveTo(tpCenter, 0); ctx.lineTo(tpCenter, H); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // RiverClan territory (past x=79)
+    const rcLeft = toMap(79, 0).x;
+    ctx.fillStyle = '#1a4a3a';
+    ctx.fillRect(rcLeft, 0, W - rcLeft, H);
+
+    // WindClan territory (past z=-60, which is bottom of map since z goes down)
+    const wcTop = toMap(0, -60).y;
+    ctx.fillStyle = '#4a5a2a';
+    ctx.fillRect(0, 0, W, wcTop);
+
+    // Fourtrees (neutral, circle)
+    const ft = toMap(-45, -45);
+    ctx.fillStyle = '#3a6a2a';
+    ctx.beginPath(); ctx.arc(ft.x, ft.y, 12, 0, Math.PI * 2); ctx.fill();
+
+    // Highstones area
+    const hs = toMap(-80, -95);
+    ctx.fillStyle = '#5a5a5a';
+    ctx.beginPath(); ctx.arc(hs.x, hs.y, 10, 0, Math.PI * 2); ctx.fill();
+
+    // River (blue line at x=75)
+    const rivL = toMap(71, -100);
+    const rivR = toMap(79, 100);
+    ctx.fillStyle = 'rgba(68, 170, 220, 0.6)';
+    ctx.fillRect(rivL.x, rivL.y, rivR.x - rivL.x, rivR.y - rivL.y);
+
+    // Camp clearing (circle at 0,0)
+    const camp = toMap(0, 0);
+    ctx.fillStyle = '#6a5a40';
+    ctx.beginPath(); ctx.arc(camp.x, camp.y, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,200,100,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Garden / Twoleg house area
+    const house = toMap(0, 85);
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fillRect(house.x - 10, house.y - 6, 20, 12);
+    ctx.strokeStyle = '#8a7a5a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(house.x - 10, house.y - 6, 20, 12);
+
+    // --- TERRITORY LABELS ---
+    ctx.font = 'bold ' + Math.max(10, W * 0.018) + 'px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    function drawLabel (text, wx, wz, color) {
+      const p = toMap(wx, wz);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillText(text, p.x + 1, p.y + 1);
+      ctx.fillStyle = color || '#ccbb88';
+      ctx.fillText(text, p.x, p.y);
+    }
+
+    drawLabel('ThunderClan', 0, -20, '#88cc66');
+    drawLabel('ShadowClan', -86, 0, '#aaaaaa');
+    drawLabel('RiverClan', 94, 0, '#66bbdd');
+    drawLabel('WindClan', 0, -85, '#bbaa66');
+    drawLabel('Fourtrees', -45, -50, '#66aa44');
+    drawLabel('Highstones', -80, -105, '#999999');
+    drawLabel('Camp', 0, 8, '#ffcc66');
+    drawLabel('Twoleg House', 0, 95, '#aa8866');
+
+    ctx.font = Math.max(8, W * 0.013) + 'px Georgia, serif';
+    drawLabel('Thunderpath', -58.5, -20, '#888888');
+    drawLabel('River', 75, -20, '#66aacc');
+    drawLabel('Sunningrocks', 64, 0, '#bbaa88');
+
+    // --- SCENT MARKERS (yellow squares) ---
+    ctx.fillStyle = 'rgba(255, 200, 0, 0.7)';
+    scentMarkerZones.forEach(sm => {
+      const p = toMap(sm.x, sm.z);
+      ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+    });
+
+    // --- WATER SPOTS ---
+    ctx.fillStyle = '#44aadd';
+    // Stream near camp
+    const ws = toMap(WATER_SPOT.x, WATER_SPOT.z);
+    ctx.beginPath(); ctx.arc(ws.x, ws.y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.font = Math.max(7, W * 0.011) + 'px sans-serif';
+    ctx.fillStyle = '#88ccee';
+    ctx.fillText('Stream', ws.x, ws.y + 10);
+
+    // --- HUNTING ZONES (areas where warriors go to hunt) ---
+    ctx.strokeStyle = 'rgba(180, 130, 70, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    const huntZones = [
+      { x: 25, z: 25, r: 15, label: 'Hunting Ground' },
+      { x: -25, z: 20, r: 12, label: 'Hunting Ground' },
+      { x: 15, z: -30, r: 12, label: 'Hunting Ground' },
+      { x: -20, z: -25, r: 10, label: 'Hunting Ground' },
+    ];
+    huntZones.forEach(hz => {
+      const p = toMap(hz.x, hz.z);
+      const r = (hz.r / worldW) * W;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
+      // Prey icons inside
+      ctx.font = Math.max(7, W * 0.01) + 'px sans-serif';
+      ctx.fillStyle = 'rgba(180, 130, 70, 0.7)';
+      ctx.fillText('🐿', p.x - 6, p.y);
+      ctx.fillText('🐁', p.x + 6, p.y);
+    });
+    ctx.setLineDash([]);
+
+    // --- DENS (labeled squares in camp) ---
+    ctx.font = Math.max(7, W * 0.01) + 'px sans-serif';
+    const dens = [
+      { name: 'Leader', ...DEN_SPOTS['Leader'] },
+      { name: 'Medicine', ...DEN_SPOTS['Medicine'] },
+      { name: 'Warriors', ...DEN_SPOTS['Warriors'] },
+      { name: 'Apprentices', ...DEN_SPOTS['Apprentices'] },
+      { name: 'Nursery', x: -8, z: 5 },
+      { name: 'Elders', ...DEN_SPOTS['Elders'] },
+    ];
+    dens.forEach(d => {
+      const p = toMap(d.x, d.z);
+      ctx.fillStyle = 'rgba(120, 100, 70, 0.6)';
+      ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+      ctx.fillStyle = '#ddcc99';
+      ctx.fillText(d.name, p.x, p.y + 11);
+    });
+
+    // --- FRESH-KILL PILE ---
+    const fk = toMap(FRESH_KILL.x, FRESH_KILL.z);
+    ctx.fillStyle = '#8a6a4a';
+    ctx.fillRect(fk.x - 4, fk.y - 3, 8, 6);
+    ctx.fillStyle = '#ccaa77';
+    ctx.font = Math.max(7, W * 0.01) + 'px sans-serif';
+    ctx.fillText('Prey Pile', fk.x, fk.y + 11);
+
+    // --- BORDER PATROL CATS (enemy - red dots) ---
+    if (borderPatrols) {
+      borderPatrols.forEach(bp => {
+        bp.cats.forEach(catObj => {
+          if (!catObj.group.visible) return;
+          const p = toMap(catObj.group.position.x, catObj.group.position.z);
+          ctx.fillStyle = '#ff4444';
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#880000';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+      });
+    }
+
+    // --- CLAN CATS (blue dots) ---
+    const thunderClanNames = ['Bluestar','Lionheart','Graypaw','Whitestorm','Dustpaw','Sandpaw',
+      'Mousefur','Darkstripe','Ravenpaw','Spottedleaf','Tigerclaw','Yellowfang','Longtail'];
+    npcCats.forEach(npc => {
+      if (!npc.group.visible) return;
+      const p = toMap(npc.group.position.x, npc.group.position.z);
+      const isClan = thunderClanNames.includes(npc.name);
+      const isKittypet = (npc.name === 'Smudge' || npc.name === 'Princess');
+
+      if (isKittypet) {
+        ctx.fillStyle = '#cc88cc'; // purple for kittypets
+      } else if (isClan) {
+        ctx.fillStyle = '#66bbff'; // blue for clan
+      } else {
+        ctx.fillStyle = '#ff4444'; // red for enemy
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      // Show name if known
+      if (knownCats.has(npc.name)) {
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = Math.max(7, W * 0.01) + 'px sans-serif';
+        ctx.fillText(npc.name, p.x, p.y - 7);
+      }
+    });
+
+    // --- PLAYER (big orange dot with pulsing ring) ---
+    const pp = toMap(player.position.x, player.position.z);
+    // Pulsing ring
+    const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.3;
+    ctx.strokeStyle = 'rgba(255, 140, 0, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(pp.x, pp.y, 8 * pulse, 0, Math.PI * 2); ctx.stroke();
+    // Direction arrow
+    const dirAngle = cameraAngleY + Math.PI;
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pp.x, pp.y);
+    ctx.lineTo(pp.x + Math.sin(dirAngle) * 12, pp.y + Math.cos(dirAngle) * 12);
+    ctx.stroke();
+    // Dot
+    ctx.fillStyle = '#ff8c00';
+    ctx.beginPath(); ctx.arc(pp.x, pp.y, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // "You" label
+    ctx.fillStyle = '#ffcc66';
+    ctx.font = 'bold ' + Math.max(9, W * 0.014) + 'px sans-serif';
+    ctx.fillText(player.name || 'You', pp.x, pp.y - 12);
+
+    // Refresh the map every frame while open for real-time updates
+    mapAnimFrame = requestAnimationFrame(renderMap);
   }
 
   function updateHUD () {

@@ -152,6 +152,7 @@
     <div class="hud-right">
       <div class="hud-stat" id="player-name">Firepaw</div>
       <div class="hud-buttons">
+        <button class="hud-btn" id="hud-map-btn" title="Open Map">&#128506; Map</button>
         <button class="hud-btn" id="hud-save-btn" title="Save Game">&#128190; Save</button>
         <button class="hud-btn" id="hud-saves-btn" title="View Saves">&#128193; Saves</button>
       </div>
@@ -204,6 +205,23 @@
   <!-- Interaction Hint -->
   <div id="interact-hint" class="hidden">
     <span id="interact-hint-text">Press E to talk</span>
+  </div>
+
+  <!-- Map Overlay -->
+  <div id="map-overlay" class="hidden">
+    <div id="map-header">
+      <span id="map-title">&#128506; Territory Map</span>
+      <button id="map-close-btn">&times;</button>
+    </div>
+    <canvas id="map-canvas"></canvas>
+    <div id="map-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#ff8c00"></span> You</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#66bbff"></span> Clan Cat</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#ff4444"></span> Enemy Cat</div>
+      <div class="legend-item"><span class="legend-dot legend-sq" style="background:#8a6a4a"></span> Prey</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#44aadd"></span> Water</div>
+      <div class="legend-item"><span class="legend-dot legend-sq" style="background:#ffcc00"></span> Scent Marker</div>
+    </div>
   </div>
 
   <!-- Message Box -->
