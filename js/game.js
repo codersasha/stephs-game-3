@@ -1098,6 +1098,207 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   /* ====================================================
+     THUNDERPATH MONSTERS (cars on the road)
+     ==================================================== */
+  let monsters = []; // active cars on the Thunderpath
+  let monsterSpawnTimer = 0;
+  let monsterHitCooldown = 0; // prevent rapid re-hits
+  const ROAD_X = -58.5;    // road center x
+  const ROAD_HALF_W = 3.5; // half road width
+
+  function createMonsterModel (color, dir) {
+    // Simple boxy car / "monster" shape
+    const g = new THREE.Group();
+
+    // Body
+    const bodyMat = new THREE.MeshPhongMaterial({ color: color, shininess: 40 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 4.0), bodyMat);
+    body.position.y = 0.6;
+    body.castShadow = true;
+    g.add(body);
+
+    // Cabin / roof
+    const cabinMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 60, opacity: 0.7, transparent: true });
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 2.0), cabinMat);
+    cabin.position.y = 1.45;
+    cabin.position.z = -0.3 * dir;
+    g.add(cabin);
+
+    // Wheels (4)
+    const wheelMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 10 });
+    const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 12);
+    const offsets = [
+      { x: -1.05, z: -1.2 }, { x: 1.05, z: -1.2 },
+      { x: -1.05, z: 1.2 }, { x: 1.05, z: 1.2 }
+    ];
+    offsets.forEach(o => {
+      const w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(o.x, 0.35, o.z);
+      g.add(w);
+    });
+
+    // Headlights (front)
+    const lightMat = new THREE.MeshPhongMaterial({ color: 0xffffcc, emissive: 0xffffaa, emissiveIntensity: 0.5 });
+    const hlGeo = new THREE.SphereGeometry(0.15, 8, 8);
+    const hl1 = new THREE.Mesh(hlGeo, lightMat);
+    hl1.position.set(-0.7, 0.7, 2.0 * dir);
+    g.add(hl1);
+    const hl2 = new THREE.Mesh(hlGeo, lightMat);
+    hl2.position.set(0.7, 0.7, 2.0 * dir);
+    g.add(hl2);
+
+    // Taillights
+    const tailMat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.3 });
+    const tl1 = new THREE.Mesh(hlGeo, tailMat);
+    tl1.position.set(-0.7, 0.7, -2.0 * dir);
+    g.add(tl1);
+    const tl2 = new THREE.Mesh(hlGeo, tailMat);
+    tl2.position.set(0.7, 0.7, -2.0 * dir);
+    g.add(tl2);
+
+    return g;
+  }
+
+  function spawnMonster () {
+    // Pick direction: +z or -z
+    const dir = Math.random() < 0.5 ? 1 : -1;  // 1 = north-to-south, -1 = south-to-north
+    const lane = dir === 1 ? ROAD_X - 1.5 : ROAD_X + 1.5; // different lanes
+    const startZ = dir === 1 ? -120 : 120;
+
+    // Pick a random color for the car
+    const colors = [0xcc2222, 0x2255cc, 0x22aa22, 0xdddd22, 0xffffff, 0x666666, 0xff6600, 0x8833aa];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    // Pick a speed — some fast, some VERY fast
+    const speed = 18 + Math.random() * 25; // 18 to 43 units/sec — these are FAST
+
+    const model = createMonsterModel(color, dir);
+    model.position.set(lane, 0, startZ);
+    model.rotation.y = dir === 1 ? 0 : Math.PI; // face the direction of travel
+    scene.add(model);
+
+    monsters.push({
+      model: model,
+      dir: dir,
+      speed: speed,
+      lane: lane,
+      z: startZ
+    });
+  }
+
+  function updateMonsters (dt) {
+    if (monsterHitCooldown > 0) monsterHitCooldown -= dt;
+
+    // Only spawn monsters when player is within 60 units of the road (performance)
+    const distToRoad = Math.abs(player.position.x - ROAD_X);
+
+    // Spawn new monsters periodically
+    monsterSpawnTimer -= dt;
+    if (monsterSpawnTimer <= 0 && distToRoad < 60) {
+      spawnMonster();
+      // Randomize next spawn time: 1.5 to 5 seconds
+      monsterSpawnTimer = 1.5 + Math.random() * 3.5;
+      // Sometimes spawn two at once (from opposite directions)
+      if (Math.random() < 0.3) {
+        setTimeout(() => spawnMonster(), 200 + Math.random() * 500);
+      }
+    }
+
+    // Update each monster position and check collision
+    const px = player.position.x;
+    const pz = player.position.z;
+    const hitDist = 1.8; // how close to get hit
+
+    for (let i = monsters.length - 1; i >= 0; i--) {
+      const m = monsters[i];
+      m.z += m.dir * m.speed * dt;
+      m.model.position.z = m.z;
+
+      // Remove if off screen
+      if ((m.dir === 1 && m.z > 130) || (m.dir === -1 && m.z < -130)) {
+        scene.remove(m.model);
+        monsters.splice(i, 1);
+        continue;
+      }
+
+      // Check player collision
+      if (monsterHitCooldown <= 0 && gameState === 'playing') {
+        const dx = px - m.lane;
+        const dz = pz - m.z;
+        if (Math.abs(dx) < hitDist && Math.abs(dz) < 2.5) {
+          // Player got hit by a monster!
+          monsterHitCooldown = 3; // 3 second cooldown before can be hit again
+          playerHitByMonster(m);
+        }
+      }
+    }
+
+    // Play a whoosh sound when a monster is close
+    for (let i = 0; i < monsters.length; i++) {
+      const m = monsters[i];
+      const dist = Math.sqrt((px - m.lane) ** 2 + (pz - m.z) ** 2);
+      if (dist < 12 && !m.whooshed) {
+        m.whooshed = true;
+        playMonsterSound(dist);
+      }
+    }
+  }
+
+  function playMonsterSound (dist) {
+    if (!audioCtx) initAudio();
+    if (!audioCtx) return;
+    try {
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = 'sawtooth';
+      const vol = Math.max(0.02, 0.12 - dist * 0.01);
+      // Engine rumble → doppler whoosh
+      osc.frequency.setValueAtTime(80, t);
+      osc.frequency.linearRampToValueAtTime(120, t + 0.3);
+      osc.frequency.linearRampToValueAtTime(60, t + 0.8);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.linearRampToValueAtTime(vol * 1.5, t + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+      osc.start(); osc.stop(t + 1.0);
+    } catch (e) {}
+  }
+
+  function playerHitByMonster (m) {
+    // Take damage
+    player.hp = Math.max(0, player.hp - 25);
+    playSound('hurt');
+    playSound('danger');
+
+    // Knock player off the road (push them sideways)
+    const knockDir = player.position.x > ROAD_X ? 1 : -1;
+    player.position.x += knockDir * 5; // push 5 units off the road
+    catGroup.position.x = player.position.x;
+
+    // Flash screen red
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,0,0,0.5);z-index:9999;pointer-events:none;';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 300);
+
+    if (player.hp <= 0) {
+      // Player died!
+      queueMessage('Narrator', 'A monster hit you on the Thunderpath! Everything goes dark...', () => {
+        // Respawn at ThunderClan camp
+        player.hp = player.maxHp;
+        player.position = { x: 0, y: 0, z: 0 };
+        catGroup.position.set(0, 0, 0);
+        saveGame();
+        queueMessage('Narrator', 'You wake up in camp. One of your nine lives has been used up...');
+      });
+    } else {
+      queueMessage('Narrator', 'A MONSTER nearly crushed you! You scramble off the Thunderpath, battered and bruised. (-25 HP)');
+    }
+  }
+
+  /* ====================================================
      TWOLEGS (humans in the house)
      ==================================================== */
   let twolegs = [];
@@ -4303,9 +4504,9 @@ window.onerror = function(msg, url, line, col, err) {
     const smudge = npcCats.find(c => c.name === 'Smudge');
     const princess = npcCats.find(c => c.name === 'Princess');
 
-    // Run Smudge and Princess to the fence opening to block the player
-    if (smudge) { smudge.group.visible = true; smudge.group.position.set(1, 0, 70.5); smudge.group.lookAt(0, 0, 75); }
-    if (princess) { princess.group.visible = true; princess.group.position.set(-1, 0, 70.5); princess.group.lookAt(0, 0, 75); }
+    // Place Smudge and Princess to the SIDES of the fence opening (not blocking!)
+    if (smudge) { smudge.group.visible = true; smudge.group.position.set(3, 0, 71); smudge.group.lookAt(0, 0, 73); }
+    if (princess) { princess.group.visible = true; princess.group.position.set(-3, 0, 71); princess.group.lookAt(0, 0, 73); }
 
     // Push player back a little so they're facing their friends
     player.position.z = 73;
@@ -4344,6 +4545,11 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(scenes, () => {
+      // Move Smudge and Princess BACK to the house immediately so they never block
+      const sm = npcCats.find(c => c.name === 'Smudge');
+      const pr = npcCats.find(c => c.name === 'Princess');
+      if (sm) { sm.group.position.set(3, 0, 83); }
+      if (pr) { pr.group.position.set(-3, 0, 84); }
       // Show the choice screen
       showForestChoice();
     });
@@ -4365,17 +4571,12 @@ window.onerror = function(msg, url, line, col, err) {
     const smudge = npcCats.find(c => c.name === 'Smudge');
     const princess = npcCats.find(c => c.name === 'Princess');
 
+    // Make sure they're at the house already (not blocking)
+    if (smudge) { smudge.group.position.set(3, 0, 83); }
+    if (princess) { princess.group.position.set(-3, 0, 84); }
+
     const scenes = [
-      { speaker: 'Smudge', text: '"You\'re really going?! Rusty, you\'re CRAZY!"',
-        camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
-
-      { speaker: 'Princess', text: '"Please be careful, Rusty! Come back and visit us, okay? Promise me!"',
-        camPos: { x: -1, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
-
-      { speaker: 'Smudge', text: '"If you get eaten by a fox, I\'m NOT coming to save you!"',
-        camPos: { x: 1, y: 1.5, z: 71.5 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
-
-      { narration: true, text: 'Smudge and Princess step aside reluctantly. The fence opening beckons. Beyond it — the dark, mysterious forest.',
+      { narration: true, text: 'Smudge and Princess watch sadly from the house as you walk toward the fence...',
         camPos: { x: 0, y: 3, z: 73 }, camLook: { x: 0, y: 1, z: 65 } },
 
       { narration: true, text: 'You take a deep breath and step through the fence. The forest smells wild — earth, leaves, and something else... something exciting.',
@@ -4383,10 +4584,6 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(scenes, () => {
-      // Move Smudge and Princess back by the house
-      if (smudge) { smudge.group.position.set(3, 0, 83); }
-      if (princess) { princess.group.position.set(-3, 0, 84); }
-
       // Player is now in the forest
       gameState = 'playing';
       player.position = { x: 0, y: 0, z: 64 };
@@ -4400,34 +4597,19 @@ window.onerror = function(msg, url, line, col, err) {
   function playerStayedHome () {
     forestChoiceScreen.classList.add('hidden');
     forestConfirmScreen.classList.add('hidden');
-    gameState = 'cutscene';
 
+    // Move Smudge and Princess back to house immediately
     const smudge = npcCats.find(c => c.name === 'Smudge');
     const princess = npcCats.find(c => c.name === 'Princess');
+    if (smudge) { smudge.group.position.set(3, 0, 83); }
+    if (princess) { princess.group.position.set(-3, 0, 84); }
 
-    const scenes = [
-      { speaker: 'Smudge', text: '"Oh thank goodness! I\'m so glad you\'re staying, Rusty!"',
-        camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
-
-      { speaker: 'Princess', text: '"Good choice! Let\'s go back inside where it\'s warm and safe."',
-        camPos: { x: -1, y: 1.5, z: 72 }, camLook: { x: -1, y: 0.8, z: 70.5 } },
-
-      { narration: true, text: 'You head back toward the house with your friends. But the forest still calls to you... maybe another time.',
-        camPos: { x: 0, y: 3, z: 78 }, camLook: { x: 0, y: 1, z: 85 } },
-    ];
-
-    startCutscene(scenes, () => {
-      // Move Smudge and Princess back by the house (not blocking the fence!)
-      if (smudge) { smudge.group.position.set(3, 0, 83); }
-      if (princess) { princess.group.position.set(-3, 0, 84); }
-
-      // Put player back near the house
-      gameState = 'playing';
-      player.position = { x: 0, y: 0, z: 80 };
-      catGroup.position.set(0, 0, 80);
-      fenceWarningTriggered = false; // allow re-triggering when they approach again
-      queueMessage('Narrator', 'You went back... but the forest still calls. Walk to the fence again when you\'re ready.');
-    });
+    // Put player back near the house — no cutscene needed, just go
+    gameState = 'playing';
+    player.position = { x: 0, y: 0, z: 80 };
+    catGroup.position.set(0, 0, 80);
+    fenceWarningTriggered = false; // allow re-triggering when they approach again
+    queueMessage('Narrator', 'You went back... but the forest still calls. Walk to the fence again when you\'re ready.');
   }
 
   /* ====================================================
@@ -5987,6 +6169,7 @@ window.onerror = function(msg, url, line, col, err) {
       updateNPCAI(dt);
       updateBorderPatrols(dt);
       updateTwolegs(dt);
+      updateMonsters(dt);
       checkStoryTriggers();
       checkTrainingProximity();
       updateFollowers(dt);
