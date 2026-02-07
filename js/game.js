@@ -461,8 +461,8 @@ window.onerror = function(msg, url, line, col, err) {
   function createForest () {
     const bounds = GameLogic.getForestBounds();
 
-    /* ground */
-    const groundGeo = new THREE.PlaneGeometry(200, 200, 30, 30);
+    /* ground — extra large so you never see the void */
+    const groundGeo = new THREE.PlaneGeometry(600, 600, 1, 1);
     const groundMat = new THREE.MeshLambertMaterial({ color: 0x3a6b35 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
@@ -1105,7 +1105,7 @@ window.onerror = function(msg, url, line, col, err) {
     /* --- SHADOWCLAN TERRITORY (dark pine forest, past Thunderpath) --- */
     const scGroundMat = new THREE.MeshLambertMaterial({ color: 0x2a3a20 });
     const scGround = new THREE.Mesh(new THREE.PlaneGeometry(33, 200), scGroundMat);
-    scGround.rotation.x = -Math.PI / 2; scGround.position.set(-78.5, 0.015, 0);
+    scGround.rotation.x = -Math.PI / 2; scGround.position.set(-78.5, 0.04, 0);
     scene.add(scGround);
     const scLabel = makeNameLabel('ShadowClan Territory', 3.5);
     scLabel.position.set(-78, 0, 0);
@@ -1114,7 +1114,7 @@ window.onerror = function(msg, url, line, col, err) {
     /* --- RIVERCLAN TERRITORY (past the river, marshy) --- */
     const rcGroundMat = new THREE.MeshLambertMaterial({ color: 0x3a6a45 });
     const rcGround = new THREE.Mesh(new THREE.PlaneGeometry(16, 200), rcGroundMat);
-    rcGround.rotation.x = -Math.PI / 2; rcGround.position.set(87, 0.015, 0);
+    rcGround.rotation.x = -Math.PI / 2; rcGround.position.set(87, 0.05, 0);
     scene.add(rcGround);
     // Reeds near water
     const reedMat = new THREE.MeshLambertMaterial({ color: 0x5a7a3a });
@@ -1131,7 +1131,7 @@ window.onerror = function(msg, url, line, col, err) {
     /* --- WINDCLAN TERRITORY (open moorland, few trees) --- */
     const wcGroundMat = new THREE.MeshLambertMaterial({ color: 0x7a8a55 });
     const wcGround = new THREE.Mesh(new THREE.PlaneGeometry(200, 35), wcGroundMat);
-    wcGround.rotation.x = -Math.PI / 2; wcGround.position.set(0, 0.015, -77.5);
+    wcGround.rotation.x = -Math.PI / 2; wcGround.position.set(0, 0.06, -77.5);
     scene.add(wcGround);
     // Rolling hills
     for (let i = 0; i < 12; i++) {
@@ -1209,7 +1209,7 @@ window.onerror = function(msg, url, line, col, err) {
     // Rocky barren ground around Highstones
     const hsGroundMat = new THREE.MeshLambertMaterial({ color: 0x7a7a6a });
     const hsGround = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), hsGroundMat);
-    hsGround.rotation.x = -Math.PI / 2; hsGround.position.set(-80, 0.02, -95);
+    hsGround.rotation.x = -Math.PI / 2; hsGround.position.set(-80, 0.07, -95);
     scene.add(hsGround);
 
     // Highstones — jagged rocky hills
@@ -3318,6 +3318,9 @@ window.onerror = function(msg, url, line, col, err) {
     forestConfirmScreen.classList.add('hidden');
     gameState = 'cutscene';
 
+    // Change story phase IMMEDIATELY so fence walls stop blocking
+    storyPhase = 'forest';
+
     const smudge = npcCats.find(c => c.name === 'Smudge');
     const princess = npcCats.find(c => c.name === 'Princess');
 
@@ -3344,7 +3347,6 @@ window.onerror = function(msg, url, line, col, err) {
       if (princess) { princess.group.position.set(-3, 0, 84); }
 
       // Player is now in the forest
-      storyPhase = 'forest';
       gameState = 'playing';
       player.position = { x: 0, y: 0, z: 64 };
       catGroup.position.set(0, 0, 64);
@@ -3359,6 +3361,9 @@ window.onerror = function(msg, url, line, col, err) {
     forestConfirmScreen.classList.add('hidden');
     gameState = 'cutscene';
 
+    const smudge = npcCats.find(c => c.name === 'Smudge');
+    const princess = npcCats.find(c => c.name === 'Princess');
+
     const scenes = [
       { speaker: 'Smudge', text: '"Oh thank goodness! I\'m so glad you\'re staying, Rusty!"',
         camPos: { x: 2, y: 1.5, z: 72 }, camLook: { x: 1, y: 0.8, z: 70.5 } },
@@ -3371,6 +3376,10 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(scenes, () => {
+      // Move Smudge and Princess back by the house (not blocking the fence!)
+      if (smudge) { smudge.group.position.set(3, 0, 83); }
+      if (princess) { princess.group.position.set(-3, 0, 84); }
+
       // Put player back near the house
       gameState = 'playing';
       player.position = { x: 0, y: 0, z: 80 };
@@ -4932,8 +4941,13 @@ window.onerror = function(msg, url, line, col, err) {
     renderer.render(scene, camera);
   }
 
-  /** Check if position collides with garden fence walls (AABB box check) */
+  /** Check if position collides with garden fence walls (AABB box check).
+   *  Once the player has left home (storyPhase is no longer 'house'),
+   *  the garden fence walls stop blocking — you can freely visit Smudge & Princess. */
   function checkWallCollision (pos) {
+    // After leaving home, fence no longer blocks you
+    if (storyPhase !== 'house') return false;
+
     const px = pos.x, pz = pos.z;
     const r = 0.4; // player radius
     for (let i = 0; i < gardenWalls.length; i++) {
@@ -4955,6 +4969,8 @@ window.onerror = function(msg, url, line, col, err) {
   /* ====================================================
      PLAYER UPDATE
      ==================================================== */
+  let outOfBoundsWarningTimer = 0; // cooldown so we don't spam the warning
+
   function updatePlayer (dt) {
     if (!player) return;
     let dx = 0, dz = 0;
@@ -4988,6 +5004,13 @@ window.onerror = function(msg, url, line, col, err) {
       animateCatLegs(dt, true, spd / player.speed);
     } else {
       animateCatLegs(dt, false, 1);
+    }
+
+    // Out of bounds warning
+    if (outOfBoundsWarningTimer > 0) outOfBoundsWarningTimer -= dt;
+    if (GameLogic.isOutOfBounds(player.position) && outOfBoundsWarningTimer <= 0) {
+      outOfBoundsWarningTimer = 8; // only warn every 8 seconds
+      queueMessage('Narrator', '"You\'ve reached the edge of the known territories. There\'s nothing but empty land beyond here. Be careful — if you wander too far, you might never find your way back! Turn around and head home."');
     }
 
     if (!player.isSprinting) player = GameLogic.recoverEnergy(player, dt * 5);

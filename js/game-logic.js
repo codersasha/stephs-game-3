@@ -368,15 +368,36 @@ const GameLogic = {
   // ---- World / Forest ----
 
   /**
-   * Get the forest bounds
+   * Get the hard world bounds (absolute edge — can't go past this)
    */
   getForestBounds() {
     return {
+      minX: -140,
+      maxX: 140,
+      minZ: -140,
+      maxZ: 140
+    };
+  },
+
+  /**
+   * Get the playable area bounds (territory ends here — beyond is "out of bounds")
+   */
+  getPlayableBounds() {
+    return {
       minX: -95,
       maxX: 95,
-      minZ: -95,
+      minZ: -115,
       maxZ: 95
     };
+  },
+
+  /**
+   * Check if position is outside the playable area
+   */
+  isOutOfBounds(position) {
+    const pb = this.getPlayableBounds();
+    return position.x < pb.minX || position.x > pb.maxX ||
+           position.z < pb.minZ || position.z > pb.maxZ;
   },
 
   /**
