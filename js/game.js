@@ -3023,15 +3023,15 @@ window.onerror = function(msg, url, line, col, err) {
       const ch = new THREE.Mesh(new THREE.SphereGeometry(0.12 * sz, 10, 8), cheekMat);
       ch.position.set(s * 0.16 * sz, 0.76 * sz, 0.62 * sz); g.add(ch);
     });
-    // muzzle
+    // muzzle — pushed forward so nose/mouth sit on it visibly
     const mzlMat = new THREE.MeshPhongMaterial({ color: bellyC, shininess: 3 });
-    const mzl = new THREE.Mesh(new THREE.SphereGeometry(0.11 * sz, 10, 8), mzlMat);
-    mzl.position.set(0, 0.76 * sz, 0.72 * sz); mzl.scale.set(1.1, 0.65, 0.7);
+    const mzl = new THREE.Mesh(new THREE.SphereGeometry(0.13 * sz, 10, 8), mzlMat);
+    mzl.position.set(0, 0.77 * sz, 0.80 * sz); mzl.scale.set(1.1, 0.65, 0.8);
     g.add(mzl);
     // chin (always visible, just use belly or fur color)
     const chinC = desc.whiteChest ? 0xffeedd : bellyC;
     const chin = new THREE.Mesh(new THREE.SphereGeometry(0.09 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: chinC }));
-    chin.position.set(0, 0.70 * sz, 0.62 * sz); g.add(chin);
+    chin.position.set(0, 0.70 * sz, 0.72 * sz); g.add(chin);
 
     /* ears (with inner pink and fur tufts, matching player quality) */
     const earMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 3 });
@@ -3052,38 +3052,45 @@ window.onerror = function(msg, url, line, col, err) {
     /* eyes (BIG cute cartoon eyes — matching player cat quality!) */
     [[-1,1],[1,1]].forEach(([s]) => {
       const x = s * 0.13 * sz;
-      // sclera — bigger for cartoon look
+      // sclera — bigger for cartoon look, pushed forward so visible
       const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.10 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 8 }));
-      sclera.position.set(x, 0.86 * sz, 0.72 * sz); sclera.scale.set(1.15, 1.0, 0.55); g.add(sclera);
+      sclera.position.set(x, 0.88 * sz, 0.82 * sz); sclera.scale.set(1.15, 1.0, 0.55); g.add(sclera);
       // iris — big and bright
       const iris = new THREE.Mesh(new THREE.SphereGeometry(0.082 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: eyeC, shininess: 15, emissive: 0x0a1a0a }));
-      iris.position.set(x, 0.86 * sz, 0.74 * sz); iris.scale.set(0.95, 0.95, 0.45); g.add(iris);
+      iris.position.set(x, 0.88 * sz, 0.85 * sz); iris.scale.set(0.95, 0.95, 0.45); g.add(iris);
       // pupil — vertical slit
       const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.042 * sz, 10, 8), new THREE.MeshBasicMaterial({ color: 0x050505 }));
-      pupil.position.set(x, 0.86 * sz, 0.77 * sz); pupil.scale.set(0.35, 0.85, 0.3); g.add(pupil);
+      pupil.position.set(x, 0.88 * sz, 0.88 * sz); pupil.scale.set(0.35, 0.85, 0.3); g.add(pupil);
       // Big specular highlight (spark of life!)
       const hl = new THREE.Mesh(new THREE.SphereGeometry(0.025 * sz, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl.position.set(x - s * 0.03 * sz, 0.90 * sz, 0.78 * sz); g.add(hl);
+      hl.position.set(x - s * 0.03 * sz, 0.92 * sz, 0.89 * sz); g.add(hl);
       // Smaller secondary highlight
       const hl2 = new THREE.Mesh(new THREE.SphereGeometry(0.013 * sz, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl2.position.set(x + s * 0.02 * sz, 0.83 * sz, 0.78 * sz); g.add(hl2);
+      hl2.position.set(x + s * 0.02 * sz, 0.85 * sz, 0.89 * sz); g.add(hl2);
       // Dark eyelid line above eye (like player cat)
       const lid = new THREE.Mesh(new THREE.SphereGeometry(0.10 * sz, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.3), new THREE.MeshPhongMaterial({ color: desc.fur }));
-      lid.position.set(x, 0.87 * sz, 0.73 * sz); lid.scale.set(1.1, 0.5, 0.55);
+      lid.position.set(x, 0.89 * sz, 0.83 * sz); lid.scale.set(1.1, 0.5, 0.55);
       g.add(lid);
     });
 
-    /* nose (more detailed like player cat) */
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: noseC, shininess: 10 }));
-    nose.position.set(0, 0.79 * sz, 0.80 * sz); nose.scale.set(1.2, 0.6, 0.6); g.add(nose);
+    /* nose (more detailed like player cat — pushed forward) */
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.05 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: noseC, shininess: 10 }));
+    nose.position.set(0, 0.80 * sz, 0.90 * sz); nose.scale.set(1.2, 0.6, 0.6); g.add(nose);
     // nostrils
     [[-1,1],[1,1]].forEach(([s]) => {
-      const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.008 * sz, 4, 4), new THREE.MeshBasicMaterial({ color: 0x331111 }));
-      nostril.position.set(s * 0.020 * sz, 0.78 * sz, 0.83 * sz); g.add(nostril);
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.010 * sz, 4, 4), new THREE.MeshBasicMaterial({ color: 0x331111 }));
+      nostril.position.set(s * 0.022 * sz, 0.79 * sz, 0.93 * sz); g.add(nostril);
     });
-    // mouth line
-    const mouthLine = new THREE.Mesh(new THREE.BoxGeometry(0.04 * sz, 0.004, 0.004), new THREE.MeshBasicMaterial({ color: 0x332222 }));
-    mouthLine.position.set(0, 0.74 * sz, 0.80 * sz); g.add(mouthLine);
+    // mouth line — wider and pushed forward
+    const mouthLine = new THREE.Mesh(new THREE.BoxGeometry(0.06 * sz, 0.006, 0.006), new THREE.MeshBasicMaterial({ color: 0x332222 }));
+    mouthLine.position.set(0, 0.74 * sz, 0.88 * sz); g.add(mouthLine);
+    // mouth curves (V shape under nose for cute cat smile)
+    [[-1,1],[1,1]].forEach(([s]) => {
+      const mc = new THREE.Mesh(new THREE.BoxGeometry(0.03 * sz, 0.005, 0.005), new THREE.MeshBasicMaterial({ color: 0x332222 }));
+      mc.position.set(s * 0.02 * sz, 0.735 * sz, 0.87 * sz);
+      mc.rotation.z = s * 0.5;
+      g.add(mc);
+    });
 
     /* whiskers (matching player cat quality) */
     const whMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
