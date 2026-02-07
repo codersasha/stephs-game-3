@@ -375,8 +375,8 @@ html, body {
 /* ========================================
    Join Clan Choice Screen
    ======================================== */
-#join-choice-screen,
-#join-confirm-screen {
+#forest-choice-screen,
+#forest-confirm-screen {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
@@ -387,8 +387,8 @@ html, body {
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(4px);
 }
-#join-choice-screen.hidden,
-#join-confirm-screen.hidden {
+#forest-choice-screen.hidden,
+#forest-confirm-screen.hidden {
   display: none;
 }
 .choice-inner {
