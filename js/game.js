@@ -1885,64 +1885,111 @@ window.onerror = function(msg, url, line, col, err) {
     createBorderPatrols();
   }
 
-  /* Border patrol cats that walk along the edge of their territory */
-  let borderPatrols = []; // { group, name, clan, patrolPath, pathIdx, speed, label }
+  /* Border patrol GROUPS — each patrol is a group of cats that walk together
+   * with a visible yellow detection circle in front of them.
+   * borderPatrols = [{ clan, cats: [{group, name, fur, eye, stripes, stripeColor, size}], 
+   *                    patrolPath, pathIdx, speed, spotted, spotCooldown, detectionCircle, _walkCycle }] */
+  let borderPatrols = [];
 
   function createBorderPatrols () {
     borderPatrols = [];
 
-    const patrols = [
-      // ShadowClan patrols (along x ~ -65, varying z)
-      { clan: 'ShadowClan', name: 'ShadowClan Patrol', fur: 0x333333, belly: 0x444444,
-        eyeColor: 0xffcc00, stripes: 0, size: 1.1,
-        path: [{ x: -66, z: -40 }, { x: -66, z: -10 }, { x: -66, z: 20 }, { x: -66, z: 40 }, { x: -66, z: 20 }, { x: -66, z: -10 }] },
-      { clan: 'ShadowClan', name: 'ShadowClan Warrior', fur: 0x2a2a2a, belly: 0x3a3a3a,
-        eyeColor: 0xee9900, stripes: 3, stripeColor: 0x111111, size: 1.05,
-        path: [{ x: -70, z: 30 }, { x: -70, z: 10 }, { x: -70, z: -20 }, { x: -70, z: -40 }, { x: -70, z: -20 }, { x: -70, z: 10 }] },
+    // Each patrol is a GROUP of cats walking the same path together
+    const patrolDefs = [
+      // ShadowClan patrol (2 cats)
+      { clan: 'ShadowClan',
+        cats: [
+          { name: 'ShadowClan Warrior', fur: 0x333333, belly: 0x444444, eyeColor: 0xffcc00, stripes: 0, size: 1.1 },
+          { name: 'ShadowClan Fighter', fur: 0x2a2a2a, belly: 0x3a3a3a, eyeColor: 0xee9900, stripes: 3, stripeColor: 0x111111, size: 1.05 },
+        ],
+        path: [{ x: -66, z: -40 }, { x: -66, z: -10 }, { x: -66, z: 20 }, { x: -66, z: 40 }, { x: -66, z: 20 }, { x: -66, z: -10 }],
+        speed: 2.5,
+      },
 
-      // RiverClan patrols (along x ~ 82, varying z)
-      { clan: 'RiverClan', name: 'RiverClan Patrol', fur: 0x6688aa, belly: 0x88aacc,
-        eyeColor: 0x44cccc, stripes: 0, size: 1.0,
-        path: [{ x: 82, z: -30 }, { x: 82, z: 0 }, { x: 82, z: 25 }, { x: 82, z: 40 }, { x: 82, z: 25 }, { x: 82, z: 0 }] },
-      { clan: 'RiverClan', name: 'RiverClan Warrior', fur: 0x5577aa, belly: 0x7799bb,
-        eyeColor: 0x33bbbb, stripes: 2, stripeColor: 0x334455, size: 1.1,
-        path: [{ x: 85, z: 20 }, { x: 85, z: -5 }, { x: 85, z: -30 }, { x: 85, z: -5 }] },
+      // RiverClan patrol (2 cats)
+      { clan: 'RiverClan',
+        cats: [
+          { name: 'RiverClan Warrior', fur: 0x6688aa, belly: 0x88aacc, eyeColor: 0x44cccc, stripes: 0, size: 1.0 },
+          { name: 'RiverClan Fighter', fur: 0x5577aa, belly: 0x7799bb, eyeColor: 0x33bbbb, stripes: 2, stripeColor: 0x334455, size: 1.1 },
+        ],
+        path: [{ x: 82, z: -30 }, { x: 82, z: 0 }, { x: 82, z: 25 }, { x: 82, z: 40 }, { x: 82, z: 25 }, { x: 82, z: 0 }],
+        speed: 2.5,
+      },
 
-      // WindClan patrols (along z ~ -65, varying x)
-      { clan: 'WindClan', name: 'WindClan Patrol', fur: 0xbbaa77, belly: 0xddcc99,
-        eyeColor: 0xddbb33, stripes: 2, stripeColor: 0x887744, size: 0.9,
-        path: [{ x: -30, z: -65 }, { x: -5, z: -65 }, { x: 20, z: -65 }, { x: 45, z: -65 }, { x: 20, z: -65 }, { x: -5, z: -65 }] },
-      { clan: 'WindClan', name: 'WindClan Runner', fur: 0xaa9966, belly: 0xccbb88,
-        eyeColor: 0xccaa22, stripes: 0, size: 0.85,
-        path: [{ x: 40, z: -68 }, { x: 15, z: -68 }, { x: -10, z: -68 }, { x: -35, z: -68 }, { x: -10, z: -68 }, { x: 15, z: -68 }] },
+      // WindClan patrol (2 cats — WindClan is faster)
+      { clan: 'WindClan',
+        cats: [
+          { name: 'WindClan Runner', fur: 0xbbaa77, belly: 0xddcc99, eyeColor: 0xddbb33, stripes: 2, stripeColor: 0x887744, size: 0.9 },
+          { name: 'WindClan Scout', fur: 0xaa9966, belly: 0xccbb88, eyeColor: 0xccaa22, stripes: 0, size: 0.85 },
+        ],
+        path: [{ x: -30, z: -65 }, { x: -5, z: -65 }, { x: 20, z: -65 }, { x: 45, z: -65 }, { x: 20, z: -65 }, { x: -5, z: -65 }],
+        speed: 3.5,
+      },
     ];
 
-    patrols.forEach(p => {
-      const catData = {
-        name: p.name, fur: p.fur, belly: p.belly,
-        eyeColor: p.eyeColor, earInner: 0xcc8888, noseColor: 0x886666,
-        size: p.size, whiteChest: false, whitePaws: false, longFur: false
-      };
-      if (p.stripes) { catData.stripes = p.stripes; catData.stripeColor = p.stripeColor || 0x333322; }
-      else { catData.stripes = 0; }
+    patrolDefs.forEach(pd => {
+      const startPos = pd.path[0];
+      const catObjs = [];
 
-      const catObj = makeBookCat(catData, p.path[0].x, p.path[0].z);
-      // Don't add to npcCats (those are ThunderClan cats with AI)
-      // Instead track separately as border patrols
-      catObj.group.visible = true;
+      pd.cats.forEach((c, idx) => {
+        const catData = {
+          name: c.name, fur: c.fur, belly: c.belly,
+          eyeColor: c.eyeColor, earInner: 0xcc8888, noseColor: 0x886666,
+          size: c.size, whiteChest: false, whitePaws: false, longFur: false
+        };
+        if (c.stripes) { catData.stripes = c.stripes; catData.stripeColor = c.stripeColor || 0x333322; }
+        else { catData.stripes = 0; }
+
+        // Offset cats slightly so they walk side by side
+        const offsetX = (idx === 0) ? -1 : 1;
+        const catObj = makeBookCat(catData, startPos.x + offsetX, startPos.z);
+        catObj.group.visible = true;
+
+        catObjs.push({
+          group: catObj.group,
+          label: catObj.label,
+          name: c.name,
+          fur: c.fur,
+          eyeColor: c.eyeColor,
+          stripes: c.stripes || 0,
+          stripeColor: c.stripeColor || 0,
+          size: c.size,
+          offsetX: offsetX,
+        });
+      });
+
+      // Create yellow detection circle (visible on the ground in front of the patrol)
+      const circleGeo = new THREE.RingGeometry(6, 7, 32);
+      const circleMat = new THREE.MeshBasicMaterial({
+        color: 0xffdd00, transparent: true, opacity: 0.45, side: THREE.DoubleSide
+      });
+      const circle = new THREE.Mesh(circleGeo, circleMat);
+      circle.rotation.x = -Math.PI / 2;
+      circle.position.set(startPos.x, 0.08, startPos.z);
+      scene.add(circle);
+
+      // Inner glow fill
+      const innerGeo = new THREE.CircleGeometry(6, 32);
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0xffee44, transparent: true, opacity: 0.12, side: THREE.DoubleSide
+      });
+      const innerCircle = new THREE.Mesh(innerGeo, innerMat);
+      innerCircle.rotation.x = -Math.PI / 2;
+      innerCircle.position.set(startPos.x, 0.07, startPos.z);
+      scene.add(innerCircle);
 
       borderPatrols.push({
-        group: catObj.group,
-        name: p.name,
-        clan: p.clan,
-        patrolPath: p.path,
+        clan: pd.clan,
+        cats: catObjs,
+        patrolPath: pd.path,
         pathIdx: 0,
-        speed: p.clan === 'WindClan' ? 3.5 : 2.5, // WindClan is faster
-        label: catObj.label,
+        speed: pd.speed,
+        detectionCircle: circle,
+        detectionInner: innerCircle,
+        detectionRadius: 7,
         _walkCycle: 0,
-        _walking: true,
-        spotted: false,      // has this patrol spotted the player?
-        spotCooldown: 0,     // cooldown to prevent respotting
+        spotted: false,
+        spotCooldown: 0,
       });
     });
   }
@@ -2754,62 +2801,79 @@ window.onerror = function(msg, url, line, col, err) {
     borderPatrols.forEach(bp => {
       if (bp.spotCooldown > 0) bp.spotCooldown -= dt;
 
-      // Walk along patrol path
+      // Walk along patrol path — use first cat as the "leader" position
       const target = bp.patrolPath[bp.pathIdx];
-      const gx = bp.group.position.x;
-      const gz = bp.group.position.z;
+      const leader = bp.cats[0];
+      const gx = leader.group.position.x - leader.offsetX; // center position
+      const gz = leader.group.position.z;
       const dx = target.x - gx;
       const dz = target.z - gz;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
       if (dist < 1.5) {
-        // Reached waypoint, move to next
         bp.pathIdx = (bp.pathIdx + 1) % bp.patrolPath.length;
       } else {
-        // Walk toward waypoint
         const speed = bp.speed * dt;
-        bp.group.position.x += (dx / dist) * speed;
-        bp.group.position.z += (dz / dist) * speed;
-        // Face direction of travel
-        bp.group.lookAt(target.x, 0, target.z);
-        bp._walking = true;
+        const mx = (dx / dist) * speed;
+        const mz = (dz / dist) * speed;
+
+        // Move ALL cats in the patrol together
+        bp.cats.forEach(c => {
+          c.group.position.x += mx;
+          c.group.position.z += mz;
+          c.group.lookAt(target.x + c.offsetX, 0, target.z);
+        });
       }
 
-      // Animate legs
-      if (bp._walking && bp.group.legs) {
-        bp._walkCycle += dt * bp.speed * 2;
-        const sw = Math.sin(bp._walkCycle) * 0.4;
-        bp.group.legs[0].rotation.x = sw;  bp.group.legs[1].rotation.x = -sw;
-        bp.group.legs[2].rotation.x = -sw; bp.group.legs[3].rotation.x = sw;
-      }
+      // Animate legs for all cats
+      bp._walkCycle += dt * bp.speed * 2;
+      const sw = Math.sin(bp._walkCycle) * 0.4;
+      bp.cats.forEach(c => {
+        if (c.group.legs) {
+          c.group.legs[0].rotation.x = sw;  c.group.legs[1].rotation.x = -sw;
+          c.group.legs[2].rotation.x = -sw; c.group.legs[3].rotation.x = sw;
+        }
+      });
 
-      // Check if this patrol spots the player (only during free play, NOT training)
+      // Move detection circle with the patrol (centered on the group)
+      const cx = leader.group.position.x - leader.offsetX;
+      const cz = leader.group.position.z;
+      bp.detectionCircle.position.set(cx, 0.08, cz);
+      bp.detectionInner.position.set(cx, 0.07, cz);
+
+      // Pulse the detection circle opacity for visibility
+      const pulse = 0.3 + Math.sin(Date.now() * 0.003) * 0.15;
+      bp.detectionCircle.material.opacity = pulse;
+
+      // Check if player steps into the detection circle
       if (storyPhase !== 'playing' || gameState !== 'playing') return;
       if (bp.spotCooldown > 0 || bp.spotted) return;
 
       const px = player.position.x;
       const pz = player.position.z;
-      const pdx = px - bp.group.position.x;
-      const pdz = pz - bp.group.position.z;
+      const pdx = px - cx;
+      const pdz = pz - cz;
       const playerDist = Math.sqrt(pdx * pdx + pdz * pdz);
 
-      // Patrol spots you if you're close to them (within 15 units)
-      if (playerDist < 15) {
+      // Spotted if player is inside the yellow detection circle
+      if (playerDist < bp.detectionRadius) {
         bp.spotted = true;
-        // Chase toward player, then trigger encounter
         triggerPatrolSpotted(bp);
       }
     });
   }
 
-  /** A border patrol has spotted the player! */
+  /** A border patrol has spotted the player — show all cats and let player pick who to fight! */
   function triggerPatrolSpotted (bp) {
     gameState = 'cutscene';
     playSound('danger');
 
+    const catCount = bp.cats.length;
+    const leaderName = bp.cats[0].name;
+
     const scenes = [
-      { narration: true, text: 'A ' + bp.clan + ' patrol has spotted you! The warrior\'s fur bristles as they race toward you!' },
-      { speaker: bp.name, text: '"' + (bp.clan === 'ShadowClan'
+      { narration: true, text: 'A ' + bp.clan + ' patrol of <strong>' + catCount + ' cats</strong> has spotted you! They race toward you, fur bristling!' },
+      { speaker: leaderName, text: '"' + (bp.clan === 'ShadowClan'
           ? 'A ThunderClan intruder! You dare set paw on ShadowClan territory?!'
           : bp.clan === 'RiverClan'
           ? 'ThunderClan! This is our territory! You have no right to be here!'
@@ -2817,43 +2881,48 @@ window.onerror = function(msg, url, line, col, err) {
     ];
 
     startCutscene(scenes, () => {
-      // Battle the patrol cat
+      // Build enemy list from patrol cats
       const lvl = player.level || 1;
-      const clanStats = {
-        'ShadowClan': { hp: 70 + lvl * 10, atk: 12 + lvl * 2, def: 5 + lvl, fur: 0x333333, eye: 0xffcc00 },
-        'RiverClan':  { hp: 65 + lvl * 10, atk: 10 + lvl * 2, def: 6 + lvl, fur: 0x6688aa, eye: 0x44cccc },
-        'WindClan':   { hp: 55 + lvl * 10, atk: 14 + lvl * 2, def: 3 + lvl, fur: 0xbbaa77, eye: 0xddbb33 },
+      const clanStatBase = {
+        'ShadowClan': { hp: 60, atk: 11, def: 5 },
+        'RiverClan':  { hp: 55, atk: 9,  def: 6 },
+        'WindClan':   { hp: 45, atk: 13, def: 3 },
       };
-      const st = clanStats[bp.clan] || clanStats['ShadowClan'];
+      const base = clanStatBase[bp.clan] || clanStatBase['ShadowClan'];
 
-      startBattle({
-        enemyName: bp.name,
-        enemyHP: st.hp,
-        enemyMaxHP: st.hp,
-        enemyAttack: st.atk,
-        enemyDefense: st.def,
-        enemyFurColor: st.fur,
-        enemyEyeColor: st.eye,
-        enemyStripes: bp.clan === 'WindClan',
-        enemyStripeColor: 0x444433,
-        playerMinHP: 5,
-        expReward: 50 + lvl * 10,
+      const enemies = bp.cats.map((c, idx) => ({
+        name: c.name,
+        hp: base.hp + lvl * 8 + idx * 5,
+        maxHP: base.hp + lvl * 8 + idx * 5,
+        atk: base.atk + lvl * 2 + idx,
+        def: base.def + lvl + idx,
+        fur: c.fur,
+        eye: c.eyeColor,
+        stripes: c.stripes,
+        stripeColor: c.stripeColor,
+        defeated: false,
+      }));
+
+      startPatrolBattle({
+        clan: bp.clan,
+        enemies: enemies,
+        expReward: (40 + lvl * 8) * catCount,
         onWin: function () {
           const s2 = [
-            { narration: true, text: 'The ' + bp.clan + ' warrior stumbles back, defeated!' },
-            { speaker: bp.name, text: '"This isn\'t over, ThunderClan! Next time more of us will come!"' },
+            { narration: true, text: 'The ' + bp.clan + ' patrol stumbles back, defeated! All ' + catCount + ' cats retreat!' },
+            { speaker: leaderName, text: '"This isn\'t over, ThunderClan! We\'ll be back with more warriors!"' },
             { narration: true, text: 'You should head back to ThunderClan land before another patrol arrives.' },
           ];
           startCutscene(s2, () => {
             gameState = 'playing';
             bp.spotted = false;
-            bp.spotCooldown = 30; // 30 seconds before this patrol can spot again
+            bp.spotCooldown = 45; // longer cooldown for multi-cat patrols
           });
         },
         onLose: function () {
           const s2 = [
             { narration: true, text: 'The ' + bp.clan + ' warriors overpower you and chase you back to the border!' },
-            { speaker: bp.name, text: '"And STAY OUT! Next time you won\'t get off so easy!"' },
+            { speaker: leaderName, text: '"And STAY OUT! Next time you won\'t get off so easy!"' },
           ];
           player.position = { x: 0, y: 0, z: 0 };
           catGroup.position.set(0, 0, 0);
@@ -2861,12 +2930,170 @@ window.onerror = function(msg, url, line, col, err) {
           startCutscene(s2, () => {
             gameState = 'playing';
             bp.spotted = false;
-            bp.spotCooldown = 30;
+            bp.spotCooldown = 45;
             queueMessage('Narrator', 'You wake up back at ThunderClan camp, bruised but alive. Stay away from enemy borders!');
           });
         },
       });
     });
+  }
+
+  /* ====================================================
+     PATROL BATTLE — fight multiple cats, pick your target
+     ==================================================== */
+  let patrolBattleData = null; // { enemies, currentIdx, expReward, onWin, onLose, clan }
+
+  function startPatrolBattle (opts) {
+    patrolBattleData = {
+      enemies: opts.enemies,
+      currentIdx: -1, // no cat selected yet
+      expReward: opts.expReward,
+      onWin: opts.onWin,
+      onLose: opts.onLose,
+      clan: opts.clan,
+    };
+
+    gameState = 'battle';
+    battleScreen.classList.remove('hidden');
+    battleLog.innerHTML = '';
+    battleHeader.textContent = opts.clan + ' PATROL — ' + opts.enemies.length + ' cats!';
+    battlePlayerName.textContent = player.name || 'Rusty';
+
+    // Draw player cat
+    const pCtx = battlePlayerCanvas.getContext('2d');
+    drawBattleCat(pCtx, 0xff8833, 0x44cc44, false, false, 0);
+
+    // Set up player HP
+    currentBattle = {
+      playerHP: player.health,
+      playerMaxHP: player.maxHealth,
+      playerMinHP: 5,
+    };
+
+    addBattleLog('A patrol of <strong>' + opts.enemies.length + '</strong> ' + opts.clan + ' cats blocks your path!', 'battle-log-fierce');
+    addBattleLog('Choose which cat to fight first!', '');
+    playSound('battle');
+
+    // Show enemy selector
+    showEnemySelector();
+  }
+
+  function showEnemySelector () {
+    if (!patrolBattleData) return;
+    const selector = document.getElementById('battle-enemy-selector');
+    const list = document.getElementById('battle-enemy-list');
+    list.innerHTML = '';
+
+    patrolBattleData.enemies.forEach((e, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'enemy-select-btn' + (e.defeated ? ' defeated' : '');
+      btn.textContent = e.name + (e.defeated ? ' (defeated)' : ' — HP: ' + e.hp + '/' + e.maxHP);
+      btn.disabled = e.defeated;
+      if (!e.defeated) {
+        btn.addEventListener('click', () => selectPatrolEnemy(idx));
+      }
+      list.appendChild(btn);
+    });
+
+    selector.classList.remove('hidden');
+    enableBattleButtons(false); // hide attack buttons until a cat is selected
+
+    // Hide enemy side until selected
+    battleEnemyName.textContent = '???';
+    const eCtx = battleEnemyCanvas.getContext('2d');
+    eCtx.clearRect(0, 0, 200, 200);
+    document.getElementById('battle-enemy-hp-text').textContent = '?/?';
+    document.getElementById('battle-enemy-hp').style.width = '100%';
+  }
+
+  function selectPatrolEnemy (idx) {
+    if (!patrolBattleData) return;
+    const e = patrolBattleData.enemies[idx];
+    if (e.defeated) return;
+
+    patrolBattleData.currentIdx = idx;
+
+    // Hide selector, show battle UI
+    document.getElementById('battle-enemy-selector').classList.add('hidden');
+
+    // Mark fighting in selector buttons
+    const buttons = document.querySelectorAll('.enemy-select-btn');
+    buttons.forEach((b, i) => b.classList.toggle('fighting', i === idx));
+
+    // Set up the current battle against this specific enemy
+    currentBattle = {
+      enemyName: e.name,
+      enemyHP: e.hp,
+      enemyMaxHP: e.maxHP,
+      enemyAttack: e.atk,
+      enemyDefense: e.def,
+      enemyFurColor: e.fur,
+      enemyEyeColor: e.eye,
+      enemyStripes: e.stripes,
+      enemyStripeColor: e.stripeColor || 0x333333,
+      playerHP: player.health,
+      playerMaxHP: player.maxHealth,
+      playerMinHP: 5,
+      expReward: 0, // awarded at end of full patrol fight
+      playerTurn: true,
+      dodging: false,
+      round: 0,
+      _fierceVulnerable: false,
+      // Override win/lose for multi-cat fights
+      onWin: function () {
+        // Mark this cat as defeated
+        e.defeated = true;
+        e.hp = 0;
+        addBattleLog('<strong>' + e.name + '</strong> is defeated!', 'battle-log-player');
+
+        // Check if all enemies are defeated
+        const allDefeated = patrolBattleData.enemies.every(en => en.defeated);
+        if (allDefeated) {
+          // Won the entire patrol fight!
+          addBattleLog('<strong>All ' + patrolBattleData.clan + ' patrol cats are defeated!</strong>', 'battle-log-fierce');
+          player = GameLogic.addExperience(player, patrolBattleData.expReward);
+          player.battlesWon = (player.battlesWon || 0) + patrolBattleData.enemies.length;
+          player.health = Math.min(player.maxHealth, player.health + Math.floor(player.maxHealth * 0.3));
+          addBattleLog('+' + patrolBattleData.expReward + ' experience! Level ' + player.level, 'battle-log-player');
+
+          setTimeout(() => {
+            battleScreen.classList.add('hidden');
+            document.getElementById('battle-enemy-selector').classList.add('hidden');
+            const cb = patrolBattleData.onWin;
+            patrolBattleData = null;
+            currentBattle = null;
+            if (cb) cb();
+            saveGame();
+          }, 1500);
+        } else {
+          // More cats to fight — let player choose next
+          addBattleLog('Choose your next opponent!', '');
+          player.health = Math.min(player.maxHealth, player.health + Math.floor(player.maxHealth * 0.15)); // small heal between fights
+          setTimeout(() => showEnemySelector(), 800);
+        }
+      },
+      onLose: function () {
+        // Lost the patrol fight
+        setTimeout(() => {
+          battleScreen.classList.add('hidden');
+          document.getElementById('battle-enemy-selector').classList.add('hidden');
+          const cb = patrolBattleData.onLose;
+          patrolBattleData = null;
+          currentBattle = null;
+          if (cb) cb();
+        }, 1000);
+      },
+    };
+
+    // Draw enemy cat sprite
+    battleEnemyName.textContent = e.name;
+    const eCtx = battleEnemyCanvas.getContext('2d');
+    drawBattleCat(eCtx, e.fur, e.eye, true, e.stripes, e.stripeColor || 0x333333);
+    updateBattleHP();
+    enableBattleButtons(true);
+
+    addBattleLog('You face <strong>' + e.name + '</strong>!', 'battle-log-fierce');
+    playSound('battle');
   }
 
   /* ====================================================
@@ -3585,8 +3812,10 @@ window.onerror = function(msg, url, line, col, err) {
       round: 0,
     };
 
-    // Show the battle screen
+    // Show the battle screen (hide patrol enemy selector if it was open)
     battleScreen.classList.remove('hidden');
+    document.getElementById('battle-enemy-selector').classList.add('hidden');
+    patrolBattleData = null; // clear any patrol battle data
     battleLog.innerHTML = '';
     battleHeader.textContent = 'BATTLE!';
     battlePlayerName.textContent = player.name || 'Rusty';
@@ -3730,17 +3959,22 @@ window.onerror = function(msg, url, line, col, err) {
     if (!currentBattle) return;
     const b = currentBattle;
 
+    // Check if this is part of a patrol battle (multi-cat fight)
+    const isPatrolBattle = !!patrolBattleData;
+
     if (won) {
-      addBattleLog('<strong>You won the battle!</strong>', 'battle-log-player');
-      // Award XP
-      player = GameLogic.addExperience(player, b.expReward);
-      player.battlesWon = (player.battlesWon || 0) + 1;
-      // Heal a bit after winning
-      player.health = Math.min(player.maxHealth, player.health + Math.floor(player.maxHealth * 0.3));
-      addBattleLog('+' + b.expReward + ' experience! Level ' + player.level, 'battle-log-player');
-      if (player.health < player.maxHealth) {
-        addBattleLog('You rest and recover some health.', 'battle-log-dodge');
+      if (!isPatrolBattle) {
+        // Normal single-cat battle: award XP and heal
+        addBattleLog('<strong>You won the battle!</strong>', 'battle-log-player');
+        player = GameLogic.addExperience(player, b.expReward);
+        player.battlesWon = (player.battlesWon || 0) + 1;
+        player.health = Math.min(player.maxHealth, player.health + Math.floor(player.maxHealth * 0.3));
+        addBattleLog('+' + b.expReward + ' experience! Level ' + player.level, 'battle-log-player');
+        if (player.health < player.maxHealth) {
+          addBattleLog('You rest and recover some health.', 'battle-log-dodge');
+        }
       }
+      // For patrol battles, the onWin callback handles XP/healing per-cat
     } else {
       addBattleLog('<strong>You lost the battle...</strong>', 'battle-log-hit');
     }
@@ -3748,16 +3982,27 @@ window.onerror = function(msg, url, line, col, err) {
     updateBattleHP();
     enableBattleButtons(false);
 
-    // Close battle screen after a moment
+    // For patrol battles: DON'T hide the battle screen if there are more cats
+    // Let the onWin callback handle showing the enemy selector
+    if (isPatrolBattle && won && b.onWin) {
+      setTimeout(() => {
+        currentBattle = null;
+        b.onWin(); // this shows enemy selector or finishes the patrol battle
+      }, 1200);
+      return;
+    }
+
+    // Normal battle / patrol loss: close battle screen
     setTimeout(() => {
       battleScreen.classList.add('hidden');
+      document.getElementById('battle-enemy-selector').classList.add('hidden');
       currentBattle = null;
       if (won && b.onWin) b.onWin();
       else if (!won && b.onLose) b.onLose();
       else {
         gameState = 'playing';
       }
-      saveGame(); // Auto-save after every battle
+      saveGame();
     }, 1800);
   }
 
