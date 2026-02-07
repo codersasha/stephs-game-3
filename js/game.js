@@ -2197,14 +2197,14 @@ window.onerror = function(msg, url, line, col, err) {
     const eyeC    = desc.eyeColor || 0xffdd44;
     const pawC    = desc.whitePaws ? 0xffeedd : desc.fur;
 
-    /* body */
+    /* body (oriented head-to-tail like player cat) */
     const bodyR = 0.34 * sz, bodyL = 0.7 * sz;
-    const body = makeCapsuleMesh(bodyR, bodyL, 10, 14, furMat);
-    body.rotation.z = Math.PI / 2; body.position.y = 0.58 * sz; body.castShadow = true;
+    const body = makeCapsuleMesh(bodyR, bodyL, 12, 16, furMat);
+    body.rotation.x = Math.PI / 2; body.position.y = 0.58 * sz; body.castShadow = true;
     g.add(body);
     // belly
-    const bellyM = makeCapsuleMesh(bodyR * 0.78, bodyL * 0.65, 8, 10, bellyMat);
-    bellyM.rotation.z = Math.PI / 2; bellyM.position.set(0, 0.48 * sz, 0.04);
+    const bellyM = makeCapsuleMesh(bodyR * 0.78, bodyL * 0.65, 8, 12, bellyMat);
+    bellyM.rotation.x = Math.PI / 2; bellyM.position.set(0, 0.48 * sz, 0.04);
     g.add(bellyM);
 
     /* mane / thick neck fur (for Lionheart etc.) */
@@ -2215,115 +2215,135 @@ window.onerror = function(msg, url, line, col, err) {
       g.add(mane);
     }
 
-    /* head */
+    /* head (higher detail like player cat) */
     const headR = 0.30 * sz;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 12, 10), furMat);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 14, 12), furMat);
     head.position.set(0, 0.82 * sz, 0.52 * sz); head.scale.set(1, 0.92, 1.06);
     head.castShadow = true; g.add(head);
     // cheeks
-    const cheekMat = new THREE.MeshPhongMaterial({ color: desc.belly || desc.fur, shininess: 8 });
+    const cheekMat = new THREE.MeshPhongMaterial({ color: desc.belly || desc.fur, shininess: 10 });
     [[-1,1],[1,1]].forEach(([s]) => {
-      const ch = new THREE.Mesh(new THREE.SphereGeometry(0.12 * sz, 8, 6), cheekMat);
+      const ch = new THREE.Mesh(new THREE.SphereGeometry(0.12 * sz, 10, 8), cheekMat);
       ch.position.set(s * 0.16 * sz, 0.76 * sz, 0.62 * sz); g.add(ch);
     });
     // muzzle
-    const mzlMat = new THREE.MeshPhongMaterial({ color: bellyC });
-    const mzl = new THREE.Mesh(new THREE.SphereGeometry(0.11 * sz, 8, 6), mzlMat);
+    const mzlMat = new THREE.MeshPhongMaterial({ color: bellyC, shininess: 10 });
+    const mzl = new THREE.Mesh(new THREE.SphereGeometry(0.11 * sz, 10, 8), mzlMat);
     mzl.position.set(0, 0.76 * sz, 0.72 * sz); mzl.scale.set(1.1, 0.65, 0.7);
     g.add(mzl);
-    // chin
-    if (desc.whiteChest) {
-      const chin = new THREE.Mesh(new THREE.SphereGeometry(0.09 * sz, 6, 5), new THREE.MeshPhongMaterial({ color: 0xffeedd }));
-      chin.position.set(0, 0.70 * sz, 0.62 * sz); g.add(chin);
-    }
+    // chin (always visible, just use belly or fur color)
+    const chinC = desc.whiteChest ? 0xffeedd : bellyC;
+    const chin = new THREE.Mesh(new THREE.SphereGeometry(0.09 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: chinC }));
+    chin.position.set(0, 0.70 * sz, 0.62 * sz); g.add(chin);
 
-    /* ears */
-    const earMat = new THREE.MeshPhongMaterial({ color: desc.fur });
+    /* ears (with inner pink and fur tufts, matching player quality) */
+    const earMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 10 });
     const earIn  = new THREE.MeshPhongMaterial({ color: earInC });
     [[-1,1],[1,1]].forEach(([s]) => {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.11 * sz, 0.22 * sz, 4), earMat);
-      ear.position.set(s * 0.15 * sz, 1.06 * sz, 0.50 * sz); ear.rotation.z = s * 0.22;
-      g.add(ear);
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.12 * sz, 0.22 * sz, 4), earMat);
+      ear.position.set(s * 0.15 * sz, 1.06 * sz, 0.50 * sz); ear.rotation.z = s * 0.25;
+      ear.castShadow = true; g.add(ear);
       const inner = new THREE.Mesh(new THREE.ConeGeometry(0.06 * sz, 0.14 * sz, 4), earIn);
-      inner.position.set(s * 0.15 * sz, 1.04 * sz, 0.52 * sz); inner.rotation.z = s * 0.22;
+      inner.position.set(s * 0.15 * sz, 1.04 * sz, 0.52 * sz); inner.rotation.z = s * 0.25;
       g.add(inner);
+      // fur tuft at tip of ear (all cats get this now)
+      const tuftC = desc.longFur ? desc.fur : new THREE.Color(desc.fur).lerp(new THREE.Color(bellyC), 0.3);
+      const tf = new THREE.Mesh(new THREE.ConeGeometry(0.04 * sz, 0.08 * sz, 3), new THREE.MeshPhongMaterial({ color: tuftC }));
+      tf.position.set(s * 0.15 * sz, 1.18 * sz, 0.50 * sz); g.add(tf);
     });
-    // long-fur ear tufts
-    if (desc.longFur) {
-      const tuftMat = new THREE.MeshPhongMaterial({ color: desc.fur });
-      [[-1,1],[1,1]].forEach(([s]) => {
-        const tf = new THREE.Mesh(new THREE.ConeGeometry(0.04 * sz, 0.10 * sz, 3), tuftMat);
-        tf.position.set(s * 0.15 * sz, 1.18 * sz, 0.50 * sz); g.add(tf);
-      });
-    }
 
-    /* eyes (BIG cute cartoon eyes — LKBC style) */
+    /* eyes (BIG cute cartoon eyes — matching player cat quality!) */
     [[-1,1],[1,1]].forEach(([s]) => {
-      const x = s * 0.12 * sz;
-      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.085 * sz, 10, 8), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 40 }));
-      sclera.position.set(x, 0.86 * sz, 0.72 * sz); sclera.scale.set(1.1, 0.95, 0.5); g.add(sclera);
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.068 * sz, 10, 8), new THREE.MeshPhongMaterial({ color: eyeC, shininess: 70, emissive: 0x0a0a0a }));
-      iris.position.set(x, 0.86 * sz, 0.74 * sz); iris.scale.set(0.95, 0.9, 0.42); g.add(iris);
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.035 * sz, 8, 6), new THREE.MeshBasicMaterial({ color: 0x111111 }));
-      pupil.position.set(x, 0.86 * sz, 0.76 * sz); pupil.scale.set(0.35, 0.85, 0.3); g.add(pupil);
-      // Big white highlight
-      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.020 * sz, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl.position.set(x - s * 0.02 * sz, 0.89 * sz, 0.77 * sz); g.add(hl);
-      // Small secondary highlight
-      const hl2 = new THREE.Mesh(new THREE.SphereGeometry(0.010 * sz, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      hl2.position.set(x + s * 0.015 * sz, 0.84 * sz, 0.77 * sz); g.add(hl2);
+      const x = s * 0.13 * sz;
+      // sclera — bigger for cartoon look
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.10 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: 0xf5fffa, shininess: 40 }));
+      sclera.position.set(x, 0.86 * sz, 0.72 * sz); sclera.scale.set(1.15, 1.0, 0.55); g.add(sclera);
+      // iris — big and bright
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(0.082 * sz, 14, 12), new THREE.MeshPhongMaterial({ color: eyeC, shininess: 90, emissive: 0x0a1a0a }));
+      iris.position.set(x, 0.86 * sz, 0.74 * sz); iris.scale.set(0.95, 0.95, 0.45); g.add(iris);
+      // pupil — vertical slit
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.042 * sz, 10, 8), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+      pupil.position.set(x, 0.86 * sz, 0.77 * sz); pupil.scale.set(0.35, 0.85, 0.3); g.add(pupil);
+      // Big specular highlight (spark of life!)
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.025 * sz, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl.position.set(x - s * 0.03 * sz, 0.90 * sz, 0.78 * sz); g.add(hl);
+      // Smaller secondary highlight
+      const hl2 = new THREE.Mesh(new THREE.SphereGeometry(0.013 * sz, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      hl2.position.set(x + s * 0.02 * sz, 0.83 * sz, 0.78 * sz); g.add(hl2);
+      // Dark eyelid line above eye (like player cat)
+      const lid = new THREE.Mesh(new THREE.SphereGeometry(0.10 * sz, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.3), new THREE.MeshPhongMaterial({ color: desc.fur }));
+      lid.position.set(x, 0.87 * sz, 0.73 * sz); lid.scale.set(1.1, 0.5, 0.55);
+      g.add(lid);
     });
 
-    /* nose */
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.038 * sz, 6, 5), new THREE.MeshPhongMaterial({ color: noseC, shininess: 40 }));
-    nose.position.set(0, 0.79 * sz, 0.80 * sz); nose.scale.set(1.2, 0.65, 0.6); g.add(nose);
+    /* nose (more detailed like player cat) */
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045 * sz, 8, 6), new THREE.MeshPhongMaterial({ color: noseC, shininess: 60 }));
+    nose.position.set(0, 0.79 * sz, 0.80 * sz); nose.scale.set(1.2, 0.6, 0.6); g.add(nose);
+    // nostrils
+    [[-1,1],[1,1]].forEach(([s]) => {
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.008 * sz, 4, 4), new THREE.MeshBasicMaterial({ color: 0x331111 }));
+      nostril.position.set(s * 0.020 * sz, 0.78 * sz, 0.83 * sz); g.add(nostril);
+    });
+    // mouth line
+    const mouthLine = new THREE.Mesh(new THREE.BoxGeometry(0.04 * sz, 0.004, 0.004), new THREE.MeshBasicMaterial({ color: 0x332222 }));
+    mouthLine.position.set(0, 0.74 * sz, 0.80 * sz); g.add(mouthLine);
 
-    /* whiskers */
+    /* whiskers (matching player cat quality) */
     const whMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
     [[-1,1],[1,1]].forEach(([s]) => {
       for (let w = 0; w < 3; w++) {
-        const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.001, 0.32 * sz, 3), whMat);
+        const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.002, 0.35 * sz, 3), whMat);
         wh.rotation.z = s * (0.15 + w * 0.12); wh.rotation.x = -0.1 + w * 0.1;
-        wh.position.set(s * 0.20 * sz, 0.76 * sz - w * 0.015, 0.72 * sz);
+        wh.position.set(s * 0.22 * sz, 0.76 * sz - w * 0.02, 0.72 * sz);
         g.add(wh);
       }
     });
 
-    /* legs & paws */
-    const legMat = new THREE.MeshPhongMaterial({ color: desc.fur });
-    const pawMat = new THREE.MeshPhongMaterial({ color: pawC });
+    /* legs & paws (matching player cat detail) */
+    const legMat = new THREE.MeshPhongMaterial({ color: desc.fur, shininess: 10 });
+    const pawMat = new THREE.MeshPhongMaterial({ color: pawC, shininess: 10 });
     const padMat = new THREE.MeshPhongMaterial({ color: 0xff8899 });
     const legPos = [
-      [-0.18*sz, 0.18*sz, 0.28*sz], [0.18*sz, 0.18*sz, 0.28*sz],
-      [-0.18*sz, 0.18*sz, -0.28*sz],[0.18*sz, 0.18*sz, -0.28*sz]
+      [-0.16*sz, 0.22*sz, 0.32*sz], [0.16*sz, 0.22*sz, 0.32*sz],
+      [-0.16*sz, 0.22*sz, -0.32*sz],[0.16*sz, 0.22*sz, -0.32*sz]
     ];
     g.legs = [];
     legPos.forEach(([x,y,z]) => {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08*sz, 0.06*sz, 0.38*sz, 7), legMat);
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07*sz, 0.055*sz, 0.42*sz, 8), legMat);
       leg.position.set(x,y,z); leg.castShadow = true; g.add(leg); g.legs.push(leg);
-      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.07*sz, 7, 5), pawMat);
-      paw.position.set(x, 0.02, z); paw.scale.set(1, 0.5, 1.2); g.add(paw);
-      // toe beans
+      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.065*sz, 8, 6), pawMat);
+      paw.position.set(x, 0.03, z); paw.scale.set(1, 0.5, 1.2); g.add(paw);
+      // toe beans (3 small + 1 big pad, matching player)
       for (let t = 0; t < 3; t++) {
-        const bean = new THREE.Mesh(new THREE.SphereGeometry(0.015*sz, 4, 4), padMat);
-        bean.position.set(x+(t-1)*0.025*sz, 0.008, z+0.03*sz); g.add(bean);
+        const bean = new THREE.Mesh(new THREE.SphereGeometry(0.018*sz, 4, 4), padMat);
+        bean.position.set(x+(t-1)*0.03*sz, 0.01, z+0.04*sz); g.add(bean);
       }
+      const bigBean = new THREE.Mesh(new THREE.SphereGeometry(0.025*sz, 4, 4), padMat);
+      bigBean.position.set(x, 0.01, z-0.02*sz); g.add(bigBean);
     });
 
-    /* tail */
+    /* tail (14 smooth overlapping segments like player cat) */
     g.tailSegs = [];
-    for (let i = 0; i < 6; i++) {
-      const r = (0.055 - i * 0.006) * sz;
-      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.015, r), 5, 4), furMat);
-      seg.position.set(0, (0.45 + i * 0.09) * sz, (-0.38 - i * 0.09) * sz);
+    const tailSegCount = 14;
+    for (let i = 0; i < tailSegCount; i++) {
+      const t = i / (tailSegCount - 1);
+      const r = (0.065 - t * 0.040) * sz;
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.022 * sz, r), 8, 6), furMat);
+      const zOff = (-0.40 - t * 0.38) * sz;
+      const yOff = (0.52 + t * 0.30) * sz;
+      seg.position.set(0, yOff, zOff);
       g.add(seg); g.tailSegs.push(seg);
     }
+    // tail tip (slightly darker)
+    const tailTipC = new THREE.Color(desc.fur).multiplyScalar(0.75);
+    const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.020 * sz, 6, 4), new THREE.MeshPhongMaterial({ color: tailTipC }));
+    tailTip.position.set(0, 0.82 * sz, -0.78 * sz);
+    g.add(tailTip); g.tailSegs.push(tailTip);
 
-    /* chest patch */
-    if (desc.whiteChest) {
-      const cp = new THREE.Mesh(new THREE.SphereGeometry(0.20*sz, 8, 6), new THREE.MeshPhongMaterial({ color: 0xffeedd }));
-      cp.position.set(0, 0.52*sz, 0.32*sz); cp.scale.set(0.65, 0.7, 0.45); g.add(cp);
-    }
+    /* chest patch (always visible — use belly or fur-lighter color) */
+    const chestC = desc.whiteChest ? 0xffeedd : bellyC;
+    const cp = new THREE.Mesh(new THREE.SphereGeometry(0.20*sz, 10, 8), new THREE.MeshPhongMaterial({ color: chestC, shininess: 8 }));
+    cp.position.set(0, 0.52*sz, 0.32*sz); cp.scale.set(0.6, 0.7, 0.45); g.add(cp);
 
     /* tabby stripes */
     if (desc.stripes && desc.stripeColor) {
