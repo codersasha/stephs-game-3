@@ -744,23 +744,23 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  margin-bottom: 6px;
+  font-size: clamp(0.85rem, 2.2vw, 1rem);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .hud-bar {
-  width: clamp(80px, 15vw, 150px);
-  height: 12px;
+  width: clamp(90px, 18vw, 150px);
+  height: 14px;
   background: rgba(0, 0, 0, 0.5);
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
 }
 
 .hud-bar-fill {
   height: 100%;
-  border-radius: 6px;
+  border-radius: 7px;
   transition: width 0.5s ease;
 }
 
@@ -889,14 +889,14 @@ html, body {
    ======================================== */
 #mobile-controls {
   position: fixed;
-  bottom: 20px;
+  bottom: 16px;
   left: 0;
   width: 100%;
   z-index: 50;
   display: none;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 0 20px;
+  padding: 0 12px;
   pointer-events: none;
 }
 
@@ -905,18 +905,19 @@ html, body {
 }
 
 .joystick-area {
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   position: relative;
   pointer-events: auto;
 }
 
 .joystick-base {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05);
   position: absolute;
   bottom: 0;
   left: 10px;
@@ -926,41 +927,88 @@ html, body {
 }
 
 .joystick-stick {
-  width: 50px;
-  height: 50px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  transition: transform 0.1s ease;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15));
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.08s ease;
 }
 
 .action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   pointer-events: auto;
+  max-width: 170px;
 }
 
 .action-btn {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15);
+  width: 76px;
+  height: 56px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: bold;
+  font-family: 'Georgia', serif;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  gap: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.1s, background 0.1s;
 }
 
 .action-btn:active {
-  background: rgba(255, 140, 0, 0.4);
+  transform: scale(0.92);
+  background: rgba(255, 140, 0, 0.35);
   border-color: rgba(255, 140, 0, 0.8);
+}
+
+/* Color-coded action buttons */
+.action-btn-sprint {
+  border-color: rgba(100, 200, 255, 0.4);
+  background: rgba(60, 130, 200, 0.2);
+}
+.action-btn-sprint:active {
+  background: rgba(60, 130, 200, 0.45);
+  border-color: rgba(100, 200, 255, 0.8);
+}
+
+.action-btn-act {
+  border-color: rgba(255, 200, 80, 0.4);
+  background: rgba(200, 140, 40, 0.2);
+}
+.action-btn-act:active {
+  background: rgba(200, 140, 40, 0.45);
+  border-color: rgba(255, 200, 80, 0.8);
+}
+
+.action-btn-jump {
+  border-color: rgba(100, 220, 100, 0.4);
+  background: rgba(60, 160, 60, 0.2);
+}
+.action-btn-jump:active {
+  background: rgba(60, 160, 60, 0.45);
+  border-color: rgba(100, 220, 100, 0.8);
+}
+
+.action-btn-emote {
+  border-color: rgba(200, 130, 255, 0.4);
+  background: rgba(140, 80, 200, 0.2);
+  font-size: 1.3rem;
+}
+.action-btn-emote:active {
+  background: rgba(140, 80, 200, 0.45);
+  border-color: rgba(200, 130, 255, 0.8);
 }
 
 /* ========================================
@@ -1098,25 +1146,26 @@ html, body {
   bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(90%, 600px);
-  background: rgba(0, 0, 0, 0.85);
+  width: min(92%, 600px);
+  background: rgba(0, 0, 0, 0.88);
   border: 2px solid rgba(255, 140, 0, 0.4);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 18px 20px;
   z-index: 60;
   display: none;
   color: #e0d5c0;
-  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  font-size: clamp(0.95rem, 2.5vw, 1.1rem);
   line-height: 1.6;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
 }
 
 #message-box.visible {
   display: block;
-  animation: slideUp 0.3s ease-out;
+  animation: msgSlideUp 0.3s ease-out;
 }
 
-@keyframes slideUp {
+@keyframes msgSlideUp {
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
@@ -1125,16 +1174,18 @@ html, body {
   color: #ff8c00;
   font-weight: bold;
   margin-bottom: 8px;
-  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-size: clamp(1.05rem, 3vw, 1.2rem);
 }
 
 .message-continue {
-  text-align: right;
+  text-align: center;
   color: #ffcc66;
-  font-size: 0.85rem;
-  margin-top: 10px;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  margin-top: 12px;
+  padding: 8px;
   animation: pulse 1.5s ease-in-out infinite;
   text-shadow: 0 0 6px rgba(255, 200, 100, 0.3);
+  border-top: 1px solid rgba(255, 200, 100, 0.15);
 }
 
 /* ========================================
@@ -1142,35 +1193,37 @@ html, body {
    ======================================== */
 #emote-bar {
   position: fixed;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 170px;
+  right: 12px;
   z-index: 55;
   display: flex;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 200, 100, 0.3);
-  border-radius: 25px;
-  padding: 6px 14px;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(200, 130, 255, 0.3);
+  border-radius: 16px;
+  padding: 8px;
   backdrop-filter: blur(4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 #emote-bar.hidden {
   display: none;
 }
 .emote-btn {
-  width: 40px; height: 40px;
-  font-size: 1.3rem;
-  border: 1px solid rgba(255,200,100,0.3);
-  border-radius: 50%;
+  width: 46px; height: 46px;
+  font-size: 1.4rem;
+  border: 2px solid rgba(255,200,100,0.25);
+  border-radius: 12px;
   background: rgba(40, 50, 40, 0.8);
   cursor: pointer;
-  transition: transform 0.15s, background 0.2s;
+  transition: transform 0.12s, background 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 .emote-btn:hover, .emote-btn:active {
-  transform: scale(1.15);
+  transform: scale(1.1);
   background: rgba(80, 100, 60, 0.8);
   border-color: rgba(255, 200, 100, 0.6);
 }
@@ -1234,20 +1287,22 @@ html, body {
    ======================================== */
 #interact-hint {
   position: fixed;
-  bottom: 160px;
+  bottom: 180px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 55;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 140, 0, 0.5);
-  border-radius: 8px;
-  padding: 8px 18px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(255, 200, 80, 0.5);
+  border-radius: 12px;
+  padding: 10px 22px;
   color: #ffcc88;
-  font-size: clamp(0.85rem, 2vw, 1rem);
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
   font-family: 'Georgia', serif;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
   pointer-events: none;
   animation: pulse 2s ease-in-out infinite;
+  backdrop-filter: blur(3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 #interact-hint.hidden {
@@ -1575,6 +1630,62 @@ body:not(.touch-device) #mobile-controls {
   display: none !important;
 }
 
+/* On touch devices, make the HUD buttons bigger */
+body.touch-device .hud-btn {
+  padding: 10px 18px;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* On touch devices, position message box above controls */
+body.touch-device #message-box {
+  bottom: 190px;
+}
+
+/* On touch devices, bigger interact hint positioned higher */
+body.touch-device #interact-hint {
+  bottom: 200px;
+  font-size: clamp(1rem, 2.8vw, 1.15rem);
+  padding: 12px 24px;
+}
+
+/* On touch devices, improve battle buttons */
+body.touch-device .battle-btn {
+  padding: 16px 28px;
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+  min-height: 56px;
+}
+
+body.touch-device .battle-buttons {
+  gap: 12px;
+}
+
+/* On touch devices, bigger choice buttons */
+body.touch-device .choice-btn {
+  padding: 18px 36px;
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
+  min-height: 56px;
+}
+
+/* On touch devices, make save slots easier to tap */
+body.touch-device .save-slot-content {
+  padding: 20px;
+  min-height: 70px;
+}
+
+body.touch-device .save-delete-btn {
+  width: 54px;
+  font-size: 1.3rem;
+}
+
+/* On touch devices, bigger map close button */
+body.touch-device #map-close-btn {
+  width: 50px;
+  height: 50px;
+  font-size: 2rem;
+}
+
 @media (max-width: 768px) {
   .title-game-label {
     letter-spacing: 0.2em;
@@ -1593,6 +1704,19 @@ body:not(.touch-device) #mobile-controls {
   .name-story {
     display: none;
   }
+
+  /* Landscape phone: compact controls */
+  #mobile-controls {
+    bottom: 6px;
+    padding: 0 8px;
+  }
+  .joystick-area { width: 110px; height: 110px; }
+  .joystick-base { width: 100px; height: 100px; }
+  .joystick-stick { width: 44px; height: 44px; }
+  .action-btn { width: 60px; height: 44px; font-size: 0.65rem; }
+  .action-buttons { gap: 4px; }
+  body.touch-device #message-box { bottom: 120px; }
+  body.touch-device #interact-hint { bottom: 130px; }
 }
 
 /* ========================================
@@ -1606,122 +1730,117 @@ body:not(.touch-device) #mobile-controls {
   }
 
   .joystick-base {
-    width: 170px;
-    height: 170px;
+    width: 180px;
+    height: 180px;
     border: 3px solid rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .joystick-stick {
-    width: 70px;
-    height: 70px;
+    width: 72px;
+    height: 72px;
     border: 3px solid rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.35);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
   }
 
   /* Bigger action buttons for easier tapping */
   .action-btn {
-    width: 80px;
-    height: 80px;
-    font-size: 1rem;
-    border: 3px solid rgba(255, 255, 255, 0.45);
+    width: 90px;
+    height: 65px;
+    font-size: 0.9rem;
+    border-width: 3px;
   }
 
   .action-buttons {
-    gap: 14px;
-  }
-
-  /* Bigger HUD buttons */
-  .hud-btn {
-    padding: 10px 20px;
-    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-  }
-
-  /* Bigger battle buttons */
-  .battle-btn {
-    padding: 14px 28px;
-    font-size: clamp(1rem, 3vw, 1.3rem);
-  }
-
-  /* Bigger save slots for easier tapping */
-  .save-slot-content {
-    padding: 20px;
-  }
-
-  .save-delete-btn {
-    width: 54px;
-    font-size: 1.2rem;
-  }
-
-  /* Bigger choice buttons */
-  .choice-btn {
-    padding: 16px 32px;
-    font-size: clamp(1rem, 3vw, 1.3rem);
-  }
-
-  /* Bigger message box tap target */
-  #message-box {
-    padding: 20px 28px;
-  }
-
-  /* Bigger interact hint */
-  #interact-hint {
-    font-size: clamp(1rem, 2.5vw, 1.2rem);
-    padding: 12px 24px;
+    gap: 10px;
+    max-width: 200px;
   }
 
   /* Bigger emotes for tablet */
   #emote-bar {
-    bottom: 100px;
-    gap: 10px;
-    padding: 8px 18px;
+    bottom: 200px;
+    gap: 8px;
+    padding: 10px;
   }
   .emote-btn {
-    width: 50px; height: 50px;
-    font-size: 1.6rem;
+    width: 54px; height: 54px;
+    font-size: 1.7rem;
+  }
+
+  /* Tablet message box */
+  body.touch-device #message-box {
+    bottom: 220px;
+    padding: 24px 28px;
+  }
+
+  /* Tablet interact hint */
+  body.touch-device #interact-hint {
+    bottom: 240px;
   }
 }
 
 /* Small phone optimizations */
 @media (max-width: 480px) {
   .joystick-area {
+    width: 140px;
+    height: 140px;
+  }
+
+  .joystick-base {
     width: 120px;
     height: 120px;
   }
 
-  .joystick-base {
-    width: 100px;
-    height: 100px;
-  }
-
   .joystick-stick {
-    width: 42px;
-    height: 42px;
+    width: 50px;
+    height: 50px;
   }
 
   .action-btn {
-    width: 52px;
-    height: 52px;
-    font-size: 0.7rem;
+    width: 68px;
+    height: 50px;
+    font-size: 0.65rem;
+  }
+
+  .action-buttons {
+    gap: 6px;
+    max-width: 150px;
   }
 
   .hud-btn {
-    padding: 5px 10px;
-    font-size: 0.7rem;
+    padding: 8px 14px;
+    font-size: 0.8rem;
   }
 
   #mobile-controls {
-    padding: 0 10px;
+    padding: 0 8px;
     bottom: 10px;
   }
 
   #emote-bar {
-    bottom: 75px;
-    gap: 5px;
-    padding: 4px 10px;
+    bottom: 150px;
+    right: 8px;
+    gap: 4px;
+    padding: 6px;
   }
   .emote-btn {
-    width: 34px; height: 34px;
-    font-size: 1.1rem;
+    width: 38px; height: 38px;
+    font-size: 1.2rem;
+  }
+
+  /* Small phone message box */
+  body.touch-device #message-box {
+    bottom: 160px;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+  }
+  body.touch-device #interact-hint {
+    bottom: 170px;
+  }
+
+  /* Small phone battle UI */
+  .battle-btn {
+    min-width: 80px;
+    padding: 14px 16px;
   }
 }

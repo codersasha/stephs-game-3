@@ -3585,18 +3585,20 @@ window.onerror = function(msg, url, line, col, err) {
     // mobile
     setupMobileControls();
 
-    // Touch camera — drag anywhere on the right side of the screen to look around
-    // Uses right 60% of screen so tablets have plenty of room
+    // Touch camera — drag anywhere on the screen (not on joystick) to look around
+    // Higher sensitivity for responsive feel, works anywhere not covered by UI
     let touchCamId = null, ltx = 0, lty = 0;
-    const camSensitivity = 0.004;
+    const camSensitivity = 0.005;
 
     renderer.domElement.addEventListener('touchstart', e => {
       if (gameState !== 'playing') return;
       for (const t of e.changedTouches) {
         // Try to talk to a cat by tapping on them
         if (tryTalkByRaycast(t.clientX, t.clientY)) return;
-        // Right 60% of screen = camera drag zone (more room on tablet)
-        if (t.clientX > window.innerWidth * 0.4) {
+        // Any touch on the canvas that's not on the joystick side = camera
+        // On small screens: right 50%; on larger screens: right 55%
+        const camZone = window.innerWidth < 480 ? 0.38 : 0.35;
+        if (t.clientX > window.innerWidth * camZone) {
           touchCamId = t.identifier;
           ltx = t.clientX;
           lty = t.clientY;
@@ -3625,8 +3627,8 @@ window.onerror = function(msg, url, line, col, err) {
     const jArea = $('joystick-area'), jStick = $('joystick-stick');
     const bSprint = $('btn-sprint'), bAction = $('btn-action');
     let jTid = null, jCenter = { x: 0, y: 0 };
-    // Bigger max joystick distance on tablets
-    const joyMax = (window.innerWidth > 768) ? 60 : 40;
+    // Bigger max joystick distance — more responsive feel
+    const joyMax = (window.innerWidth > 768) ? 65 : 50;
 
     jArea.addEventListener('touchstart', e => {
       e.preventDefault(); const t = e.changedTouches[0]; jTid = t.identifier;
@@ -3646,14 +3648,39 @@ window.onerror = function(msg, url, line, col, err) {
     });
     const resetJ = e => { for (const t of e.changedTouches) if (t.identifier === jTid) { jTid = null; jStick.style.transform = 'translate(0,0)'; joystickInput.x = 0; joystickInput.z = 0; } };
     jArea.addEventListener('touchend', resetJ); jArea.addEventListener('touchcancel', resetJ);
-    bSprint.addEventListener('touchstart', e => { e.preventDefault(); if (player) player.isSprinting = true; });
-    bSprint.addEventListener('touchend', e => { e.preventDefault(); if (player) player.isSprinting = false; });
+    // Sprint is a TOGGLE on mobile — tap to start running, tap again to stop
+    // Much easier than holding the button while also using the joystick
+    bSprint.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (player) {
+        player.isSprinting = !player.isSprinting;
+        bSprint.style.background = player.isSprinting
+          ? 'rgba(60, 130, 200, 0.5)' : '';
+        bSprint.style.borderColor = player.isSprinting
+          ? 'rgba(100, 200, 255, 0.9)' : '';
+      }
+    });
     bAction.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); talkToNearestCat(); });
 
     // Jump button
     const bJump = $('btn-jump');
     if (bJump) {
       bJump.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); if (gameState === 'playing' && isOnGround && !isSwimming) playerJump(); });
+    }
+
+    // Emote toggle button — shows/hides the emote bar
+    const bEmoteToggle = $('btn-emote-toggle');
+    if (bEmoteToggle) {
+      bEmoteToggle.addEventListener('touchstart', e => {
+        e.preventDefault(); initAudio();
+        const bar = $('emote-bar');
+        if (bar) bar.classList.toggle('hidden');
+      });
+      bEmoteToggle.addEventListener('click', () => {
+        initAudio();
+        const bar = $('emote-bar');
+        if (bar) bar.classList.toggle('hidden');
+      });
     }
 
     // Emote buttons
@@ -4497,7 +4524,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = 'Rusty';
-    $('emote-bar').classList.remove('hidden');
+    if (!isMobile) $('emote-bar').classList.remove('hidden');
 
     if (isMobile) mobileControls.classList.add('visible');
 
@@ -5927,7 +5954,7 @@ window.onerror = function(msg, url, line, col, err) {
       { speaker: '???', text: '"Wait. Look at this young cat. There is fire in his eyes... something the forest needs."',
         camPos: { x: player.position.x - 1, y: 2.5, z: player.position.z - 2 },
         camLook: { x: player.position.x - 3, y: 1.2, z: player.position.z - 5 } },
-      { speaker: '???', text: '"I am <strong>Bluestar</strong>, leader of ThunderClan. And this is <strong>Lionheart</strong>, my deputy. I have been watching you."' },
+      { speaker: '???', text: '"I am <strong>Bluestar</strong>, leader of ThunderClan. And this is <strong>Lionheart</strong>, one of our warriors. I have been watching you."' },
       { speaker: 'Bluestar', text: '"You showed courage coming into the forest, and skill in your fight. I would like to offer you a place in our Clan."' },
       { speaker: 'Lionheart', text: '"Are you sure, Bluestar? He\'s a kittypet..."' },
       { speaker: 'Bluestar', text: '"I am sure. StarClan has shown me a prophecy: <em>Fire alone will save our Clan.</em> This cat may be the one."' },
@@ -6059,7 +6086,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
-    $('emote-bar').classList.remove('hidden');
+    if (!isMobile) $('emote-bar').classList.remove('hidden');
     if (isMobile) mobileControls.classList.add('visible');
     startForestAmbience();
 
@@ -6594,7 +6621,7 @@ window.onerror = function(msg, url, line, col, err) {
 
     gameHud.classList.add('visible');
     playerNameEl.textContent = player.name;
-    $('emote-bar').classList.remove('hidden');
+    if (!isMobile) $('emote-bar').classList.remove('hidden');
 
     if (isMobile) mobileControls.classList.add('visible');
 
