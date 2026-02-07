@@ -2802,8 +2802,8 @@ window.onerror = function(msg, url, line, col, err) {
   }
 
   function playerHitByMonster (m) {
-    // Take damage
-    player.hp = Math.max(0, player.hp - 25);
+    // Take heavy damage
+    player.health = Math.max(0, player.health - 40);
     playSound('hurt');
     playSound('danger');
 
@@ -2814,22 +2814,19 @@ window.onerror = function(msg, url, line, col, err) {
 
     // Flash screen red
     const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,0,0,0.5);z-index:9999;pointer-events:none;';
+    flash.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,0,0,0.6);z-index:9999;pointer-events:none;';
     document.body.appendChild(flash);
-    setTimeout(() => flash.remove(), 300);
+    setTimeout(() => flash.remove(), 400);
 
-    if (player.hp <= 0) {
-      // Player died!
+    if (player.health <= 0) {
+      // Player killed by a monster! Respawn at medicine cat den
       queueMessage('Narrator', 'A monster hit you on the Thunderpath! Everything goes dark...', () => {
-        // Respawn at ThunderClan camp
-        player.hp = player.maxHp;
-        player.position = { x: 0, y: 0, z: 0 };
-        catGroup.position.set(0, 0, 0);
-        saveGame();
-        queueMessage('Narrator', 'You wake up in camp. One of your nine lives has been used up...');
+        queueMessage('Narrator', 'You feel yourself being dragged off the road by strong jaws... friendly ThunderClan paws carry you back to camp...', () => {
+          respawnAtMedicineDen();
+        });
       });
     } else {
-      queueMessage('Narrator', 'A MONSTER nearly crushed you! You scramble off the Thunderpath, battered and bruised. (-25 HP)');
+      queueMessage('Narrator', 'A MONSTER nearly crushed you! You scramble off the Thunderpath, battered and bruised. (-40 HP) Stay off the road!');
     }
   }
 
